@@ -31,6 +31,7 @@ export default function PostPreviewModal({ post, onClose }: { post: PostData; on
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState(post.comments);
   const [activeTab, setActiveTab] = useState<"preview" | "comments" | "settings">("preview");
+  const [previewPlatform, setPreviewPlatform] = useState<"fb" | "ig" | "th">(post.platforms[0] || "fb");
 
   const addComment = () => {
     if (newComment.trim()) {
@@ -93,64 +94,227 @@ export default function PostPreviewModal({ post, onClose }: { post: PostData; on
         <div className="px-6 py-5" style={{ maxHeight: "60vh", overflowY: "auto" }}>
           {activeTab === "preview" && (
             <div>
-              {/* Media preview */}
-              <div className="w-full aspect-[4/3] rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "var(--surface-hover)" }}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ color: "var(--text-muted)" }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              {/* Platform preview tabs */}
+              <div className="flex items-center gap-1 mb-4 p-1 rounded-lg" style={{ backgroundColor: "var(--surface)" }}>
+                {post.platforms.map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPreviewPlatform(p)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all"
+                    style={{
+                      backgroundColor: previewPlatform === p ? platformLabels[p].color : "transparent",
+                      color: previewPlatform === p ? "white" : "var(--text-muted)",
+                    }}
+                  >
+                    {platformLabels[p].full}
+                  </button>
+                ))}
               </div>
 
-              {/* Caption */}
-              <div className="mb-5">
-                <label className="text-[11px] font-semibold uppercase tracking-wider mb-2 block" style={{ color: "var(--text-muted)" }}>Caption</label>
-                <p className="text-[13px] leading-relaxed" style={{ color: "var(--text)" }}>{post.caption}</p>
-              </div>
+              {/* Facebook-style preview */}
+              {previewPlatform === "fb" && (
+                <div className="rounded-xl overflow-hidden" style={{ backgroundColor: "#242526", border: "1px solid #3a3b3c" }}>
+                  {/* FB Header */}
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-bold text-white" style={{ backgroundColor: post.page.color }}>
+                      {post.page.avatar}
+                    </div>
+                    <div>
+                      <span className="text-[14px] font-semibold block" style={{ color: "#e4e6eb" }}>{post.page.name}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[12px]" style={{ color: "#b0b3b8" }}>{post.scheduledAt}</span>
+                        <span className="text-[12px]" style={{ color: "#b0b3b8" }}>·</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#b0b3b8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                      </div>
+                    </div>
+                    <div className="ml-auto">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="#b0b3b8"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                    </div>
+                  </div>
 
-              {/* Publishing to */}
-              <div className="mb-5">
-                <label className="text-[11px] font-semibold uppercase tracking-wider mb-2 block" style={{ color: "var(--text-muted)" }}>Publishing to</label>
-                <div className="flex items-center gap-2">
+                  {/* Caption */}
+                  <div className="px-4 pb-3">
+                    <p className="text-[14px] leading-[20px]" style={{ color: "#e4e6eb" }}>{post.caption}</p>
+                  </div>
+
+                  {/* Image */}
+                  <div className="w-full aspect-[4/3] flex items-center justify-center" style={{ backgroundColor: "#3a3b3c" }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#b0b3b8" strokeWidth="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  </div>
+
+                  {/* Reactions bar */}
+                  <div className="px-4 py-2 flex items-center justify-between" style={{ borderBottom: "1px solid #3a3b3c" }}>
+                    <div className="flex items-center gap-1">
+                      <div className="flex -space-x-1">
+                        <span className="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px]" style={{ backgroundColor: "#1877F2" }}>👍</span>
+                        <span className="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px]" style={{ backgroundColor: "#ED4956" }}>❤️</span>
+                      </div>
+                      <span className="text-[13px] ml-1" style={{ color: "#b0b3b8" }}>Preview</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[13px]" style={{ color: "#b0b3b8" }}>0 Comments</span>
+                      <span className="text-[13px]" style={{ color: "#b0b3b8" }}>0 Shares</span>
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center justify-around px-4 py-2">
+                    {["👍 Like", "💬 Comment", "↗️ Share"].map(action => (
+                      <span key={action} className="text-[14px] font-medium py-1.5 px-4 rounded-md" style={{ color: "#b0b3b8" }}>{action}</span>
+                    ))}
+                  </div>
+
+                  {/* Thread preview */}
+                  {comments.length > 0 && (
+                    <div className="px-4 py-3" style={{ borderTop: "1px solid #3a3b3c" }}>
+                      <span className="text-[11px] font-semibold uppercase tracking-wider mb-2 block" style={{ color: "#b0b3b8" }}>Threaded Comments Preview</span>
+                      {comments.map((c, i) => (
+                        <div key={i} className="flex items-start gap-2 mt-2">
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0" style={{ backgroundColor: post.page.color }}>
+                            {post.page.avatar}
+                          </div>
+                          <div className="px-3 py-2 rounded-2xl" style={{ backgroundColor: "#3a3b3c" }}>
+                            <span className="text-[12px] font-semibold block" style={{ color: "#e4e6eb" }}>{post.page.name}</span>
+                            <span className="text-[13px]" style={{ color: "#e4e6eb" }}>{c}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Instagram-style preview */}
+              {previewPlatform === "ig" && (
+                <div className="rounded-xl overflow-hidden" style={{ backgroundColor: "#000", border: "1px solid #262626" }}>
+                  {/* IG Header */}
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: post.page.color, border: "2px solid #c13584" }}>
+                      {post.page.avatar}
+                    </div>
+                    <span className="text-[13px] font-semibold" style={{ color: "#f5f5f5" }}>{post.page.name.toLowerCase().replace(/\s+/g, '')}</span>
+                    <div className="ml-auto">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="#f5f5f5"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                    </div>
+                  </div>
+
+                  {/* Image */}
+                  <div className="w-full aspect-square flex items-center justify-center" style={{ backgroundColor: "#1a1a1a" }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  </div>
+
+                  {/* Action icons */}
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-4">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f5f5f5" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f5f5f5" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f5f5f5" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </div>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f5f5f5" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                  </div>
+
+                  {/* Caption */}
+                  <div className="px-4 pb-3">
+                    <p className="text-[13px] leading-[18px]">
+                      <span className="font-semibold mr-1" style={{ color: "#f5f5f5" }}>{post.page.name.toLowerCase().replace(/\s+/g, '')}</span>
+                      <span style={{ color: "#f5f5f5" }}>{post.caption}</span>
+                    </p>
+                  </div>
+
+                  {/* Comments */}
+                  {comments.length > 0 && (
+                    <div className="px-4 pb-3">
+                      <span className="text-[13px] mb-2 block" style={{ color: "#a8a8a8" }}>View all {comments.length} comments</span>
+                      {comments.slice(0, 2).map((c, i) => (
+                        <p key={i} className="text-[13px] leading-[18px] mt-1">
+                          <span className="font-semibold mr-1" style={{ color: "#f5f5f5" }}>{post.page.name.toLowerCase().replace(/\s+/g, '')}</span>
+                          <span style={{ color: "#f5f5f5" }}>{c}</span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="px-4 pb-3">
+                    <span className="text-[11px] uppercase" style={{ color: "#a8a8a8" }}>{post.scheduledAt}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Threads-style preview */}
+              {previewPlatform === "th" && (
+                <div className="rounded-xl overflow-hidden p-4" style={{ backgroundColor: "#101010", border: "1px solid #333" }}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: post.page.color }}>
+                        {post.page.avatar}
+                      </div>
+                      {comments.length > 0 && <div className="w-[2px] flex-1 mt-2 rounded-full" style={{ backgroundColor: "#333" }} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-semibold" style={{ color: "#f5f5f5" }}>{post.page.name.toLowerCase().replace(/\s+/g, '')}</span>
+                        <span className="text-[12px]" style={{ color: "#777" }}>{post.scheduledAt}</span>
+                      </div>
+                      <p className="text-[14px] leading-[20px] mt-1" style={{ color: "#f5f5f5" }}>{post.caption}</p>
+
+                      {post.type !== "text" && (
+                        <div className="w-full aspect-[4/3] rounded-xl mt-3 flex items-center justify-center" style={{ backgroundColor: "#1a1a1a" }}>
+                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-5 mt-3">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" strokeWidth="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" strokeWidth="1.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/></svg>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" strokeWidth="1.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Thread replies */}
+                  {comments.map((c, i) => (
+                    <div key={i} className="flex items-start gap-3 mt-3">
+                      <div className="flex flex-col items-center">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: post.page.color }}>
+                          {post.page.avatar}
+                        </div>
+                        {i < comments.length - 1 && <div className="w-[2px] flex-1 mt-2 rounded-full" style={{ backgroundColor: "#333" }} />}
+                      </div>
+                      <div className="flex-1 pt-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[14px] font-semibold" style={{ color: "#f5f5f5" }}>{post.page.name.toLowerCase().replace(/\s+/g, '')}</span>
+                        </div>
+                        <p className="text-[14px] leading-[20px] mt-0.5" style={{ color: "#f5f5f5" }}>{c}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Schedule bar below preview */}
+              <div className="flex items-center gap-3 p-3 rounded-lg mt-4" style={{ backgroundColor: "var(--surface)" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--primary)" }}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span className="text-[12px] font-medium" style={{ color: "var(--text)" }}>{post.scheduledAt}</span>
+                <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>·</span>
+                <div className="flex items-center gap-1">
                   {post.platforms.map(p => (
-                    <span key={p} className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg" style={{
-                      backgroundColor: `${platformLabels[p].color}15`,
-                      color: platformLabels[p].color,
-                    }}>
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: platformLabels[p].color }} />
-                      {platformLabels[p].full}
+                    <span key={p} className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: `${platformLabels[p].color}20`, color: platformLabels[p].color }}>
+                      {platformLabels[p].label}
                     </span>
                   ))}
                 </div>
+                <button className="ml-auto text-[11px] font-medium" style={{ color: "var(--primary)" }}>Change</button>
               </div>
 
-              {/* Schedule */}
-              <div>
-                <label className="text-[11px] font-semibold uppercase tracking-wider mb-2 block" style={{ color: "var(--text-muted)" }}>Schedule</label>
-                <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: "var(--surface)" }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--primary)" }}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  <span className="text-[13px] font-medium" style={{ color: "var(--text)" }}>{post.scheduledAt}</span>
-                  <button className="ml-auto text-[11px] font-medium" style={{ color: "var(--primary)" }}>Change</button>
-                </div>
-              </div>
-
-              {/* Quick thread preview */}
+              {/* Thread count */}
               {comments.length > 0 && (
-                <div className="mt-5">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Thread ({comments.length} comments)</label>
-                    <button onClick={() => setActiveTab("comments")} className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>Manage →</button>
-                  </div>
-                  <div className="space-y-1">
-                    {comments.slice(0, 2).map((c, i) => (
-                      <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: "var(--surface)" }}>
-                        <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0" style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}>{i + 1}</span>
-                        <span className="text-[11px] truncate" style={{ color: "var(--text-secondary)" }}>{c}</span>
-                      </div>
-                    ))}
-                    {comments.length > 2 && (
-                      <button onClick={() => setActiveTab("comments")} className="text-[11px] font-medium pl-8" style={{ color: "var(--text-muted)" }}>
-                        +{comments.length - 2} more...
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <button onClick={() => setActiveTab("comments")} className="flex items-center gap-2 w-full p-3 rounded-lg mt-2 text-left" style={{ backgroundColor: "var(--primary-muted)" }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--primary)" }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <span className="text-[12px] font-medium" style={{ color: "var(--primary)" }}>{comments.length} threaded comments</span>
+                  <span className="ml-auto text-[11px]" style={{ color: "var(--primary)" }}>Manage →</span>
+                </button>
               )}
             </div>
           )}
