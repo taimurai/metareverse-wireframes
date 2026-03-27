@@ -3,7 +3,18 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import SparklineChart from "@/components/SparklineChart";
 import PlatformSwitcher from "@/components/PlatformSwitcher";
+import PageBatchSelector from "@/components/PageBatchSelector";
 import Link from "next/link";
+
+const pageRevenue = [
+  { name: "Laugh Central", avatar: "LC", color: "#8B5CF6", revenue: "$4,690", rpm: "$10.20", views: "24.5M", pct: 36, change: "+31%", changeType: "up" as const, monetized: true },
+  { name: "History Uncovered", avatar: "HU", color: "#FF6B2B", revenue: "$3,842", rpm: "$9.12", views: "18.2M", pct: 30, change: "+12%", changeType: "up" as const, monetized: true },
+  { name: "TechByte", avatar: "TB", color: "#14B8A6", revenue: "$2,180", rpm: "$8.95", views: "9.1M", pct: 17, change: "-3%", changeType: "down" as const, monetized: true },
+  { name: "Daily Health Tips", avatar: "DH", color: "#6366F1", revenue: "$1,245", rpm: "$7.80", views: "5.6M", pct: 10, change: "+8%", changeType: "up" as const, monetized: true },
+  { name: "Fitness Factory", avatar: "FF", color: "#EC4899", revenue: "$890", rpm: "$6.40", views: "3.2M", pct: 7, change: "+22%", changeType: "up" as const, monetized: true },
+  { name: "Money Matters", avatar: "MM", color: "#F59E0B", revenue: "—", rpm: "—", views: "7.4M", pct: 0, change: "—", changeType: "up" as const, monetized: false },
+  { name: "Know Her Name", avatar: "KH", color: "#0EA5E9", revenue: "$4.45", rpm: "$0.23", views: "77.5K", pct: 0.03, change: "+100%", changeType: "up" as const, monetized: true },
+];
 
 const metricCards = [
   {
@@ -81,6 +92,8 @@ const recentContent = [
 export default function ReportingOverview() {
   const [period, setPeriod] = useState("28d");
   const [platform, setPlatform] = useState("facebook");
+  const [selectedScope, setSelectedScope] = useState("all");
+  const [scopeType, setScopeType] = useState<"all" | "page" | "batch">("all");
 
   return (
     <div>
@@ -89,6 +102,7 @@ export default function ReportingOverview() {
         subtitle="Review performance results and more."
         actions={
           <div className="flex items-center gap-3">
+            <PageBatchSelector selected={selectedScope} onChange={(id, type) => { setSelectedScope(id); setScopeType(type); }} />
             <PlatformSwitcher active={platform} onChange={setPlatform} />
             <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
               {["7d", "28d", "90d"].map((p) => (
@@ -134,6 +148,86 @@ export default function ReportingOverview() {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: "#1877F2" }}><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
         <span className="text-[14px] font-semibold" style={{ color: "var(--text)" }}>Performance</span>
         <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>Feb 27, 2026 – Mar 26, 2026</span>
+      </div>
+
+      {/* Cross-Page Revenue Aggregation */}
+      <div className="rounded-xl border p-6 mb-6 relative overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+        <div className="absolute top-0 right-0 w-96 h-full opacity-[0.05]" style={{ background: "radial-gradient(circle at top right, var(--success), transparent 70%)" }} />
+        <div className="relative">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md" style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}>OWNER ONLY</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                {scopeType === "all" ? "Cross-Page Revenue" : scopeType === "batch" ? "Batch Revenue" : "Page Revenue"}
+              </span>
+            </div>
+            <Link href="/reports/earnings" className="text-[12px] font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}>
+              Full Earnings →
+            </Link>
+          </div>
+
+          {/* Hero numbers */}
+          <div className="grid grid-cols-5 gap-6 mb-5">
+            <div>
+              <div className="text-[32px] font-bold tracking-tight" style={{ color: "var(--text)" }}>$12,851</div>
+              <div className="text-[12px]" style={{ color: "var(--text-secondary)" }}>This week</div>
+              <div className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--success)" }}>+14% vs last week</div>
+            </div>
+            <div>
+              <div className="text-[22px] font-bold" style={{ color: "var(--text)" }}>$48,396</div>
+              <div className="text-[12px]" style={{ color: "var(--text-secondary)" }}>This month</div>
+              <div className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--success)" }}>+9%</div>
+            </div>
+            <div>
+              <div className="text-[22px] font-bold" style={{ color: "var(--text)" }}>$8.42</div>
+              <div className="text-[12px]" style={{ color: "var(--text-secondary)" }}>Avg RPM</div>
+              <div className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--success)" }}>+$0.38</div>
+            </div>
+            <div>
+              <div className="text-[22px] font-bold" style={{ color: "var(--text)" }}>6 / 7</div>
+              <div className="text-[12px]" style={{ color: "var(--text-secondary)" }}>Monetized Pages</div>
+              <div className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--warning)" }}>1 not enrolled</div>
+            </div>
+            <div>
+              <div className="text-[22px] font-bold" style={{ color: "var(--text)" }}>$142,891</div>
+              <div className="text-[12px]" style={{ color: "var(--text-secondary)" }}>Last 90 days</div>
+              <div className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--success)" }}>+11%</div>
+            </div>
+          </div>
+
+          {/* Per-page revenue breakdown */}
+          <div className="space-y-2">
+            {pageRevenue.map((page) => (
+              <div key={page.name} className="flex items-center gap-3 px-3 py-2 rounded-lg" style={{ backgroundColor: "var(--bg)" }}>
+                <div className="w-7 h-7 rounded-md flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0" style={{ backgroundColor: page.color }}>
+                  {page.avatar}
+                </div>
+                <div className="w-32 truncate text-[12px] font-medium" style={{ color: "var(--text)" }}>{page.name}</div>
+
+                {/* Revenue bar */}
+                <div className="flex-1 flex items-center gap-2">
+                  <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: "var(--surface)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${Math.min(page.pct, 100)}%`, backgroundColor: page.monetized ? page.color : "var(--text-muted)" }} />
+                  </div>
+                  <span className="text-[10px] w-8 text-right tabular-nums" style={{ color: "var(--text-muted)" }}>{page.pct > 0 ? `${page.pct}%` : "—"}</span>
+                </div>
+
+                <div className="w-16 text-right text-[12px] font-semibold tabular-nums" style={{ color: page.monetized ? "var(--success)" : "var(--text-muted)" }}>
+                  {page.revenue}
+                </div>
+                <div className="w-16 text-right text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>
+                  RPM {page.rpm}
+                </div>
+                <div className="w-14 text-right text-[11px] font-medium tabular-nums" style={{ color: page.changeType === "up" ? "var(--success)" : "var(--error)" }}>
+                  {page.change}
+                </div>
+                {!page.monetized && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--warning-bg)", color: "var(--warning)" }}>Not enrolled</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Metric Cards Grid — 2 columns */}

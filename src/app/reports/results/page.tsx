@@ -3,6 +3,7 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import LineChart from "@/components/LineChart";
 import PlatformSwitcher from "@/components/PlatformSwitcher";
+import PageBatchSelector from "@/components/PageBatchSelector";
 import Link from "next/link";
 
 // Generate 28-day date labels
@@ -71,6 +72,7 @@ const chartSections = [
 export default function ResultsPage() {
   const [period, setPeriod] = useState("28d");
   const [platform, setPlatform] = useState("facebook");
+  const [selectedScope, setSelectedScope] = useState("all");
 
   return (
     <div>
@@ -79,6 +81,7 @@ export default function ResultsPage() {
         subtitle="Review performance results and more."
         actions={
           <div className="flex items-center gap-3">
+            <PageBatchSelector selected={selectedScope} onChange={(id) => setSelectedScope(id)} />
             <PlatformSwitcher active={platform} onChange={setPlatform} />
             <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
               {["7d", "28d", "90d"].map((p) => (
