@@ -121,9 +121,10 @@ export default function QueuePage() {
             <button
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white"
               style={{ backgroundColor: "var(--primary)", boxShadow: "0 4px 14px var(--primary-glow)" }}
+              onClick={() => window.location.href = "/upload"}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-              Publish All Scheduled
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Posts
             </button>
           </div>
         }
@@ -166,18 +167,6 @@ export default function QueuePage() {
             ))}
           </select>
 
-          {/* Auto-schedule controls */}
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>Auto-fill: Every 2.5 hrs</span>
-            <select className="text-[11px] bg-transparent border-none outline-none" style={{ color: "var(--primary)" }}>
-              <option>Every 2.5 hrs</option>
-              <option>Every 2 hrs</option>
-              <option>Every 3 hrs</option>
-              <option>Every 4 hrs</option>
-              <option>Custom</option>
-            </select>
-          </div>
         </div>
       </div>
 
