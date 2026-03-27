@@ -63,18 +63,29 @@ export default function QueuePage() {
   ];
 
   const pageIdToName: Record<string, string> = { hu: "History Uncovered", lc: "Laugh Central", tb: "TechByte", ff: "Fitness Factory", dh: "Daily Health Tips", mm: "Money Matters", khn: "Know Her Name" };
+  const batchPages: Record<string, string[]> = { b1: ["lc", "ff", "dh"], b2: ["hu", "tb", "mm"], b3: ["khn"] };
+
+  const getFilteredNames = (): string[] | null => {
+    if (selectedPage === "all") return null;
+    if (batchPages[selectedPage]) return batchPages[selectedPage].map(id => pageIdToName[id]);
+    return [pageIdToName[selectedPage]].filter(Boolean);
+  };
+
+  const filterNames = getFilteredNames();
 
   const filtered = MOCK_QUEUE.filter(p => {
     if (filter !== "all" && p.status !== filter) return false;
-    if (selectedPage !== "all" && p.page.name !== pageIdToName[selectedPage]) return false;
+    if (filterNames && !filterNames.includes(p.page.name)) return false;
     return true;
   });
 
+  const matchesScope = (p: QueuePost) => !filterNames || filterNames.includes(p.page.name);
+
   const counts = {
-    all: MOCK_QUEUE.filter(p => selectedPage === "all" || p.page.name === pageIdToName[selectedPage]).length,
-    scheduled: MOCK_QUEUE.filter(p => p.status === "scheduled" && (selectedPage === "all" || p.page.name === pageIdToName[selectedPage])).length,
-    draft: MOCK_QUEUE.filter(p => p.status === "draft" && (selectedPage === "all" || p.page.name === pageIdToName[selectedPage])).length,
-    failed: MOCK_QUEUE.filter(p => p.status === "failed" && (selectedPage === "all" || p.page.name === pageIdToName[selectedPage])).length,
+    all: MOCK_QUEUE.filter(matchesScope).length,
+    scheduled: MOCK_QUEUE.filter(p => p.status === "scheduled" && matchesScope(p)).length,
+    draft: MOCK_QUEUE.filter(p => p.status === "draft" && matchesScope(p)).length,
+    failed: MOCK_QUEUE.filter(p => p.status === "failed" && matchesScope(p)).length,
   };
 
   const toggleSelect = (id: string) => {
