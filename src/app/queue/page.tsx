@@ -167,7 +167,7 @@ export default function QueuePage() {
 
       {/* Queue grid header */}
       <div className="rounded-t-xl border border-b-0" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-        <div className="grid items-center px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", gridTemplateColumns: "40px 1fr 140px 70px 100px 150px 70px 36px" }}>
+        <div className="grid items-center px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", gridTemplateColumns: "36px 3fr 120px 60px 90px 140px 60px 32px" }}>
           <div>
             <input
               type="checkbox"
@@ -217,7 +217,7 @@ export default function QueuePage() {
                     style={{
                       backgroundColor: selectedPosts.has(post.id) ? "var(--primary-muted)" : dragOverId === post.id ? "var(--surface-hover)" : "var(--surface)",
                       borderColor: "var(--border)",
-                      gridTemplateColumns: "40px 1fr 140px 70px 100px 150px 70px 36px",
+                      gridTemplateColumns: "36px 3fr 120px 60px 90px 140px 60px 32px",
                     }}
                     onDragOver={(e) => { e.preventDefault(); setDragOverId(post.id); }}
                     onDragLeave={() => setDragOverId(null)}
