@@ -99,7 +99,13 @@ export default function Dashboard() {
 
         {/* Avg RPM */}
         <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Portfolio RPM</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider group/rpm relative cursor-help" style={{ color: "var(--text-muted)" }}>
+            Portfolio RPM
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline ml-1 -mt-0.5" style={{ color: "var(--text-muted)" }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span className="absolute left-0 top-full mt-2 w-[240px] p-3 rounded-lg text-[11px] font-normal normal-case tracking-normal leading-relaxed hidden group-hover/rpm:block z-50 shadow-xl" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+              Revenue Per Mille — calculated as (Earnings ÷ Monetized Views) × 1,000. Sourced from Meta Content Monetization API.
+            </span>
+          </span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-[28px] font-bold tracking-tight" style={{ color: "var(--text)" }}>${avgRpm.toFixed(2)}</span>
             <span className="text-[12px] font-semibold" style={{ color: "var(--success)" }}>↑ $0.38</span>
@@ -256,7 +262,13 @@ export default function Dashboard() {
         <div className="grid items-center px-4 py-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", backgroundColor: "var(--surface)", gridTemplateColumns: "200px 1fr 90px 90px 90px 80px 60px" }}>
           <div>Page</div>
           <div>Revenue</div>
-          <div>RPM</div>
+          <div className="group/rpmcol relative cursor-help">
+            RPM
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline ml-0.5 -mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span className="absolute left-0 top-full mt-1 w-[220px] p-2.5 rounded-lg text-[10px] font-normal normal-case tracking-normal leading-relaxed hidden group-hover/rpmcol:block z-50 shadow-xl" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+              (Earnings ÷ Monetized Views) × 1,000. From Meta Content Monetization API.
+            </span>
+          </div>
           <div>Views (7d)</div>
           <div>Queue (24h)</div>
           <div>Token</div>
