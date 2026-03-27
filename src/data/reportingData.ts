@@ -323,20 +323,124 @@ export interface RecentPost {
   shares: string;
   revenue: string;
   status: string;
+  _views: number;
+  _reach: number;
+  _clicks: number;
+  _reactions: number;
+  _comments: number;
+  _shares: number;
+  _revenue: number;
 }
+
+// Per-page post pools (different content per page)
+const PAGE_POST_CAPTIONS: Record<string, { captions: string[]; reelIndices: number[] }> = {
+  lc: { captions: ["When your code works first try but you don't trust it", "The WiFi password is on the wall — the wall:", "POV: You open 47 Chrome tabs and your laptop becomes a jet engine", "Boss: Can you stay late? Me: *already packed*", "When the meeting could've been an email — Part 47", "That moment when autocorrect changes your professional email", "When you finally fix the bug at 2am", "My bank account after payday vs 3 days later", "When someone says 'quick question' in Slack at 4:59pm", "The 5 stages of debugging: denial, anger, coffee, more coffee, it was a typo", "When your cat walks across the keyboard during a Zoom call", "Client: Can you make the logo bigger? Designer:", "When the intern pushes to production on Friday", "POV: You're the only one who knows how to fix the printer", "Reply all disasters that made history"], reelIndices: [2, 6, 10, 13] },
+  hu: { captions: ["Kaja Kallas — Estonia's PM during Ukraine invasion", "Norway health crisis response — timeline", "Shirley Chisholm — 1968 convention floor speech", "Motley Crue — the Supreme Court case nobody talks about", "Sojourner Truth — Convention question, 1851", "Rosalind Franklin — Photo 51 and the DNA helix", "Marie Curie — the notebook that's still radioactive", "Harriet Tubman — the raid at Combahee Ferry", "Amelia Earhart — final radio transmission decoded", "Cleopatra — what she actually looked like", "Rosa Parks — the photo that changed everything", "Catherine the Great — 5 myths debunked", "Hypatia of Alexandria — murdered for mathematics", "Hatshepsut — the pharaoh they tried to erase", "Hedy Lamarr — actress who invented WiFi"], reelIndices: [4, 9, 12] },
+  tb: { captions: ["Apple just leaked their next chip — and it's different", "The database that powers 90% of the internet", "Why developers are mass-migrating from Docker", "Rust vs Go in 2026 — the real benchmarks", "This AI model runs entirely on your phone", "The 10-line script that saved a Fortune 500 company $2M", "USB-C was supposed to fix everything. It didn't.", "The browser feature nobody knows about", "Why your SSD will die sooner than you think", "Linux just hit 5% desktop market share — here's why", "The API that broke the internet for 6 hours", "Quantum computing explained with pizza", "This startup built a CPU from scratch in a garage", "Why Windows 12 changes everything for developers", "The programming language that AI can't learn"], reelIndices: [1, 4, 8, 11] },
+  dh: { captions: ["3 signs your body is dehydrated — #3 surprises everyone", "Why your doctor doesn't tell you about magnesium", "The breakfast mistake 80% of people make", "Walking vs running — the science is clear now", "Your gut bacteria controls your mood — here's how", "The sleep position that's destroying your back", "5 foods that are secretly inflammatory", "Why stretching before exercise is outdated advice", "The vitamin most people are deficient in", "Cold showers — hype or science?", "Your screen time is aging your eyes faster than you think", "The 2-minute breathing technique that lowers cortisol", "Why processed food is engineered to be addictive", "The truth about intermittent fasting after 40", "Sugar vs fat — the 60-year cover-up"], reelIndices: [3, 7, 9, 14] },
+  ff: { captions: ["5 exercises you're doing wrong — and the simple fix", "The workout split that builds muscle 2x faster", "Why your bench press isn't improving", "Protein timing is a myth — here's the real data", "The mobility routine every lifter needs", "Creatine — everything you need to know in 2026", "Why running doesn't burn fat the way you think", "The deadlift form mistake that causes 70% of injuries", "Progressive overload explained in 60 seconds", "The pre-workout ingredient that actually works", "Rest days — how many do you actually need?", "The squat depth debate is finally settled", "Why women should lift heavier", "Cardio before or after weights? Science answers.", "The grip strength exercise that transfers to everything"], reelIndices: [0, 5, 8, 12] },
+  mm: { captions: ["The $5 coffee habit is NOT why you're broke", "Why saving 20% of your income is outdated advice", "Index funds vs individual stocks — 20-year data", "The tax loophole that expires in December", "Credit score myths that are costing you money", "Why renting can be smarter than buying in 2026", "The emergency fund rule nobody follows correctly", "Compound interest — the graph that changes minds", "Side hustle taxes — what nobody tells you", "The retirement number is wrong for most people", "Why your 401k allocation is probably outdated", "Inflation-proof your savings with this strategy", "The hidden fees in your bank account", "Debt snowball vs avalanche — real calculator results", "Why financial advice on social media is dangerous"], reelIndices: [2, 7, 10, 13] },
+  khn: { captions: ["Niki de Saint Phalle — Shooting paintings in Paris", "Ruth Bader Ginsburg — 5 landmark rulings", "Frida Kahlo — self-portrait analysis", "Ada Lovelace — the first algorithm ever written", "Boudicca — the queen who burned London", "Mary Shelley — she was only 18 when she wrote it", "Artemisia Gentileschi — revenge on canvas", "Nefertiti — the bust that was hidden for years", "Joan of Arc — the trial transcript", "Tomyris — the queen who killed Cyrus the Great", "Malala Yousafzai — her school diary entries", "Eleanor Roosevelt — the secret letters", "Wu Zetian — China's only female emperor", "Sacagawea — what the expedition journals say", "Empress Dowager Cixi — photographer queen"], reelIndices: [2, 4, 7] },
+};
+
+export function getRecentPosts(platform: Platform, pageId?: string): RecentPost[] {
+  const mult = platform === "facebook" ? 1 : platform === "instagram" ? 0.4 : 0.15;
+  const pool = pageId && PAGE_POST_CAPTIONS[pageId] ? PAGE_POST_CAPTIONS[pageId] : PAGE_POST_CAPTIONS.khn;
+
+  // Generate posts from page-specific pool
+  const posts: RecentPost[] = pool.captions.map((caption, i) => {
+    const s = seededRandom(hashStr(caption));
+    const baseViews = Math.round((s * 80000 + 50) * mult);
+    const baseReach = Math.round(baseViews * (0.6 + s * 0.2));
+    const baseClicks = Math.round(baseViews * (0.01 + s * 0.08));
+    const baseReactions = Math.round(baseViews * (0.01 + s * 0.04));
+    const baseComments = Math.round(baseReactions * (0.05 + s * 0.15));
+    const baseShares = Math.round(baseReactions * (0.02 + s * 0.05));
+    const baseRevenue = +(baseViews * 0.00005 * (0.5 + s)).toFixed(2);
+    const day = 26 - i;
+    const month = day > 0 ? "Mar" : "Feb";
+    const displayDay = day > 0 ? day : 28 + day;
+
+    return {
+      caption, type: pool.reelIndices.includes(i) ? "Reel" : "Photo",
+      date: `${month} ${displayDay}`, status: "published",
+      views: formatNum(baseViews), reach: formatNum(baseReach),
+      clicks: formatNum(baseClicks), reactions: formatNum(baseReactions),
+      comments: formatNum(baseComments), shares: formatNum(baseShares),
+      revenue: `$${baseRevenue.toFixed(2)}`,
+      _views: baseViews, _reach: baseReach, _clicks: baseClicks,
+      _reactions: baseReactions, _comments: baseComments, _shares: baseShares,
+      _revenue: baseRevenue,
+    };
+  });
+
+  return posts;
+}
+
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h |= 0; }
+  return Math.abs(h);
+}
+
+// Raw post data with numeric values for sorting
+interface RawPost {
+  caption: string; type: "Photo" | "Reel"; date: string; views: number; reach: number; clicks: number; reactions: number; comments: number; shares: number; revenue: number;
+}
+
+const RAW_POSTS: RawPost[] = [
+  { caption: "Kaja Kallas — Estonia's PM during Ukraine invasion", type: "Photo", date: "Mar 26", views: 65842, reach: 45015, clicks: 7277, reactions: 1842, comments: 284, shares: 52, revenue: 3.88 },
+  { caption: "Norway health crisis response — timeline", type: "Photo", date: "Mar 25", views: 3371, reach: 2601, clicks: 94, reactions: 198, comments: 34, shares: 12, revenue: 0.30 },
+  { caption: "Shirley Chisholm — 1968 convention floor speech", type: "Photo", date: "Mar 24", views: 835, reach: 653, clicks: 10, reactions: 92, comments: 15, shares: 5, revenue: 0.10 },
+  { caption: "Motley Crue — the Supreme Court case nobody talks about", type: "Photo", date: "Mar 23", views: 431, reach: 332, clicks: 4, reactions: 56, comments: 8, shares: 3, revenue: 0.06 },
+  { caption: "Sojourner Truth — Convention question, 1851", type: "Reel", date: "Mar 22", views: 320, reach: 231, clicks: 3, reactions: 31, comments: 2, shares: 2, revenue: 0.03 },
+  { caption: "Rosalind Franklin — Photo 51 and the DNA helix", type: "Photo", date: "Mar 15", views: 46, reach: 28, clicks: 1, reactions: 0, comments: 0, shares: 0, revenue: 0 },
+  { caption: "Niki de Saint Phalle — Shooting paintings in Paris", type: "Photo", date: "Mar 26", views: 107, reach: 66, clicks: 0, reactions: 0, comments: 0, shares: 0, revenue: 0 },
+  { caption: "Ruth Bader Ginsburg — 5 landmark rulings", type: "Reel", date: "Mar 26", views: 111, reach: 77, clicks: 0, reactions: 0, comments: 0, shares: 0, revenue: 0 },
+  { caption: "Marie Curie — the notebook that's still radioactive", type: "Photo", date: "Mar 21", views: 12400, reach: 8900, clicks: 342, reactions: 890, comments: 67, shares: 28, revenue: 1.12 },
+  { caption: "Harriet Tubman — the raid at Combahee Ferry", type: "Photo", date: "Mar 20", views: 8750, reach: 6200, clicks: 210, reactions: 445, comments: 38, shares: 15, revenue: 0.78 },
+  { caption: "Frida Kahlo — self-portrait analysis", type: "Reel", date: "Mar 19", views: 24300, reach: 18100, clicks: 890, reactions: 2100, comments: 312, shares: 89, revenue: 2.45 },
+  { caption: "Amelia Earhart — final radio transmission decoded", type: "Photo", date: "Mar 18", views: 31200, reach: 22400, clicks: 1540, reactions: 1650, comments: 198, shares: 76, revenue: 2.89 },
+  { caption: "Ada Lovelace — the first algorithm ever written", type: "Photo", date: "Mar 17", views: 5600, reach: 4100, clicks: 120, reactions: 310, comments: 42, shares: 18, revenue: 0.52 },
+  { caption: "Cleopatra — what she actually looked like", type: "Reel", date: "Mar 16", views: 89400, reach: 64200, clicks: 4200, reactions: 5400, comments: 890, shares: 234, revenue: 8.92 },
+  { caption: "Rosa Parks — the photo that changed everything", type: "Photo", date: "Mar 15", views: 15800, reach: 11200, clicks: 560, reactions: 920, comments: 78, shares: 34, revenue: 1.45 },
+  { caption: "Catherine the Great — 5 myths debunked", type: "Photo", date: "Mar 14", views: 7200, reach: 5100, clicks: 180, reactions: 380, comments: 52, shares: 21, revenue: 0.68 },
+  { caption: "Malala Yousafzai — her school diary entries", type: "Photo", date: "Mar 13", views: 4500, reach: 3200, clicks: 95, reactions: 210, comments: 28, shares: 12, revenue: 0.38 },
+  { caption: "Hypatia of Alexandria — murdered for mathematics", type: "Reel", date: "Mar 12", views: 18900, reach: 13500, clicks: 720, reactions: 1280, comments: 156, shares: 67, revenue: 1.78 },
+  { caption: "Eleanor Roosevelt — the secret letters", type: "Photo", date: "Mar 11", views: 9800, reach: 7100, clicks: 280, reactions: 520, comments: 45, shares: 19, revenue: 0.92 },
+  { caption: "Wu Zetian — China's only female emperor", type: "Photo", date: "Mar 10", views: 6300, reach: 4500, clicks: 150, reactions: 340, comments: 38, shares: 14, revenue: 0.58 },
+  { caption: "Nefertiti — the bust that was hidden for years", type: "Reel", date: "Mar 9", views: 42100, reach: 30200, clicks: 2100, reactions: 3200, comments: 420, shares: 112, revenue: 4.15 },
+  { caption: "Joan of Arc — the trial transcript", type: "Photo", date: "Mar 8", views: 11200, reach: 8000, clicks: 340, reactions: 680, comments: 62, shares: 28, revenue: 1.02 },
+  { caption: "Sacagawea — what the expedition journals say", type: "Photo", date: "Mar 7", views: 3800, reach: 2700, clicks: 80, reactions: 190, comments: 22, shares: 8, revenue: 0.32 },
+  { caption: "Hatshepsut — the pharaoh they tried to erase", type: "Photo", date: "Mar 6", views: 28900, reach: 20800, clicks: 1320, reactions: 1890, comments: 234, shares: 89, revenue: 2.72 },
+  { caption: "Boudicca — the queen who burned London", type: "Reel", date: "Mar 5", views: 35600, reach: 25400, clicks: 1800, reactions: 2400, comments: 312, shares: 98, revenue: 3.34 },
+  { caption: "Mary Shelley — she was only 18 when she wrote it", type: "Photo", date: "Mar 4", views: 7800, reach: 5600, clicks: 200, reactions: 420, comments: 56, shares: 22, revenue: 0.72 },
+  { caption: "Empress Dowager Cixi — photographer queen", type: "Photo", date: "Mar 3", views: 2900, reach: 2100, clicks: 60, reactions: 140, comments: 18, shares: 6, revenue: 0.24 },
+  { caption: "Artemisia Gentileschi — revenge on canvas", type: "Reel", date: "Mar 2", views: 16400, reach: 11800, clicks: 640, reactions: 1100, comments: 134, shares: 56, revenue: 1.52 },
+  { caption: "Hedy Lamarr — actress who invented WiFi", type: "Photo", date: "Mar 1", views: 52300, reach: 37600, clicks: 3200, reactions: 3800, comments: 520, shares: 145, revenue: 5.12 },
+  { caption: "Tomyris — the queen who killed Cyrus the Great", type: "Photo", date: "Feb 28", views: 19800, reach: 14200, clicks: 780, reactions: 1340, comments: 178, shares: 72, revenue: 1.85 },
+];
 
 export function getRecentPosts(platform: Platform): RecentPost[] {
   const mult = platform === "facebook" ? 1 : platform === "instagram" ? 0.4 : 0.15;
-  return [
-    { caption: "Kaja Kallas — Estonia's PM during Ukraine invasion", type: "Photo", date: "Mar 26", views: formatNum(Math.round(65842 * mult)), reach: formatNum(Math.round(45015 * mult)), clicks: formatNum(Math.round(7277 * mult)), reactions: formatNum(Math.round(1842 * mult)), comments: formatNum(Math.round(284 * mult)), shares: formatNum(Math.round(52 * mult)), revenue: `$${(3.88 * mult).toFixed(2)}`, status: "published" },
-    { caption: "Norway health crisis response", type: "Photo", date: "Mar 25", views: formatNum(Math.round(3371 * mult)), reach: formatNum(Math.round(2601 * mult)), clicks: formatNum(Math.round(94 * mult)), reactions: formatNum(Math.round(198 * mult)), comments: formatNum(Math.round(34 * mult)), shares: formatNum(Math.round(12 * mult)), revenue: `$${(0.30 * mult).toFixed(2)}`, status: "published" },
-    { caption: "Shirley Chisholm — 1968 convention floor", type: "Photo", date: "Mar 24", views: formatNum(Math.round(835 * mult)), reach: formatNum(Math.round(653 * mult)), clicks: formatNum(Math.round(10 * mult)), reactions: formatNum(Math.round(92 * mult)), comments: formatNum(Math.round(15 * mult)), shares: formatNum(Math.round(5 * mult)), revenue: `$${(0.10 * mult).toFixed(2)}`, status: "published" },
-    { caption: "Motley Crue — Supreme Court case", type: "Photo", date: "Mar 23", views: formatNum(Math.round(431 * mult)), reach: formatNum(Math.round(332 * mult)), clicks: formatNum(Math.round(4 * mult)), reactions: formatNum(Math.round(56 * mult)), comments: formatNum(Math.round(8 * mult)), shares: formatNum(Math.round(3 * mult)), revenue: `$${(0.06 * mult).toFixed(2)}`, status: "published" },
-    { caption: "Sojourner Truth — Convention question, 1851", type: "Reel", date: "Mar 22", views: formatNum(Math.round(320 * mult)), reach: formatNum(Math.round(231 * mult)), clicks: formatNum(Math.round(3 * mult)), reactions: formatNum(Math.round(31 * mult)), comments: formatNum(Math.round(2 * mult)), shares: formatNum(Math.round(2 * mult)), revenue: `$${(0.03 * mult).toFixed(2)}`, status: "published" },
-    { caption: "Rosalind Franklin — Photo 51 and DNA", type: "Photo", date: "Mar 15", views: formatNum(Math.round(46 * mult)), reach: formatNum(Math.round(28 * mult)), clicks: formatNum(Math.round(1 * mult)), reactions: "0", comments: "0", shares: "0", revenue: "$0.00", status: "published" },
-    { caption: "Niki de Saint Phalle — Shooting Paintings", type: "Photo", date: "Mar 26", views: formatNum(Math.round(107 * mult)), reach: formatNum(Math.round(66 * mult)), clicks: "0", reactions: "0", comments: "0", shares: "0", revenue: "$0.00", status: "published" },
-    { caption: "Ruth Bader Ginsburg — 5 landmark cases", type: "Reel", date: "Mar 26", views: formatNum(Math.round(111 * mult)), reach: formatNum(Math.round(77 * mult)), clicks: "0", reactions: "0", comments: "0", shares: "0", revenue: "$0.00", status: "published" },
-  ];
+  return RAW_POSTS.map(p => ({
+    caption: p.caption, type: p.type, date: p.date, status: "published",
+    views: formatNum(Math.round(p.views * mult)),
+    reach: formatNum(Math.round(p.reach * mult)),
+    clicks: formatNum(Math.round(p.clicks * mult)),
+    reactions: formatNum(Math.round(p.reactions * mult)),
+    comments: formatNum(Math.round(p.comments * mult)),
+    shares: formatNum(Math.round(p.shares * mult)),
+    revenue: `$${(p.revenue * mult).toFixed(2)}`,
+    // Store raw numeric values for sorting
+    _views: Math.round(p.views * mult),
+    _reach: Math.round(p.reach * mult),
+    _clicks: Math.round(p.clicks * mult),
+    _reactions: Math.round(p.reactions * mult),
+    _comments: Math.round(p.comments * mult),
+    _shares: Math.round(p.shares * mult),
+    _revenue: +(p.revenue * mult).toFixed(2),
+  }));
 }
 
 export interface PageRevenueRow {

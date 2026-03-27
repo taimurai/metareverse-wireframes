@@ -28,9 +28,28 @@ function PageReportInner() {
   const [period, setPeriod] = useState<Period>("28d");
   const [platform, setPlatform] = useState<Platform>("facebook");
   const [postFilter, setPostFilter] = useState("all");
+  const [sortCol, setSortCol] = useState<string>("_views");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const perPage = 10;
 
-  const allPosts = getRecentPosts(platform);
-  const filteredPosts = postFilter === "all" ? allPosts : allPosts.filter(p => p.type.toLowerCase() === postFilter);
+  const allPosts = getRecentPosts(platform, pageId);
+  const filtered = postFilter === "all" ? allPosts : allPosts.filter(p => p.type.toLowerCase() === postFilter);
+  const sorted = [...filtered].sort((a, b) => {
+    const aVal = (a as Record<string, unknown>)[sortCol] as number;
+    const bVal = (b as Record<string, unknown>)[sortCol] as number;
+    return sortDir === "desc" ? bVal - aVal : aVal - bVal;
+  });
+  const totalPages = Math.ceil(sorted.length / perPage);
+  const filteredPosts = sorted.slice((currentPage - 1) * perPage, currentPage * perPage);
+
+  const handleSort = (col: string) => {
+    if (sortCol === col) { setSortDir(sortDir === "desc" ? "asc" : "desc"); }
+    else { setSortCol(col); setSortDir("desc"); }
+    setCurrentPage(1);
+  };
+
+  const sortIcon = (col: string) => sortCol === col ? (sortDir === "desc" ? " ↓" : " ↑") : "";
 
   const mult = platform === "facebook" ? 1 : platform === "instagram" ? 0.4 : 0.15;
   const periodMult = period === "7d" ? 0.25 : period === "28d" ? 1 : 3.2;
@@ -191,7 +210,7 @@ function PageReportInner() {
             className="text-[12px] px-3 py-1.5 rounded-lg border outline-none"
             style={{ backgroundColor: "var(--bg)", borderColor: "var(--border-light)", color: "var(--text-secondary)" }}
           >
-            <option value="all">All types ({allPosts.length})</option>
+            <option value="all">All types ({filtered.length})</option>
             <option value="photo">Photos ({allPosts.filter(p => p.type === "Photo").length})</option>
             <option value="reel">Reels ({allPosts.filter(p => p.type === "Reel").length})</option>
           </select>
@@ -202,13 +221,19 @@ function PageReportInner() {
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-wider" style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border)" }}>
                 <th className="px-5 py-3 font-medium">Post</th>
-                <th className="px-3 py-3 font-medium text-right">Views</th>
-                <th className="px-3 py-3 font-medium text-right">Reach</th>
-                <th className="px-3 py-3 font-medium text-right">Clicks</th>
-                <th className="px-3 py-3 font-medium text-right">Reactions</th>
-                <th className="px-3 py-3 font-medium text-right">Comments</th>
-                <th className="px-3 py-3 font-medium text-right">Shares</th>
-                <th className="px-3 py-3 font-medium text-right">Earnings</th>
+                {[
+                  { key: "_views", label: "Views" },
+                  { key: "_reach", label: "Reach" },
+                  { key: "_clicks", label: "Clicks" },
+                  { key: "_reactions", label: "Reactions" },
+                  { key: "_comments", label: "Comments" },
+                  { key: "_shares", label: "Shares" },
+                  { key: "_revenue", label: "Earnings" },
+                ].map(col => (
+                  <th key={col.key} onClick={() => handleSort(col.key)} className="px-3 py-3 font-medium text-right cursor-pointer select-none hover:text-white transition-colors">
+                    {col.label}{sortIcon(col.key)}
+                  </th>
+                ))}
                 <th className="px-3 py-3 font-medium">Type</th>
               </tr>
             </thead>
@@ -248,6 +273,46 @@ function PageReportInner() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: "var(--border)" }}>
+            <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+              Showing {(currentPage - 1) * perPage + 1}–{Math.min(currentPage * perPage, sorted.length)} of {sorted.length} posts
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-2.5 py-1 rounded text-[11px] font-medium transition-colors disabled:opacity-30"
+                style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}
+              >
+                ← Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  className="w-7 h-7 rounded text-[11px] font-medium transition-colors"
+                  style={{
+                    backgroundColor: currentPage === p ? "var(--primary)" : "transparent",
+                    color: currentPage === p ? "white" : "var(--text-muted)",
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-2.5 py-1 rounded text-[11px] font-medium transition-colors disabled:opacity-30"
+                style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
