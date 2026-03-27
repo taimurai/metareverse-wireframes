@@ -5,42 +5,18 @@ import LineChart from "@/components/LineChart";
 import PlatformSwitcher from "@/components/PlatformSwitcher";
 import PageBatchSelector from "@/components/PageBatchSelector";
 import Link from "next/link";
-
-const dates = Array.from({ length: 28 }, (_, i) => {
-  const d = new Date(2026, 1, 27 + i);
-  return `${d.toLocaleDateString("en-US", { month: "short" })} ${d.getDate()}`;
-});
-
-const earningsTypes = [
-  { key: "total", label: "Total approximate earnings", value: "$1.49", change: "+100%", changeType: "up" as const, active: true },
-  { key: "reels", label: "Reels", value: "$0.00", change: "0%", changeType: "up" as const, active: false },
-  { key: "photos", label: "Photos", value: "$1.49", change: "+100%", changeType: "up" as const, active: false },
-  { key: "stories", label: "Stories", value: "$0.00", change: "0%", changeType: "up" as const, active: false },
-  { key: "text", label: "Text", value: "$0.00", change: "0%", changeType: "up" as const, active: false },
-];
-
-const earningsData = {
-  total: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.02, 0.05, 0.08, 0.12, 0.18, 0.25, 0.32, 0.38, 0.42, 0.48, 0.52, 1.49],
-  photos: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.02, 0.05, 0.08, 0.12, 0.18, 0.25, 0.32, 0.38, 0.42, 0.48, 0.52, 1.49],
-  reels: Array(28).fill(0),
-  stories: Array(28).fill(0),
-  text: Array(28).fill(0),
-};
-
-const topContent = [
-  { title: "Kaja Kallas — Estonia's PM during Ukraine invasion", earnings: "$3.88", views: "65.8K", type: "Photo" },
-  { title: "Norway's greatest public health crisis response", earnings: "$0.30", views: "3.4K", type: "Photo" },
-  { title: "Shirley Chisholm — First Black woman on convention floor", earnings: "$0.10", views: "835", type: "Photo" },
-  { title: "Motley Crue case at the Supreme Court", earnings: "$0.06", views: "431", type: "Photo" },
-  { title: "Sojourner Truth — Convention floor question, 1851", earnings: "$0.03", views: "320", type: "Photo" },
-  { title: "Rosalind Franklin — Photo 51 and DNA discovery", earnings: "$0.00", views: "46", type: "Photo" },
-];
+import { getEarningsData, getDateLabels, getTopContent, type Period, type Platform } from "@/data/reportingData";
 
 export default function EarningsPage() {
-  const [period, setPeriod] = useState("28d");
-  const [platform, setPlatform] = useState("facebook");
+  const [period, setPeriod] = useState<Period>("28d");
+  const [platform, setPlatform] = useState<Platform>("facebook");
   const [activeType, setActiveType] = useState("total");
   const [selectedScope, setSelectedScope] = useState("all");
+
+  const earningsTypes = getEarningsData(period, platform);
+  const dates = getDateLabels(period);
+  const topContent = getTopContent(platform);
+  const activeData = earningsTypes.find(e => e.key === activeType) || earningsTypes[0];
 
   return (
     <div>
@@ -50,9 +26,9 @@ export default function EarningsPage() {
         actions={
           <div className="flex items-center gap-3">
             <PageBatchSelector selected={selectedScope} onChange={(id) => setSelectedScope(id)} />
-            <PlatformSwitcher active={platform} onChange={setPlatform} />
+            <PlatformSwitcher active={platform} onChange={(p) => setPlatform(p as Platform)} />
             <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
-              {["7d", "28d", "90d"].map((p) => (
+              {(["7d", "28d", "90d"] as Period[]).map((p) => (
                 <button key={p} onClick={() => setPeriod(p)} className="px-3.5 py-1.5 rounded-lg text-[12px] font-medium" style={{
                   backgroundColor: period === p ? "var(--bg)" : "transparent",
                   color: period === p ? "var(--text)" : "var(--text-secondary)",
@@ -118,7 +94,7 @@ export default function EarningsPage() {
           {/* Earnings chart */}
           <div className="h-[220px] relative" style={{ marginLeft: "40px" }}>
             <LineChart
-              data={(earningsData[activeType as keyof typeof earningsData] || earningsData.total).map((v, i) => ({ label: dates[i], value: v }))}
+              data={activeData.data.map((v, i) => ({ label: dates[i] || `Day ${i+1}`, value: v }))}
               color="var(--success)"
               height={220}
               formatValue={(v) => `$${v.toFixed(2)}`}
@@ -128,16 +104,21 @@ export default function EarningsPage() {
           {/* Legend */}
           <div className="flex items-center justify-center gap-6 mt-4">
             {[
-              { color: "var(--success)", label: "Total" },
-              { color: "#A78BFA", label: "Photos" },
-              { color: "#818CF8", label: "Reels" },
-              { color: "#F472B6", label: "Stories" },
-              { color: "#FB923C", label: "Text" },
+              { color: "var(--success)", label: "Total", key: "total" },
+              { color: "#A78BFA", label: "Photos", key: "photos" },
+              { color: "#818CF8", label: "Reels", key: "reels" },
+              { color: "#F472B6", label: "Stories", key: "stories" },
+              { color: "#FB923C", label: "Text", key: "text" },
             ].map((l) => (
-              <div key={l.label} className="flex items-center gap-1.5">
+              <button
+                key={l.label}
+                onClick={() => setActiveType(l.key)}
+                className="flex items-center gap-1.5"
+                style={{ opacity: activeType === l.key ? 1 : 0.5 }}
+              >
                 <div className="w-3 h-0.5 rounded-full" style={{ backgroundColor: l.color }} />
                 <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{l.label}</span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -146,33 +127,22 @@ export default function EarningsPage() {
       {/* Top Content by Earnings */}
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
-          <div className="flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ color: "#1877F2" }}><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-            <div>
-              <h3 className="text-[14px] font-semibold" style={{ color: "var(--text)" }}>Top content</h3>
-              <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>based on approximate content monetization earnings</div>
-            </div>
+          <div>
+            <h3 className="text-[14px] font-semibold" style={{ color: "var(--text)" }}>Top content</h3>
+            <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>based on approximate content monetization earnings</div>
           </div>
-          <button className="text-[12px] font-medium px-3 py-1.5 rounded-lg" style={{ backgroundColor: "var(--bg)", color: "var(--text-secondary)" }}>
+          <Link href="/reports/page" className="text-[12px] font-medium px-3 py-1.5 rounded-lg" style={{ backgroundColor: "var(--bg)", color: "var(--text-secondary)" }}>
             See all content
-          </button>
+          </Link>
         </div>
 
-        {/* Content thumbnails row */}
         <div className="p-5">
           <div className="grid grid-cols-6 gap-3">
             {topContent.map((item, i) => (
               <div key={i} className="group cursor-pointer">
                 <div className="aspect-square rounded-lg mb-2 flex items-center justify-center relative overflow-hidden" style={{ backgroundColor: "var(--surface-active)" }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--text-muted)" }}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  {/* Rank badge */}
-                  <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ backgroundColor: i === 0 ? "var(--success)" : "var(--surface)", color: i === 0 ? "#000" : "var(--text-muted)" }}>
-                    {i + 1}
-                  </div>
-                  {/* Type badge */}
-                  <div className="absolute top-1.5 right-1.5">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-                  </div>
+                  <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ backgroundColor: i === 0 ? "var(--success)" : "var(--surface)", color: i === 0 ? "#000" : "var(--text-muted)" }}>{i + 1}</div>
                 </div>
                 <div className="text-[10px] font-medium line-clamp-2" style={{ color: "var(--text-secondary)" }}>{item.title}</div>
                 <div className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--success)" }}>{item.earnings}</div>
