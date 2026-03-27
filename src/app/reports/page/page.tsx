@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import Header from "@/components/Header";
 import SparklineChart from "@/components/SparklineChart";
 import PlatformSwitcher from "@/components/PlatformSwitcher";
@@ -8,7 +10,21 @@ import { getRecentPosts, type Platform } from "@/data/reportingData";
 
 type Period = "7d" | "28d" | "90d";
 
-export default function PageReport() {
+const PAGE_INFO: Record<string, { name: string; avatar: string; color: string; category: string; posts: number; viewsBase: number; interactionsBase: number; clicksBase: number; earningsBase: number }> = {
+  lc: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6", category: "Comedy", posts: 892, viewsBase: 245000, interactionsBase: 18400, clicksBase: 32100, earningsBase: 4690 },
+  hu: { name: "History Uncovered", avatar: "HU", color: "#FF6B2B", category: "Education", posts: 645, viewsBase: 186000, interactionsBase: 9200, clicksBase: 21500, earningsBase: 3842 },
+  tb: { name: "TechByte", avatar: "TB", color: "#14B8A6", category: "Technology", posts: 412, viewsBase: 98000, interactionsBase: 4100, clicksBase: 15200, earningsBase: 2180 },
+  mm: { name: "Money Matters", avatar: "MM", color: "#F59E0B", category: "Finance", posts: 328, viewsBase: 72000, interactionsBase: 3800, clicksBase: 11000, earningsBase: 0 },
+  dh: { name: "Daily Health Tips", avatar: "DH", color: "#6366F1", category: "Health", posts: 256, viewsBase: 54000, interactionsBase: 5200, clicksBase: 8400, earningsBase: 1245 },
+  ff: { name: "Fitness Factory", avatar: "FF", color: "#EC4899", category: "Fitness", posts: 198, viewsBase: 38000, interactionsBase: 4800, clicksBase: 6200, earningsBase: 890 },
+  khn: { name: "Know Her Name", avatar: "KH", color: "#0EA5E9", category: "Women's History", posts: 136, viewsBase: 77522, interactionsBase: 2641, clicksBase: 7417, earningsBase: 4.45 },
+};
+
+function PageReportInner() {
+  const searchParams = useSearchParams();
+  const pageId = searchParams.get("id") || "khn";
+  const pageInfo = PAGE_INFO[pageId] || PAGE_INFO.khn;
+
   const [period, setPeriod] = useState<Period>("28d");
   const [platform, setPlatform] = useState<Platform>("facebook");
   const [postFilter, setPostFilter] = useState("all");
@@ -19,28 +35,28 @@ export default function PageReport() {
   const mult = platform === "facebook" ? 1 : platform === "instagram" ? 0.4 : 0.15;
   const periodMult = period === "7d" ? 0.25 : period === "28d" ? 1 : 3.2;
 
-  const totalViews = Math.round(77522 * mult * periodMult);
-  const totalViewers = Math.round(53281 * mult * periodMult);
-  const totalInteractions = Math.round(2641 * mult * periodMult);
-  const totalReactions = Math.round(2219 * mult * periodMult);
-  const totalComments = Math.round(348 * mult * periodMult);
-  const totalShares = Math.round(74 * mult * periodMult);
-  const totalClicks = Math.round(7417 * mult * periodMult);
-  const photoClicks = Math.round(6986 * mult * periodMult);
-  const otherClicks = Math.round(431 * mult * periodMult);
-  const earnings = +(4.45 * mult * periodMult).toFixed(2);
+  const totalViews = Math.round(pageInfo.viewsBase * mult * periodMult);
+  const totalViewers = Math.round(totalViews * 0.69);
+  const totalInteractions = Math.round(pageInfo.interactionsBase * mult * periodMult);
+  const totalReactions = Math.round(totalInteractions * 0.84);
+  const totalComments = Math.round(totalInteractions * 0.13);
+  const totalShares = Math.round(totalInteractions * 0.03);
+  const totalClicks = Math.round(pageInfo.clicksBase * mult * periodMult);
+  const photoClicks = Math.round(totalClicks * 0.94);
+  const otherClicks = Math.round(totalClicks * 0.06);
+  const earnings = +(pageInfo.earningsBase * mult * periodMult).toFixed(2);
 
   return (
     <div>
       <div className="flex items-center gap-2 mb-4">
         <Link href="/reports" className="text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Insights</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><polyline points="9 18 15 12 9 6"/></svg>
-        <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>Know Her Name</span>
+        <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>{pageInfo.name}</span>
       </div>
 
       <Header
-        title="Know Her Name"
-        subtitle={`Women's History · ${Math.round(136 * periodMult)} posts · ${platform.charAt(0).toUpperCase() + platform.slice(1)}`}
+        title={pageInfo.name}
+        subtitle={`${pageInfo.category} · ${Math.round(pageInfo.posts * periodMult)} posts · ${platform.charAt(0).toUpperCase() + platform.slice(1)}`}
         actions={
           <div className="flex items-center gap-3">
             <PlatformSwitcher active={platform} onChange={(p) => setPlatform(p as Platform)} />
@@ -234,5 +250,13 @@ export default function PageReport() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PageReport() {
+  return (
+    <Suspense fallback={<div style={{ backgroundColor: "var(--bg)", minHeight: "100vh" }} />}>
+      <PageReportInner />
+    </Suspense>
   );
 }

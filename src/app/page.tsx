@@ -285,6 +285,7 @@ export default function Dashboard() {
               borderColor: "var(--border)",
               backgroundColor: page.status === "critical" ? "var(--error-bg)" : "var(--surface)",
             }}
+            onClick={() => window.location.href = `/reports/page?id=${page.id}`}
             onMouseEnter={e => { e.currentTarget.style.backgroundColor = page.status === "critical" ? "rgba(239,68,68,0.15)" : "var(--surface-hover)"; }}
             onMouseLeave={e => { e.currentTarget.style.backgroundColor = page.status === "critical" ? "var(--error-bg)" : "var(--surface)"; }}
           >

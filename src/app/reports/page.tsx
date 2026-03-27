@@ -101,7 +101,7 @@ export default function ReportingOverview() {
 
           <div className="space-y-2">
             {pageRevenue.map((page) => (
-              <div key={page.name} className="flex items-center gap-3 px-3 py-2 rounded-lg" style={{ backgroundColor: "var(--bg)" }}>
+              <div key={page.name} className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:brightness-110 transition-all" style={{ backgroundColor: "var(--bg)" }} onClick={() => window.location.href = `/reports/page?id=${page.id || page.name.toLowerCase().replace(/\s+/g, '-')}`}>
                 <div className="w-7 h-7 rounded-md flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0" style={{ backgroundColor: page.color }}>{page.avatar}</div>
                 <div className="w-32 truncate text-[12px] font-medium" style={{ color: "var(--text)" }}>{page.name}</div>
                 <div className="flex-1 flex items-center gap-2">
