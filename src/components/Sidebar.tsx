@@ -64,10 +64,10 @@ export default function Sidebar() {
               className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-sm"
               style={{ backgroundColor: "var(--primary)" }}
             >
-              P
+              MR
             </div>
             <span className="font-semibold text-[15px] tracking-tight" style={{ color: "var(--text)" }}>
-              PostFlow
+              MetaReverse
             </span>
           </div>
         )}
@@ -76,7 +76,7 @@ export default function Sidebar() {
             className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-sm mx-auto"
             style={{ backgroundColor: "var(--primary)" }}
           >
-            P
+            MR
           </div>
         )}
       </div>
