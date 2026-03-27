@@ -5,7 +5,7 @@ import SparklineChart from "@/components/SparklineChart";
 import PlatformSwitcher from "@/components/PlatformSwitcher";
 import PageBatchSelector from "@/components/PageBatchSelector";
 import Link from "next/link";
-import { getOverviewMetrics, getPageRevenue, getAggregateRevenue, getRecentPosts, type Period, type Platform } from "@/data/reportingData";
+import { getOverviewMetrics, getPageRevenue, getAggregateRevenue, getFilteredPageRevenue, getRecentPosts, type Period, type Platform, type ScopeType } from "@/data/reportingData";
 
 export default function ReportingOverview() {
   const [period, setPeriod] = useState<Period>("28d");
@@ -13,9 +13,10 @@ export default function ReportingOverview() {
   const [selectedScope, setSelectedScope] = useState("all");
   const [scopeType, setScopeType] = useState<"all" | "page" | "batch">("all");
 
-  const metrics = getOverviewMetrics(period, platform);
-  const pageRevenue = getPageRevenue(period);
-  const aggRevenue = getAggregateRevenue(period);
+  const metrics = getOverviewMetrics(period, platform, selectedScope, scopeType);
+  const allPageRevenue = getPageRevenue(period);
+  const pageRevenue = getFilteredPageRevenue(selectedScope, scopeType, allPageRevenue);
+  const aggRevenue = getAggregateRevenue(period, selectedScope, scopeType);
   const recentPosts = getRecentPosts(platform);
 
   return (

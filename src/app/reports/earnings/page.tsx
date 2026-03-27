@@ -5,15 +5,16 @@ import LineChart from "@/components/LineChart";
 import PlatformSwitcher from "@/components/PlatformSwitcher";
 import PageBatchSelector from "@/components/PageBatchSelector";
 import Link from "next/link";
-import { getEarningsData, getDateLabels, getTopContent, type Period, type Platform } from "@/data/reportingData";
+import { getEarningsData, getDateLabels, getTopContent, type Period, type Platform, type ScopeType } from "@/data/reportingData";
 
 export default function EarningsPage() {
   const [period, setPeriod] = useState<Period>("28d");
   const [platform, setPlatform] = useState<Platform>("facebook");
   const [activeType, setActiveType] = useState("total");
   const [selectedScope, setSelectedScope] = useState("all");
+  const [scopeType, setScopeType] = useState<ScopeType>("all");
 
-  const earningsTypes = getEarningsData(period, platform);
+  const earningsTypes = getEarningsData(period, platform, selectedScope, scopeType);
   const dates = getDateLabels(period);
   const topContent = getTopContent(platform);
   const activeData = earningsTypes.find(e => e.key === activeType) || earningsTypes[0];
@@ -25,7 +26,7 @@ export default function EarningsPage() {
         subtitle="Review performance results and more."
         actions={
           <div className="flex items-center gap-3">
-            <PageBatchSelector selected={selectedScope} onChange={(id) => setSelectedScope(id)} />
+            <PageBatchSelector selected={selectedScope} onChange={(id, type) => { setSelectedScope(id); setScopeType(type); }} />
             <PlatformSwitcher active={platform} onChange={(p) => setPlatform(p as Platform)} />
             <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
               {(["7d", "28d", "90d"] as Period[]).map((p) => (

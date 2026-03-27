@@ -2,6 +2,56 @@
 
 export type Period = "7d" | "28d" | "90d";
 export type Platform = "facebook" | "instagram" | "threads";
+export type ScopeType = "all" | "page" | "batch";
+
+// Per-page base data multipliers (relative to "all")
+const PAGE_DATA: Record<string, { scale: number; seed: number; engRate: number; followPct: number; revenueScale: number }> = {
+  all: { scale: 1, seed: 100, engRate: 4.2, followPct: 11.8, revenueScale: 1 },
+  lc:  { scale: 0.36, seed: 111, engRate: 6.8, followPct: 15.2, revenueScale: 0.365 },
+  hu:  { scale: 0.27, seed: 222, engRate: 4.2, followPct: 9.8, revenueScale: 0.299 },
+  tb:  { scale: 0.13, seed: 333, engRate: 2.9, followPct: 7.4, revenueScale: 0.170 },
+  mm:  { scale: 0.11, seed: 444, engRate: 2.1, followPct: 6.1, revenueScale: 0 },
+  dh:  { scale: 0.08, seed: 555, engRate: 3.8, followPct: 12.5, revenueScale: 0.097 },
+  ff:  { scale: 0.05, seed: 666, engRate: 5.1, followPct: 18.3, revenueScale: 0.069 },
+  khn: { scale: 0.003, seed: 777, engRate: 3.4, followPct: 22.1, revenueScale: 0.0003 },
+};
+
+// Batch → page mappings
+const BATCH_PAGES: Record<string, string[]> = {
+  b1: ["lc", "ff", "dh"],
+  b2: ["hu", "tb", "mm"],
+  b3: ["khn"],
+};
+
+function getScopeScale(scope: string, scopeType: ScopeType): { scale: number; seed: number; engRate: number; followPct: number; revenueScale: number } {
+  if (scopeType === "all" || scope === "all") return PAGE_DATA.all;
+  if (scopeType === "page") return PAGE_DATA[scope] || PAGE_DATA.all;
+  if (scopeType === "batch") {
+    const pages = BATCH_PAGES[scope] || [];
+    const combined = pages.reduce((acc, pid) => {
+      const p = PAGE_DATA[pid] || PAGE_DATA.all;
+      return { scale: acc.scale + p.scale, seed: p.seed, engRate: (acc.engRate + p.engRate) / 2, followPct: (acc.followPct + p.followPct) / 2, revenueScale: acc.revenueScale + p.revenueScale };
+    }, { scale: 0, seed: 100, engRate: 0, followPct: 0, revenueScale: 0 });
+    return combined;
+  }
+  return PAGE_DATA.all;
+}
+
+export function getFilteredPageRevenue(scope: string, scopeType: ScopeType, allPages: PageRevenueRow[]): PageRevenueRow[] {
+  if (scopeType === "all" || scope === "all") return allPages;
+  if (scopeType === "page") {
+    const pageIdToName: Record<string, string> = { lc: "Laugh Central", hu: "History Uncovered", tb: "TechByte", mm: "Money Matters", dh: "Daily Health Tips", ff: "Fitness Factory", khn: "Know Her Name" };
+    const name = pageIdToName[scope];
+    return name ? allPages.filter(p => p.name === name) : allPages;
+  }
+  if (scopeType === "batch") {
+    const pages = BATCH_PAGES[scope] || [];
+    const pageNames: Record<string, string> = { lc: "Laugh Central", hu: "History Uncovered", tb: "TechByte", mm: "Money Matters", dh: "Daily Health Tips", ff: "Fitness Factory", khn: "Know Her Name" };
+    const names = pages.map(p => pageNames[p]);
+    return allPages.filter(p => names.includes(p.name));
+  }
+  return allPages;
+}
 
 // Generate date labels for a period
 export function getDateLabels(period: Period): string[] {
@@ -55,10 +105,12 @@ export interface ChartMetric {
   info: string;
 }
 
-export function getOverviewMetrics(period: Period, platform: Platform): MetricData[] {
-  const mult = platform === "facebook" ? 1 : platform === "instagram" ? 0.6 : 0.25;
+export function getOverviewMetrics(period: Period, platform: Platform, scope = "all", scopeType: ScopeType = "all"): MetricData[] {
+  const platMult = platform === "facebook" ? 1 : platform === "instagram" ? 0.6 : 0.25;
   const days = period === "7d" ? 7 : period === "28d" ? 28 : 90;
   const periodMult = period === "7d" ? 0.25 : period === "28d" ? 1 : 3.2;
+  const scopeData = getScopeScale(scope, scopeType);
+  const mult = platMult * scopeData.scale;
 
   const views = Math.round(20800 * mult * periodMult);
   const viewers = Math.round(views * 0.68);
@@ -68,6 +120,7 @@ export function getOverviewMetrics(period: Period, platform: Platform): MetricDa
   const interactions = Math.round(467 * mult * periodMult);
   const videoViews = Math.round(90 * mult * periodMult);
   const earnings = +(1.49 * mult * periodMult).toFixed(2);
+  const seedBase = scopeData.seed;
 
   return [
     {
@@ -76,10 +129,10 @@ export function getOverviewMetrics(period: Period, platform: Platform): MetricDa
       rawValue: views,
       change: "+2.3K%",
       changeType: "up",
-      sparkData: generateTrend(days, views / days * 0.3, views / days * 0.2, views / days * 0.02, 101),
+      sparkData: generateTrend(days, views / days * 0.3, views / days * 0.2, views / days * 0.02, seedBase + 1),
       sub: [
-        { label: "From followers", value: "11.8%", change: "-72.5%", changeType: "down" },
-        { label: "From non-followers", value: "88.2%", change: "+54.7%", changeType: "up" },
+        { label: "From followers", value: `${scopeData.followPct}%`, change: "-72.5%", changeType: "down" },
+        { label: "From non-followers", value: `${(100 - scopeData.followPct).toFixed(1)}%`, change: "+54.7%", changeType: "up" },
       ],
       extra: { label: "Viewers", value: formatNum(viewers), change: "+4.9K%" },
     },
@@ -89,7 +142,7 @@ export function getOverviewMetrics(period: Period, platform: Platform): MetricDa
       rawValue: follows,
       change: "+109.1%",
       changeType: "up",
-      sparkData: generateTrend(days, 1, 2, 0.1, 202),
+      sparkData: generateTrend(days, 1, 2, 0.1, seedBase + 2),
       sub: [
         { label: "Unfollows", value: formatNum(unfollows), change: "-38.9%", changeType: "down" },
         { label: "Net follows", value: formatNum(follows - unfollows), change: "+48.5%", changeType: "up" },
@@ -101,7 +154,7 @@ export function getOverviewMetrics(period: Period, platform: Platform): MetricDa
       rawValue: visits,
       change: "+20.6%",
       changeType: "up",
-      sparkData: generateTrend(days, visits / days * 0.5, visits / days * 0.3, visits / days * 0.01, 303),
+      sparkData: generateTrend(days, visits / days * 0.5, visits / days * 0.3, visits / days * 0.01, seedBase + 3),
       sub: [],
     },
     {
@@ -110,7 +163,7 @@ export function getOverviewMetrics(period: Period, platform: Platform): MetricDa
       rawValue: interactions,
       change: "+1.0K%",
       changeType: "up",
-      sparkData: generateTrend(days, interactions / days * 0.3, interactions / days * 0.2, interactions / days * 0.02, 404),
+      sparkData: generateTrend(days, interactions / days * 0.3, interactions / days * 0.2, interactions / days * 0.02, seedBase + 4),
       sub: [
         { label: "From followers", value: "27", change: "-15.6%", changeType: "down" },
         { label: "From non-followers", value: formatNum(Math.round(interactions * 0.94)), change: "+4.3K%", changeType: "up" },
@@ -122,7 +175,7 @@ export function getOverviewMetrics(period: Period, platform: Platform): MetricDa
       rawValue: videoViews,
       change: "-67.6%",
       changeType: "down",
-      sparkData: generateTrend(days, videoViews / days * 2, videoViews / days * 0.5, -videoViews / days * 0.01, 505),
+      sparkData: generateTrend(days, videoViews / days * 2, videoViews / days * 0.5, -videoViews / days * 0.01, seedBase + 5),
       sub: [
         { label: "3-second views", value: formatNum(videoViews), change: "-67.6%", changeType: "down" },
         { label: "Watch time", value: period === "7d" ? "4m 12s" : period === "28d" ? "15m 23s" : "48m 10s", change: "-71.5%", changeType: "down" },
@@ -134,17 +187,20 @@ export function getOverviewMetrics(period: Period, platform: Platform): MetricDa
       rawValue: earnings,
       change: "+100%",
       changeType: "up",
-      sparkData: generateTrend(days, 0.01, 0.05, 0.005, 606),
+      sparkData: generateTrend(days, 0.01, 0.05, 0.005, seedBase + 6),
       sub: [],
       color: "var(--success)",
     },
   ];
 }
 
-export function getResultsCharts(period: Period, platform: Platform): ChartMetric[] {
-  const mult = platform === "facebook" ? 1 : platform === "instagram" ? 0.6 : 0.25;
+export function getResultsCharts(period: Period, platform: Platform, scope = "all", scopeType: ScopeType = "all"): ChartMetric[] {
+  const platMult = platform === "facebook" ? 1 : platform === "instagram" ? 0.6 : 0.25;
   const days = period === "7d" ? 7 : period === "28d" ? 28 : 90;
   const periodMult = period === "7d" ? 0.25 : period === "28d" ? 1 : 3.2;
+  const scopeData = getScopeScale(scope, scopeType);
+  const mult = platMult * scopeData.scale;
+  const s = scopeData.seed;
 
   return [
     {
@@ -152,7 +208,7 @@ export function getResultsCharts(period: Period, platform: Platform): ChartMetri
       value: formatNum(Math.round(20800 * mult * periodMult)),
       change: "+2.3K%",
       changeType: "up",
-      data: generateTrend(days, 200 * mult, 150 * mult, 5 * mult, 1001),
+      data: generateTrend(days, 200 * mult, 150 * mult, 5 * mult, s + 11),
       color: "var(--primary)",
       info: "Total number of times your content was displayed",
     },
@@ -161,7 +217,7 @@ export function getResultsCharts(period: Period, platform: Platform): ChartMetri
       value: formatNum(Math.round(12400 * mult * periodMult)),
       change: "+4.9K%",
       changeType: "up",
-      data: generateTrend(days, 140 * mult, 100 * mult, 3 * mult, 1002),
+      data: generateTrend(days, 140 * mult, 100 * mult, 3 * mult, s + 12),
       color: "#8B5CF6",
       info: "Unique people who viewed your content",
     },
@@ -170,7 +226,7 @@ export function getResultsCharts(period: Period, platform: Platform): ChartMetri
       value: formatNum(Math.round(467 * mult * periodMult)),
       change: "+1.0K%",
       changeType: "up",
-      data: generateTrend(days, 8 * mult, 5 * mult, 0.5 * mult, 1003),
+      data: generateTrend(days, 8 * mult, 5 * mult, 0.5 * mult, s + 13),
       color: "#14B8A6",
       info: "Reactions, comments, shares, and saves",
     },
@@ -179,7 +235,7 @@ export function getResultsCharts(period: Period, platform: Platform): ChartMetri
       value: formatNum(Math.round(48 * mult * periodMult)),
       change: "-80.2%",
       changeType: "down",
-      data: generateTrend(days, 5 * mult, 3 * mult, -0.1 * mult, 1004),
+      data: generateTrend(days, 5 * mult, 3 * mult, -0.1 * mult, s + 14),
       color: "#F59E0B",
       info: "Clicks on links in your posts",
     },
@@ -188,7 +244,7 @@ export function getResultsCharts(period: Period, platform: Platform): ChartMetri
       value: formatNum(Math.round(791 * mult * periodMult)),
       change: "+20.6%",
       changeType: "up",
-      data: generateTrend(days, 20 * mult, 12 * mult, 0.3 * mult, 1005),
+      data: generateTrend(days, 20 * mult, 12 * mult, 0.3 * mult, s + 15),
       color: "#EC4899",
       info: "Number of times your Page was visited",
     },
@@ -197,7 +253,7 @@ export function getResultsCharts(period: Period, platform: Platform): ChartMetri
       value: formatNum(Math.round(23 * mult * periodMult)),
       change: "+109.1%",
       changeType: "up",
-      data: generateTrend(days, 1, 1.5, 0.05, 1006),
+      data: generateTrend(days, 1, 1.5, 0.05, s + 16),
       color: "#6366F1",
       info: "New followers gained during this period",
     },
@@ -213,18 +269,20 @@ export interface EarningsTypeData {
   data: number[];
 }
 
-export function getEarningsData(period: Period, platform: Platform): EarningsTypeData[] {
-  const mult = platform === "facebook" ? 1 : platform === "instagram" ? 0.4 : 0.1;
+export function getEarningsData(period: Period, platform: Platform, scope = "all", scopeType: ScopeType = "all"): EarningsTypeData[] {
+  const platMult = platform === "facebook" ? 1 : platform === "instagram" ? 0.4 : 0.1;
   const days = period === "7d" ? 7 : period === "28d" ? 28 : 90;
   const periodMult = period === "7d" ? 0.25 : period === "28d" ? 1 : 3.2;
-  const total = +(1.49 * mult * periodMult).toFixed(2);
+  const scopeData = getScopeScale(scope, scopeType);
+  const total = +(1.49 * platMult * scopeData.revenueScale * periodMult * 100).toFixed(2); // scale up for visible numbers
+  const s = scopeData.seed;
 
   return [
-    { key: "total", label: "Total approximate earnings", value: `$${total.toFixed(2)}`, change: "+100%", changeType: "up", data: generateTrend(days, 0.01, 0.03, 0.003, 2001) },
-    { key: "reels", label: "Reels", value: "$0.00", change: "0%", changeType: "up", data: Array(days).fill(0) },
-    { key: "photos", label: "Photos", value: `$${total.toFixed(2)}`, change: "+100%", changeType: "up", data: generateTrend(days, 0.01, 0.03, 0.003, 2003) },
-    { key: "stories", label: "Stories", value: "$0.00", change: "0%", changeType: "up", data: Array(days).fill(0) },
-    { key: "text", label: "Text", value: "$0.00", change: "0%", changeType: "up", data: Array(days).fill(0) },
+    { key: "total", label: "Total approximate earnings", value: `$${total.toFixed(2)}`, change: "+100%", changeType: "up", data: generateTrend(days, total / days * 0.3, total / days * 0.2, total / days * 0.01, s + 21) },
+    { key: "reels", label: "Reels", value: `$${(total * 0.15).toFixed(2)}`, change: "+42%", changeType: "up", data: generateTrend(days, total * 0.15 / days * 0.3, total * 0.15 / days * 0.2, 0.001, s + 22) },
+    { key: "photos", label: "Photos", value: `$${(total * 0.72).toFixed(2)}`, change: "+100%", changeType: "up", data: generateTrend(days, total * 0.72 / days * 0.3, total * 0.72 / days * 0.2, 0.001, s + 23) },
+    { key: "stories", label: "Stories", value: `$${(total * 0.08).toFixed(2)}`, change: "+18%", changeType: "up", data: generateTrend(days, total * 0.08 / days * 0.3, total * 0.08 / days * 0.1, 0.0005, s + 24) },
+    { key: "text", label: "Text", value: `$${(total * 0.05).toFixed(2)}`, change: "+5%", changeType: "up", data: generateTrend(days, total * 0.05 / days * 0.3, total * 0.05 / days * 0.1, 0.0002, s + 25) },
   ];
 }
 
@@ -307,16 +365,17 @@ export function getPageRevenue(period: Period): PageRevenueRow[] {
   ];
 }
 
-export function getAggregateRevenue(period: Period) {
-  const mult = period === "7d" ? 0.25 : period === "28d" ? 1 : 3.2;
+export function getAggregateRevenue(period: Period, scope = "all", scopeType: ScopeType = "all") {
+  const scopeData = getScopeScale(scope, scopeType);
+  const revScale = scopeType === "all" ? 1 : scopeData.revenueScale;
   return {
-    weekly: `$${Math.round(12851 * (period === "7d" ? 1 : period === "28d" ? 1 : 1)).toLocaleString()}`,
-    monthly: `$${Math.round(48396 * (period === "90d" ? 3.2 : 1)).toLocaleString()}`,
+    weekly: `$${Math.round(12851 * revScale).toLocaleString()}`,
+    monthly: `$${Math.round(48396 * revScale * (period === "90d" ? 3.2 : 1)).toLocaleString()}`,
     rpm: "$8.42",
     rpmChange: "+$0.38",
     monetized: "6 / 7",
     notEnrolled: "1 not enrolled",
-    ninetyDay: `$${Math.round(142891 * (period === "90d" ? 1 : period === "28d" ? 0.34 : 0.08)).toLocaleString()}`,
+    ninetyDay: `$${Math.round(142891 * revScale * (period === "90d" ? 1 : period === "28d" ? 0.34 : 0.08)).toLocaleString()}`,
     weeklyChange: "+14%",
     monthlyChange: "+9%",
     ninetyDayChange: "+11%",

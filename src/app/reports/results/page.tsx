@@ -5,14 +5,15 @@ import LineChart from "@/components/LineChart";
 import PlatformSwitcher from "@/components/PlatformSwitcher";
 import PageBatchSelector from "@/components/PageBatchSelector";
 import Link from "next/link";
-import { getResultsCharts, getDateLabels, type Period, type Platform } from "@/data/reportingData";
+import { getResultsCharts, getDateLabels, type Period, type Platform, type ScopeType } from "@/data/reportingData";
 
 export default function ResultsPage() {
   const [period, setPeriod] = useState<Period>("28d");
   const [platform, setPlatform] = useState<Platform>("facebook");
   const [selectedScope, setSelectedScope] = useState("all");
+  const [scopeType, setScopeType] = useState<ScopeType>("all");
 
-  const charts = getResultsCharts(period, platform);
+  const charts = getResultsCharts(period, platform, selectedScope, scopeType);
   const dates = getDateLabels(period);
 
   const handleExport = (title: string, data: number[]) => {
@@ -33,7 +34,7 @@ export default function ResultsPage() {
         subtitle="Review performance results and more."
         actions={
           <div className="flex items-center gap-3">
-            <PageBatchSelector selected={selectedScope} onChange={(id) => setSelectedScope(id)} />
+            <PageBatchSelector selected={selectedScope} onChange={(id, type) => { setSelectedScope(id); setScopeType(type); }} />
             <PlatformSwitcher active={platform} onChange={(p) => setPlatform(p as Platform)} />
             <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
               {(["7d", "28d", "90d"] as Period[]).map((p) => (
