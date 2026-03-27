@@ -1,7 +1,7 @@
 "use client";
 
 interface HeaderProps {
-  title: string;
+  title?: string;
   subtitle?: string;
   actions?: React.ReactNode;
 }
