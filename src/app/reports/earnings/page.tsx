@@ -39,7 +39,6 @@ export default function EarningsPage() {
   const [period, setPeriod] = useState("28d");
   const [platform, setPlatform] = useState("facebook");
   const [activeType, setActiveType] = useState("total");
-  const [earningsTab, setEarningsTab] = useState<"overview" | "monetization">("monetization");
 
   return (
     <div>
@@ -76,47 +75,9 @@ export default function EarningsPage() {
         ))}
       </div>
 
-      {/* Earnings Header */}
+      {/* Earnings Content */}
       <div className="rounded-xl border overflow-hidden mb-6" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
-          <div className="flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ color: "#1877F2" }}><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-            <h3 className="text-[14px] font-semibold" style={{ color: "var(--text)" }}>Earnings</h3>
-          </div>
-          <button className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-lg" style={{ backgroundColor: "var(--bg)", color: "var(--text-muted)" }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Export
-          </button>
-        </div>
-
-        {/* Earnings sub-tabs */}
-        <div className="flex gap-1 px-5 pt-3 border-b" style={{ borderColor: "var(--border)" }}>
-          {[
-            { key: "overview", label: "Overview" },
-            { key: "monetization", label: "Content monetization" },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setEarningsTab(tab.key as "overview" | "monetization")}
-              className="relative px-3 py-2.5 text-[13px] font-medium"
-              style={{ color: earningsTab === tab.key ? "var(--primary)" : "var(--text-secondary)" }}
-            >
-              {tab.label}
-              {earningsTab === tab.key && <div className="absolute bottom-0 left-3 right-3 h-[2px] rounded-full" style={{ backgroundColor: "var(--primary)" }} />}
-            </button>
-          ))}
-        </div>
-
         <div className="p-5">
-          {/* Info banner */}
-          <div className="flex items-start gap-3 p-3 rounded-lg mb-5" style={{ backgroundColor: "var(--bg)", borderLeft: "3px solid var(--primary)" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 flex-shrink-0" style={{ color: "var(--primary)" }}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            <div>
-              <div className="text-[12px] font-medium" style={{ color: "var(--text)" }}>All video posts are now reels</div>
-              <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>Earnings for reels and previously posted videos are now combined under Reels. <span style={{ color: "var(--primary)", cursor: "pointer" }}>About this change</span></div>
-            </div>
-          </div>
-
           {/* Earnings type selector */}
           <div className="flex items-stretch gap-0 mb-6 rounded-xl overflow-hidden border" style={{ borderColor: "var(--border)" }}>
             {earningsTypes.map((type, i) => (
