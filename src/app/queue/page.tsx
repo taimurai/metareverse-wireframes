@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Header from "@/components/Header";
+import PostPreviewModal from "@/components/modals/PostPreviewModal";
 
 interface QueuePost {
   id: string;
@@ -48,7 +49,7 @@ export default function QueuePage() {
   const [selectedPage, setSelectedPage] = useState("all");
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [dragOverId, setDragOverId] = useState<string | null>(null);
-  const [expandedPost, setExpandedPost] = useState<string | null>(null);
+  const [previewPost, setPreviewPost] = useState<QueuePost | null>(null);
 
   const pages = [
     { id: "all", name: "All Pages" },
@@ -239,7 +240,7 @@ export default function QueuePage() {
                     onDragOver={(e) => { e.preventDefault(); setDragOverId(post.id); }}
                     onDragLeave={() => setDragOverId(null)}
                     onDrop={() => setDragOverId(null)}
-                    onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)}
+                    onClick={() => setPreviewPost(post)}
                   >
                     {/* Checkbox */}
                     <div onClick={e => e.stopPropagation()}>
@@ -337,60 +338,17 @@ export default function QueuePage() {
                     </div>
                   </div>
 
-                  {/* Expanded: Thread comments */}
-                  {expandedPost === post.id && (
-                    <div className="border-b px-4 py-4" style={{ backgroundColor: "var(--bg)", borderColor: "var(--border)" }}>
-                      <div className="ml-[100px]">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>
-                            Threaded Comments ({post.comments.length})
-                          </span>
-                          <button className="text-[11px] font-medium flex items-center gap-1" style={{ color: "var(--primary)" }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Add Comment
-                          </button>
-                        </div>
-                        {post.comments.length > 0 ? (
-                          <div className="space-y-2">
-                            {post.comments.map((comment, i) => (
-                              <div key={i} className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: "var(--surface)" }}>
-                                <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0" style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}>
-                                  {i + 1}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[12px]" style={{ color: "var(--text)" }}>{comment}</p>
-                                  <div className="flex items-center gap-3 mt-2">
-                                    <button className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Edit</button>
-                                    <button className="text-[10px] font-medium" style={{ color: "var(--error)" }}>Delete</button>
-                                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>•</span>
-                                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>Will post as comment #{i + 1}</span>
-                                  </div>
-                                </div>
-                                <div className="cursor-grab" draggable>
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}>
-                                    <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
-                                    <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
-                                    <circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
-                                  </svg>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-3 p-4 rounded-lg" style={{ backgroundColor: "var(--surface)" }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                            <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>No threaded comments. Add comments to create a thread under this post.</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
           ))
         )}
       </div>
+
+      {/* Post Preview Modal */}
+      {previewPost && (
+        <PostPreviewModal post={previewPost} onClose={() => setPreviewPost(null)} />
+      )}
 
       {/* Queue summary bar */}
       <div className="mt-4 flex items-center justify-between px-4 py-3 rounded-xl" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
