@@ -28,11 +28,8 @@ const mockMedia: GridRow[] = [
   { id: "8", type: "image", filename: "tech_news.jpg", caption: "AI just changed everything. Here's what happened this week in tech and why you should care...", comments: "1. Major breakthrough in reasoning\n2. New tools released\n3. What it means for creators", ig: true, threads: true, schedule: "7:30 PM", selected: false, charCount: 92, color: "#F43F5E" },
 ];
 
-interface BulkGridProps {
-  mode: "media" | "text";
-}
-
-export default function BulkGrid({ mode }: BulkGridProps) {
+export default function BulkGrid() {
+  const mode = "media";
   const [rows, setRows] = useState<GridRow[]>(mockMedia);
   const [selectAll, setSelectAll] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
