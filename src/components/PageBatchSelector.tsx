@@ -21,12 +21,17 @@ const batches = [
 interface PageBatchSelectorProps {
   selected: string;
   onChange: (id: string, type: "all" | "page" | "batch") => void;
+  /** "full" shows All Pages + Batches tabs (default). "page-only" hides All Pages option and Batches tab. */
+  mode?: "full" | "page-only";
 }
 
-export default function PageBatchSelector({ selected, onChange }: PageBatchSelectorProps) {
+export default function PageBatchSelector({ selected, onChange, mode = "full" }: PageBatchSelectorProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"pages" | "batches">("pages");
+  const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const pageOnly = mode === "page-only";
+  const filteredPages = (pageOnly ? pages.filter(p => p.id !== "all") : pages).filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -44,7 +49,7 @@ export default function PageBatchSelector({ selected, onChange }: PageBatchSelec
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => { setOpen(!open); if (open) setSearch(""); }}
         className="flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[13px] font-medium min-w-[200px]"
         style={{ backgroundColor: "var(--surface)", borderColor: open ? "var(--primary)" : "var(--border)", color: "var(--text)" }}
       >
@@ -58,6 +63,7 @@ export default function PageBatchSelector({ selected, onChange }: PageBatchSelec
       {open && (
         <div className="absolute top-full left-0 mt-1 w-[300px] rounded-xl border overflow-hidden z-50 shadow-2xl" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           {/* Tabs */}
+          {!pageOnly && (
           <div className="flex border-b" style={{ borderColor: "var(--border)" }}>
             {(["pages", "batches"] as const).map((t) => (
               <button
@@ -74,18 +80,19 @@ export default function PageBatchSelector({ selected, onChange }: PageBatchSelec
               </button>
             ))}
           </div>
+          )}
 
           {/* Search */}
           <div className="px-3 pt-3 pb-2">
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: "var(--bg)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" placeholder={tab === "pages" ? "Search pages..." : "Search batches..."} className="flex-1 text-[12px] bg-transparent outline-none" style={{ color: "var(--text)" }} />
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={tab === "pages" ? "Search pages..." : "Search batches..."} className="flex-1 text-[12px] bg-transparent outline-none" style={{ color: "var(--text)" }} />
             </div>
           </div>
 
           {/* Items */}
           <div className="max-h-[280px] overflow-y-auto px-2 pb-2">
-            {tab === "pages" && pages.map((page) => (
+            {tab === "pages" && filteredPages.map((page) => (
               <button
                 key={page.id}
                 onClick={() => { onChange(page.id, page.type); setOpen(false); }}
@@ -109,7 +116,7 @@ export default function PageBatchSelector({ selected, onChange }: PageBatchSelec
               </button>
             ))}
 
-            {tab === "batches" && (
+            {tab === "batches" && !pageOnly && (
               <>
                 {batches.map((batch) => (
                   <button

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import PostPreviewModal from "@/components/modals/PostPreviewModal";
+import PageBatchSelector from "@/components/PageBatchSelector";
 
 interface QueuePost {
   id: string;
@@ -156,16 +157,10 @@ export default function QueuePage() {
 
         <div className="flex items-center gap-3">
           {/* Page filter */}
-          <select
-            value={selectedPage}
-            onChange={e => setSelectedPage(e.target.value)}
-            className="px-3 py-2 rounded-lg text-[12px] font-medium border"
-            style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", color: "var(--text)" }}
-          >
-            {pages.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <PageBatchSelector
+            selected={selectedPage}
+            onChange={(id) => setSelectedPage(id)}
+          />
 
         </div>
       </div>

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import PostPreviewModal from "@/components/modals/PostPreviewModal";
+import PageBatchSelector from "@/components/PageBatchSelector";
 
 type PostType = "photo" | "reel" | "text";
 
@@ -92,21 +93,14 @@ export default function SinglePostPage() {
           {/* Page selector */}
           <div className="flex items-center gap-4">
             <label className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>Publishing as</label>
-            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border" style={{ backgroundColor: "var(--surface)", borderColor: selectedPage.color }}>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: selectedPage.color }}>
-                {selectedPage.avatar}
-              </div>
-              <select
-                value={selectedPage.id}
-                onChange={e => setSelectedPage(pages.find(p => p.id === e.target.value)!)}
-                className="bg-transparent border-none outline-none text-[13px] font-semibold pr-6 cursor-pointer"
-                style={{ color: "var(--text)" }}
-              >
-                {pages.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
+            <PageBatchSelector
+              mode="page-only"
+              selected={selectedPage.id}
+              onChange={(id) => {
+                const found = pages.find(p => p.id === id);
+                if (found) setSelectedPage(found);
+              }}
+            />
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--success)" }} />
               <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>

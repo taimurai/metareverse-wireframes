@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Header from "@/components/Header";
+import PageBatchSelector from "@/components/PageBatchSelector";
 import UploadDropzone from "@/components/UploadDropzone";
 import BulkGrid from "@/components/BulkGrid";
 
@@ -49,19 +50,11 @@ export default function BulkUploadPage() {
         <label className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>
           Target Page
         </label>
-        <select
-          value={selectedPage}
-          onChange={(e) => setSelectedPage(e.target.value)}
-          className="text-[13px] px-4 py-2.5 rounded-xl border outline-none min-w-[220px]"
-          style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-light)", color: "var(--text)" }}
-        >
-          <option value="history-uncovered">History Uncovered</option>
-          <option value="daily-health">Daily Health Tips</option>
-          <option value="techbyte">TechByte</option>
-          <option value="fitness-factory">Fitness Factory</option>
-          <option value="laugh-central">Laugh Central</option>
-          <option value="know-her-name">Know Her Name</option>
-        </select>
+        <PageBatchSelector
+          mode="page-only"
+          selected={selectedPage}
+          onChange={(id) => setSelectedPage(id)}
+        />
         <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--success)" }} />
           Connected &middot; FB + IG + Threads
