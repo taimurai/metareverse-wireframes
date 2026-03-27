@@ -340,6 +340,7 @@ export function getRecentPosts(platform: Platform): RecentPost[] {
 }
 
 export interface PageRevenueRow {
+  id: string;
   name: string;
   avatar: string;
   color: string;
@@ -355,13 +356,13 @@ export interface PageRevenueRow {
 export function getPageRevenue(period: Period): PageRevenueRow[] {
   const mult = period === "7d" ? 0.25 : period === "28d" ? 1 : 3.2;
   return [
-    { name: "Laugh Central", avatar: "LC", color: "#8B5CF6", revenue: `$${Math.round(4690 * mult).toLocaleString()}`, rpm: "$10.20", views: `${(24.5 * mult).toFixed(1)}M`, pct: 36, change: "+31%", changeType: "up", monetized: true },
-    { name: "History Uncovered", avatar: "HU", color: "#FF6B2B", revenue: `$${Math.round(3842 * mult).toLocaleString()}`, rpm: "$9.12", views: `${(18.2 * mult).toFixed(1)}M`, pct: 30, change: "+12%", changeType: "up", monetized: true },
-    { name: "TechByte", avatar: "TB", color: "#14B8A6", revenue: `$${Math.round(2180 * mult).toLocaleString()}`, rpm: "$8.95", views: `${(9.1 * mult).toFixed(1)}M`, pct: 17, change: "-3%", changeType: "down", monetized: true },
-    { name: "Daily Health Tips", avatar: "DH", color: "#6366F1", revenue: `$${Math.round(1245 * mult).toLocaleString()}`, rpm: "$7.80", views: `${(5.6 * mult).toFixed(1)}M`, pct: 10, change: "+8%", changeType: "up", monetized: true },
-    { name: "Fitness Factory", avatar: "FF", color: "#EC4899", revenue: `$${Math.round(890 * mult).toLocaleString()}`, rpm: "$6.40", views: `${(3.2 * mult).toFixed(1)}M`, pct: 7, change: "+22%", changeType: "up", monetized: true },
-    { name: "Money Matters", avatar: "MM", color: "#F59E0B", revenue: "—", rpm: "—", views: `${(7.4 * mult).toFixed(1)}M`, pct: 0, change: "—", changeType: "up", monetized: false },
-    { name: "Know Her Name", avatar: "KH", color: "#0EA5E9", revenue: `$${(4.45 * mult).toFixed(2)}`, rpm: "$0.23", views: `${(77.5 * mult).toFixed(1)}K`, pct: 0.03, change: "+100%", changeType: "up", monetized: true },
+    { id: "lc", name: "Laugh Central", avatar: "LC", color: "#8B5CF6", revenue: `$${Math.round(4690 * mult).toLocaleString()}`, rpm: "$10.20", views: `${(24.5 * mult).toFixed(1)}M`, pct: 36, change: "+31%", changeType: "up", monetized: true },
+    { id: "hu", name: "History Uncovered", avatar: "HU", color: "#FF6B2B", revenue: `$${Math.round(3842 * mult).toLocaleString()}`, rpm: "$9.12", views: `${(18.2 * mult).toFixed(1)}M`, pct: 30, change: "+12%", changeType: "up", monetized: true },
+    { id: "tb", name: "TechByte", avatar: "TB", color: "#14B8A6", revenue: `$${Math.round(2180 * mult).toLocaleString()}`, rpm: "$8.95", views: `${(9.1 * mult).toFixed(1)}M`, pct: 17, change: "-3%", changeType: "down", monetized: true },
+    { id: "dh", name: "Daily Health Tips", avatar: "DH", color: "#6366F1", revenue: `$${Math.round(1245 * mult).toLocaleString()}`, rpm: "$7.80", views: `${(5.6 * mult).toFixed(1)}M`, pct: 10, change: "+8%", changeType: "up", monetized: true },
+    { id: "ff", name: "Fitness Factory", avatar: "FF", color: "#EC4899", revenue: `$${Math.round(890 * mult).toLocaleString()}`, rpm: "$6.40", views: `${(3.2 * mult).toFixed(1)}M`, pct: 7, change: "+22%", changeType: "up", monetized: true },
+    { id: "mm", name: "Money Matters", avatar: "MM", color: "#F59E0B", revenue: "—", rpm: "—", views: `${(7.4 * mult).toFixed(1)}M`, pct: 0, change: "—", changeType: "up", monetized: false },
+    { id: "khn", name: "Know Her Name", avatar: "KH", color: "#0EA5E9", revenue: `$${(4.45 * mult).toFixed(2)}`, rpm: "$0.23", views: `${(77.5 * mult).toFixed(1)}K`, pct: 0.03, change: "+100%", changeType: "up", monetized: true },
   ];
 }
 
