@@ -11,7 +11,7 @@ interface QueuePost {
   platforms: ("fb" | "ig" | "th")[];
   scheduledAt: string;
   scheduledDate: string;
-  type: "photo" | "video" | "reel" | "text";
+  type: "photo" | "reel" | "text";
   status: "scheduled" | "publishing" | "failed" | "draft";
   comments: string[];
 }
@@ -19,7 +19,7 @@ interface QueuePost {
 const MOCK_QUEUE: QueuePost[] = [
   { id: "q1", thumbnail: "🏛️", caption: "The forgotten queen who ruled an empire for 40 years — yet history barely remembers her name...", page: { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" }, platforms: ["fb", "ig", "th"], scheduledAt: "Today, 2:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["Thread 1: She was born in a small village...", "Thread 2: By age 20, she had already..."] },
   { id: "q2", thumbnail: "😂", caption: "When your code works on the first try and you don't trust it 😭", page: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6" }, platforms: ["fb", "ig"], scheduledAt: "Today, 4:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q3", thumbnail: "💪", caption: "5 exercises you're doing wrong — and the simple fixes that double your results", page: { name: "Fitness Factory", avatar: "FF", color: "#EC4899" }, platforms: ["fb"], scheduledAt: "Today, 5:30 PM", scheduledDate: "Mar 27, 2026", type: "video", status: "scheduled", comments: ["Fix #1: Squats — stop leaning forward", "Fix #2: Deadlifts — engage your lats"] },
+  { id: "q3", thumbnail: "💪", caption: "5 exercises you're doing wrong — and the simple fixes that double your results", page: { name: "Fitness Factory", avatar: "FF", color: "#EC4899" }, platforms: ["fb"], scheduledAt: "Today, 5:30 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: ["Fix #1: Squats — stop leaning forward", "Fix #2: Deadlifts — engage your lats"] },
   { id: "q4", thumbnail: "💻", caption: "Apple just leaked their next chip — and it's not what anyone expected", page: { name: "TechByte", avatar: "TB", color: "#14B8A6" }, platforms: ["fb", "ig", "th"], scheduledAt: "Today, 7:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "draft", comments: [] },
   { id: "q5", thumbnail: "🏛️", caption: "This 3,000-year-old artifact was found in a farmer's backyard. What it reveals changes everything we know about ancient trade routes.", page: { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" }, platforms: ["fb", "ig"], scheduledAt: "Tomorrow, 9:00 AM", scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: ["The artifact was a bronze seal...", "Archaeologists believe it proves..."] },
   { id: "q6", thumbnail: "😂", caption: "POV: You mass a typo in a work email and hit send before noticing", page: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6" }, platforms: ["fb", "ig", "th"], scheduledAt: "Tomorrow, 11:00 AM", scheduledDate: "Mar 28, 2026", type: "reel", status: "scheduled", comments: [] },
@@ -28,7 +28,7 @@ const MOCK_QUEUE: QueuePost[] = [
   { id: "q9", thumbnail: "👩", caption: "She was told women couldn't be scientists. She won two Nobel Prizes.", page: { name: "Know Her Name", avatar: "KH", color: "#0EA5E9" }, platforms: ["fb", "th"], scheduledAt: "Mar 29, 10:00 AM", scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: ["Marie Curie's early life in Warsaw...", "Her discovery of radium changed medicine forever"] },
   { id: "q10", thumbnail: "💪", caption: "The only 3 supplements actually backed by science — everything else is marketing", page: { name: "Fitness Factory", avatar: "FF", color: "#EC4899" }, platforms: ["fb", "ig"], scheduledAt: "Mar 29, 2:00 PM", scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q11", thumbnail: "😂", caption: "My WiFi password is stronger than most of my life decisions", page: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6" }, platforms: ["fb", "ig", "th"], scheduledAt: "Mar 29, 5:00 PM", scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q12", thumbnail: "💻", caption: "This free tool replaces 5 paid apps — and nobody is talking about it", page: { name: "TechByte", avatar: "TB", color: "#14B8A6" }, platforms: ["fb", "ig"], scheduledAt: "Mar 30, 9:00 AM", scheduledDate: "Mar 30, 2026", type: "video", status: "scheduled", comments: ["App 1: Notion replaces Trello + Google Docs", "App 2: Figma replaces Sketch + InVision"] },
+  { id: "q12", thumbnail: "💻", caption: "This free tool replaces 5 paid apps — and nobody is talking about it", page: { name: "TechByte", avatar: "TB", color: "#14B8A6" }, platforms: ["fb", "ig"], scheduledAt: "Mar 30, 9:00 AM", scheduledDate: "Mar 30, 2026", type: "reel", status: "scheduled", comments: ["App 1: Notion replaces Trello + Google Docs", "App 2: Figma replaces Sketch + InVision"] },
 ];
 
 const platformIcons: Record<string, { label: string; color: string }> = {
@@ -39,7 +39,6 @@ const platformIcons: Record<string, { label: string; color: string }> = {
 
 const typeColors: Record<string, string> = {
   photo: "#0C6AFF",
-  video: "#8B5CF6",
   reel: "#EC4899",
   text: "#9494A8",
 };

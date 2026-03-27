@@ -10,7 +10,7 @@ interface PostData {
   platforms: ("fb" | "ig" | "th")[];
   scheduledAt: string;
   scheduledDate: string;
-  type: "photo" | "video" | "reel" | "text";
+  type: "photo" | "reel" | "text";
   status: "scheduled" | "publishing" | "failed" | "draft";
   comments: string[];
 }
@@ -23,7 +23,6 @@ const platformLabels: Record<string, { label: string; color: string; full: strin
 
 const typeColors: Record<string, string> = {
   photo: "#0C6AFF",
-  video: "#8B5CF6",
   reel: "#EC4899",
   text: "#9494A8",
 };
