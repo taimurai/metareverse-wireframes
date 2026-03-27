@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [reconnectModal, setReconnectModal] = useState(false);
   const [retryModal, setRetryModal] = useState(false);
   const [connectModal, setConnectModal] = useState(false);
+  const [pageSearch, setPageSearch] = useState("");
 
   const totalRevenue = ALL_PAGES.reduce((s, p) => s + p.revenue, 0);
   const avgRpm = ALL_PAGES.filter(p => p.rpm > 0).reduce((s, p, _, a) => s + p.rpm / a.length, 0);
@@ -233,7 +234,21 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-        <a href="/reports" className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>Full Reports →</a>
+        <div className="flex items-center gap-3">
+          {/* Search */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: "var(--surface)" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="text"
+              value={pageSearch}
+              onChange={e => setPageSearch(e.target.value)}
+              placeholder="Search pages..."
+              className="bg-transparent outline-none text-[12px] w-[140px]"
+              style={{ color: "var(--text)" }}
+            />
+          </div>
+          <a href="/reports" className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>Full Reports →</a>
+        </div>
       </div>
 
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
@@ -248,8 +263,8 @@ export default function Dashboard() {
           <div>Health</div>
         </div>
 
-        {/* Rows sorted by revenue desc */}
-        {[...ALL_PAGES].sort((a, b) => b.revenue - a.revenue).map(page => (
+        {/* Rows sorted by revenue desc, filtered by search */}
+        {[...ALL_PAGES].filter(p => p.name.toLowerCase().includes(pageSearch.toLowerCase())).sort((a, b) => b.revenue - a.revenue).map(page => (
           <div
             key={page.id}
             className="grid items-center px-4 py-3 border-t cursor-pointer transition-all"
@@ -272,32 +287,40 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Revenue bar */}
+            {/* Revenue bar — bar color = page brand color, consistent */}
             <div className="flex items-center gap-3 pr-4">
               <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: "var(--bg)" }}>
-                <div className="h-full rounded-full" style={{ width: `${Math.min((page.revenue / 5000) * 100, 100)}%`, backgroundColor: page.revenue > 0 ? page.color : "var(--text-muted)" }} />
+                <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((page.revenue / 5000) * 100, 100)}%`, backgroundColor: page.revenue > 0 ? page.color : "transparent" }} />
               </div>
-              <span className="text-[12px] font-semibold min-w-[60px] text-right" style={{ color: page.revenue > 0 ? "var(--success)" : "var(--text-muted)" }}>
-                {page.revenue > 0 ? `$${page.revenue.toLocaleString()}` : "—"}
-              </span>
+              <div className="min-w-[70px] text-right">
+                <span className="text-[12px] font-semibold" style={{ color: page.revenue > 0 ? "var(--text)" : "var(--text-muted)" }}>
+                  {page.revenue > 0 ? `$${page.revenue.toLocaleString()}` : "—"}
+                </span>
+                {page.revenue > 0 && page.revenue < 100 && (
+                  <div className="text-[9px]" style={{ color: "var(--text-muted)" }}>+${page.revenue.toFixed(2)}</div>
+                )}
+                {page.revenue === 0 && page.rpm === 0 && (
+                  <div className="text-[9px]" style={{ color: "var(--warning)" }}>Not enrolled</div>
+                )}
+              </div>
             </div>
 
             {/* RPM */}
             <div>
               <span className="text-[12px] font-medium" style={{ color: "var(--text)" }}>{page.rpm > 0 ? `$${page.rpm.toFixed(2)}` : "—"}</span>
               {page.rpmChange !== 0 && page.rpm > 0 && (
-                <span className="text-[10px] ml-1" style={{ color: page.rpmChange > 0 ? "var(--success)" : "var(--error)" }}>
+                <div className="text-[10px]" style={{ color: page.rpmChange > 0 ? "var(--success)" : "var(--error)" }}>
                   {page.rpmChange > 0 ? "↑" : "↓"}{Math.abs(page.rpmChange)}%
-                </span>
+                </div>
               )}
             </div>
 
             {/* Views */}
             <div>
               <span className="text-[12px] font-medium" style={{ color: "var(--text)" }}>{formatNum(page.views7d)}</span>
-              <span className="text-[10px] ml-1" style={{ color: page.viewsChange > 0 ? "var(--success)" : page.viewsChange < -10 ? "var(--error)" : "var(--text-muted)" }}>
+              <div className="text-[10px]" style={{ color: page.viewsChange > 0 ? "var(--success)" : page.viewsChange < -10 ? "var(--error)" : "var(--text-muted)" }}>
                 {page.viewsChange > 0 ? "↑" : "↓"}{Math.abs(page.viewsChange)}%
-              </span>
+              </div>
             </div>
 
             {/* Queue */}
