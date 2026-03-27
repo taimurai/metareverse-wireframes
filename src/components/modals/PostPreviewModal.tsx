@@ -94,8 +94,8 @@ export default function PostPreviewModal({ post, onClose }: { post: PostData; on
           {activeTab === "preview" && (
             <div>
               {/* Media preview */}
-              <div className="w-full aspect-square rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "var(--surface-hover)" }}>
-                <span className="text-[64px]">{post.thumbnail}</span>
+              <div className="w-full aspect-[4/3] rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "var(--surface-hover)" }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ color: "var(--text-muted)" }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
               </div>
 
               {/* Caption */}
