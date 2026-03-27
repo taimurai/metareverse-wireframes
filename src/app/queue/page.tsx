@@ -167,7 +167,7 @@ export default function QueuePage() {
 
       {/* Queue grid header */}
       <div className="rounded-t-xl border border-b-0" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-        <div className="grid items-center px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", gridTemplateColumns: "40px 60px 1fr 140px 100px 120px 160px 80px 40px" }}>
+        <div className="grid items-center px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", gridTemplateColumns: "40px 1fr 140px 70px 100px 150px 70px 36px" }}>
           <div>
             <input
               type="checkbox"
@@ -177,10 +177,9 @@ export default function QueuePage() {
               style={{ accentColor: "var(--primary)" }}
             />
           </div>
-          <div>Type</div>
           <div>Post</div>
           <div>Page</div>
-          <div>Platforms</div>
+          <div>To</div>
           <div>Status</div>
           <div>Scheduled</div>
           <div>Threads</div>
@@ -218,7 +217,7 @@ export default function QueuePage() {
                     style={{
                       backgroundColor: selectedPosts.has(post.id) ? "var(--primary-muted)" : dragOverId === post.id ? "var(--surface-hover)" : "var(--surface)",
                       borderColor: "var(--border)",
-                      gridTemplateColumns: "40px 60px 1fr 140px 100px 120px 160px 80px 40px",
+                      gridTemplateColumns: "40px 1fr 140px 70px 100px 150px 70px 36px",
                     }}
                     onDragOver={(e) => { e.preventDefault(); setDragOverId(post.id); }}
                     onDragLeave={() => setDragOverId(null)}
@@ -235,19 +234,10 @@ export default function QueuePage() {
                       />
                     </div>
 
-                    {/* Type badge */}
-                    <div>
-                      <span className="text-[10px] font-semibold px-2 py-1 rounded-md uppercase" style={{
-                        backgroundColor: `${typeColors[post.type]}15`,
-                        color: typeColors[post.type],
-                      }}>
-                        {post.type}
-                      </span>
-                    </div>
-
-                    {/* Caption + thumbnail */}
+                    {/* Post: type emoji + thumbnail + caption */}
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--surface-hover)" }}>
+                      <span className="text-[16px] shrink-0">{post.type === "photo" ? "📷" : post.type === "reel" ? "🎬" : "📝"}</span>
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden" style={{ backgroundColor: "var(--surface-hover)" }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--text-muted)" }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                       </div>
                       <p className="text-[12px] font-medium truncate" style={{ color: "var(--text)" }}>
@@ -265,14 +255,13 @@ export default function QueuePage() {
                       </span>
                     </div>
 
-                    {/* Platforms */}
-                    <div className="flex items-center gap-1">
+                    {/* Platforms — icon logos */}
+                    <div className="flex items-center gap-1.5">
                       {post.platforms.map(p => (
-                        <span key={p} className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{
-                          backgroundColor: `${platformIcons[p].color}20`,
-                          color: platformIcons[p].color,
-                        }}>
-                          {platformIcons[p].label}
+                        <span key={p} title={platformIcons[p].label}>
+                          {p === "fb" && <svg width="16" height="16" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>}
+                          {p === "ig" && <svg width="16" height="16" viewBox="0 0 24 24" fill="#E1306C"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>}
+                          {p === "th" && <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.181 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-5.602.04-8.196 3.2-8.257 8.358v.457c.504 5.07 3.278 7.957 8.254 7.957h.023c2.627-.02 4.643-.64 6.163-1.898.93-.77 1.614-1.742 2.033-2.89l1.98.676c-.56 1.54-1.46 2.82-2.674 3.803C18.14 23.02 15.478 23.978 12.186 24z"/><path d="M12.167 17.053c-3.091 0-5.15-2.514-5.15-5.053 0-2.54 2.059-5.054 5.15-5.054 3.092 0 5.15 2.514 5.15 5.054 0 2.539-2.058 5.053-5.15 5.053zm0-8.14c-1.843 0-3.183 1.394-3.183 3.087 0 1.693 1.34 3.087 3.183 3.087 1.844 0 3.184-1.394 3.184-3.087 0-1.693-1.34-3.087-3.184-3.087z"/></svg>}
                         </span>
                       ))}
                     </div>
