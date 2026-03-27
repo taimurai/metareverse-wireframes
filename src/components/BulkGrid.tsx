@@ -1,14 +1,20 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 type MediaType = "image" | "video";
+
+interface ThreadComment {
+  id: string;
+  text: string;
+  delay: string; // e.g. "0m", "5m", "10m"
+}
 
 interface GridRow {
   id: string;
   type: MediaType;
   filename: string;
   caption: string;
-  comments: string;
+  comments: ThreadComment[];
   ig: boolean;
   threads: boolean;
   schedule: string;
@@ -18,14 +24,31 @@ interface GridRow {
 }
 
 const mockMedia: GridRow[] = [
-  { id: "1", type: "image", filename: "sunset_beach.jpg", caption: "Did you know that the largest wave ever recorded was 1,720 feet tall? Here are 5 more ocean facts that will blow your mind...", comments: "1. The ocean covers 71% of Earth\n2. The deepest point is 36,000 ft", ig: true, threads: true, schedule: "9:00 AM", selected: false, charCount: 118, color: "#FF6B2B" },
-  { id: "2", type: "video", filename: "workout_routine.mp4", caption: "Watch this incredible 5-minute morning routine that changed everything. No equipment needed!", comments: "", ig: true, threads: true, schedule: "10:30 AM", selected: false, charCount: 86, color: "#6366F1" },
-  { id: "3", type: "image", filename: "infographic_health.png", caption: "Breaking: New study reveals the #1 habit of healthy people. The results might surprise you...", comments: "1. First key finding\n2. What experts say\n3. How to apply this", ig: true, threads: false, schedule: "12:00 PM", selected: false, charCount: 91, color: "#EC4899" },
-  { id: "4", type: "video", filename: "cooking_tutorial.mov", caption: "How to make restaurant-quality pasta in under 10 minutes. Save this for later!", comments: "", ig: false, threads: true, schedule: "1:30 PM", selected: false, charCount: 78, color: "#14B8A6" },
-  { id: "5", type: "image", filename: "motivational_quote.jpg", caption: "The only way to do great work is to love what you do. Double tap if you agree!", comments: "1. What this means for entrepreneurs\n2. Real success stories", ig: true, threads: true, schedule: "3:00 PM", selected: false, charCount: 77, color: "#F59E0B" },
-  { id: "6", type: "image", filename: "historical_facts.png", caption: "In 1969, humans first walked on the moon. Here are 10 things you didn't know about the Apollo mission...", comments: "1. The computer had less power than your phone\n2. They left mirrors on the moon", ig: true, threads: true, schedule: "4:30 PM", selected: false, charCount: 103, color: "#8B5CF6" },
-  { id: "7", type: "video", filename: "travel_vlog.mp4", caption: "This hidden gem in Bali will leave you speechless. We found paradise!", comments: "", ig: true, threads: false, schedule: "6:00 PM", selected: false, charCount: 70, color: "#06B6D4" },
-  { id: "8", type: "image", filename: "tech_news.jpg", caption: "AI just changed everything. Here's what happened this week in tech and why you should care...", comments: "1. Major breakthrough in reasoning\n2. New tools released\n3. What it means for creators", ig: true, threads: true, schedule: "7:30 PM", selected: false, charCount: 92, color: "#F43F5E" },
+  { id: "1", type: "image", filename: "sunset_beach.jpg", caption: "Did you know that the largest wave ever recorded was 1,720 feet tall? Here are 5 more ocean facts that will blow your mind...", comments: [
+    { id: "c1", text: "The ocean covers 71% of Earth's surface 🌊", delay: "0m" },
+    { id: "c2", text: "The deepest point is 36,000 ft — the Mariana Trench", delay: "5m" },
+  ], ig: true, threads: true, schedule: "9:00 AM", selected: false, charCount: 118, color: "#FF6B2B" },
+  { id: "2", type: "video", filename: "workout_routine.mp4", caption: "Watch this incredible 5-minute morning routine that changed everything. No equipment needed!", comments: [], ig: true, threads: true, schedule: "10:30 AM", selected: false, charCount: 86, color: "#6366F1" },
+  { id: "3", type: "image", filename: "infographic_health.png", caption: "Breaking: New study reveals the #1 habit of healthy people. The results might surprise you...", comments: [
+    { id: "c3", text: "First key finding: consistency beats intensity", delay: "0m" },
+    { id: "c4", text: "What experts say about this study 👇", delay: "5m" },
+    { id: "c5", text: "How to apply this to your daily routine", delay: "10m" },
+  ], ig: true, threads: false, schedule: "12:00 PM", selected: false, charCount: 91, color: "#EC4899" },
+  { id: "4", type: "video", filename: "cooking_tutorial.mov", caption: "How to make restaurant-quality pasta in under 10 minutes. Save this for later!", comments: [], ig: false, threads: true, schedule: "1:30 PM", selected: false, charCount: 78, color: "#14B8A6" },
+  { id: "5", type: "image", filename: "motivational_quote.jpg", caption: "The only way to do great work is to love what you do. Double tap if you agree!", comments: [
+    { id: "c6", text: "What this means for entrepreneurs 💡", delay: "0m" },
+    { id: "c7", text: "Real success stories from people who followed their passion", delay: "5m" },
+  ], ig: true, threads: true, schedule: "3:00 PM", selected: false, charCount: 77, color: "#F59E0B" },
+  { id: "6", type: "image", filename: "historical_facts.png", caption: "In 1969, humans first walked on the moon. Here are 10 things you didn't know about the Apollo mission...", comments: [
+    { id: "c8", text: "The computer had less power than your phone 📱", delay: "0m" },
+    { id: "c9", text: "They left mirrors on the moon that we still use today", delay: "5m" },
+  ], ig: true, threads: true, schedule: "4:30 PM", selected: false, charCount: 103, color: "#8B5CF6" },
+  { id: "7", type: "video", filename: "travel_vlog.mp4", caption: "This hidden gem in Bali will leave you speechless. We found paradise!", comments: [], ig: true, threads: false, schedule: "6:00 PM", selected: false, charCount: 70, color: "#06B6D4" },
+  { id: "8", type: "image", filename: "tech_news.jpg", caption: "AI just changed everything. Here's what happened this week in tech and why you should care...", comments: [
+    { id: "c10", text: "Major breakthrough in reasoning capabilities 🧠", delay: "0m" },
+    { id: "c11", text: "New tools released this week you need to try", delay: "5m" },
+    { id: "c12", text: "What it means for content creators going forward", delay: "10m" },
+  ], ig: true, threads: true, schedule: "7:30 PM", selected: false, charCount: 92, color: "#F43F5E" },
 ];
 
 export default function BulkGrid() {
@@ -34,6 +57,7 @@ export default function BulkGrid() {
   const [selectAll, setSelectAll] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [editingCell, setEditingCell] = useState<{ row: string; field: string } | null>(null);
+  const [newCommentText, setNewCommentText] = useState("");
 
   const toggleSelect = (id: string) => {
     setRows((r) => r.map((row) => (row.id === id ? { ...row, selected: !row.selected } : row)));
@@ -200,30 +224,15 @@ export default function BulkGrid() {
                       )}
                     </td>
 
-                    {/* Comments */}
+                    {/* Threaded Comments */}
                     <td className="px-3 py-3">
-                      {row.comments ? (
-                        <div
-                          className="cursor-text rounded-lg p-2 -m-2 hover:ring-1 transition-all"
-                          style={{ "--tw-ring-color": "var(--border-light)" } as React.CSSProperties}
-                          onClick={() => setEditingCell({ row: row.id, field: "comments" })}
-                        >
-                          <div className="text-[11px] whitespace-pre-line line-clamp-2" style={{ color: "var(--text-secondary)" }}>
-                            {row.comments}
-                          </div>
-                          <span className="text-[10px] mt-1 block" style={{ color: "var(--text-muted)" }}>
-                            {row.comments.split("\n").length} comments
-                          </span>
-                        </div>
-                      ) : (
-                        <div
-                          className="cursor-text rounded-lg p-2 -m-2 text-[11px] hover:ring-1 transition-all"
-                          style={{ color: "var(--text-muted)", "--tw-ring-color": "var(--border-light)" } as React.CSSProperties}
-                          onClick={() => setEditingCell({ row: row.id, field: "comments" })}
-                        >
-                          + Add thread comments
-                        </div>
-                      )}
+                      <ThreadCommentsCell
+                        comments={row.comments}
+                        isEditing={editingCell?.row === row.id && editingCell?.field === "comments"}
+                        onStartEdit={() => setEditingCell({ row: row.id, field: "comments" })}
+                        onStopEdit={() => setEditingCell(null)}
+                        onChange={(comments) => setRows(r => r.map(x => x.id === row.id ? { ...x, comments } : x))}
+                      />
                     </td>
 
                     {/* IG toggle */}
@@ -274,6 +283,234 @@ export default function BulkGrid() {
           </table>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Threaded Comments Cell ── */
+function ThreadCommentsCell({
+  comments,
+  isEditing,
+  onStartEdit,
+  onStopEdit,
+  onChange,
+}: {
+  comments: ThreadComment[];
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onStopEdit: () => void;
+  onChange: (comments: ThreadComment[]) => void;
+}) {
+  const [newText, setNewText] = useState("");
+  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) inputRef.current.focus();
+  }, [isEditing]);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!isEditing) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        onStopEdit();
+        setEditIdx(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [isEditing, onStopEdit]);
+
+  const addComment = () => {
+    if (!newText.trim()) return;
+    const delayMin = comments.length * 5;
+    onChange([...comments, {
+      id: `new-${Date.now()}`,
+      text: newText.trim(),
+      delay: `${delayMin}m`,
+    }]);
+    setNewText("");
+  };
+
+  const removeComment = (idx: number) => {
+    onChange(comments.filter((_, i) => i !== idx));
+  };
+
+  const startInlineEdit = (idx: number) => {
+    setEditIdx(idx);
+    setEditText(comments[idx].text);
+  };
+
+  const saveInlineEdit = () => {
+    if (editIdx === null) return;
+    if (!editText.trim()) {
+      removeComment(editIdx);
+    } else {
+      onChange(comments.map((c, i) => i === editIdx ? { ...c, text: editText.trim() } : c));
+    }
+    setEditIdx(null);
+  };
+
+  const updateDelay = (idx: number, delay: string) => {
+    onChange(comments.map((c, i) => i === idx ? { ...c, delay } : c));
+  };
+
+  // Collapsed view
+  if (!isEditing) {
+    return (
+      <div
+        className="cursor-pointer rounded-lg p-2 -m-2 hover:ring-1 transition-all"
+        style={{ "--tw-ring-color": "var(--border-light)" } as React.CSSProperties}
+        onClick={onStartEdit}
+      >
+        {comments.length > 0 ? (
+          <div>
+            {/* Show thread preview */}
+            <div className="space-y-1">
+              {comments.slice(0, 2).map((c, i) => (
+                <div key={c.id} className="flex items-start gap-1.5">
+                  <div className="flex flex-col items-center flex-shrink-0 mt-0.5">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+                    {i < Math.min(comments.length, 2) - 1 && (
+                      <div className="w-px h-3" style={{ backgroundColor: "var(--border-light)" }} />
+                    )}
+                  </div>
+                  <span className="text-[10px] line-clamp-1" style={{ color: "var(--text-secondary)" }}>{c.text}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-[10px] font-medium" style={{ color: "var(--primary)" }}>
+                {comments.length} comment{comments.length > 1 ? "s" : ""} in thread
+              </span>
+              {comments.length > 2 && (
+                <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>+{comments.length - 2} more</span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Add thread comments
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Expanded editing view
+  return (
+    <div ref={containerRef} className="rounded-lg p-2 -m-2 min-w-[240px]" style={{ backgroundColor: "var(--bg)", border: "1px solid var(--primary)" }}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--primary)" }}>
+          Thread Comments ({comments.length})
+        </span>
+        <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}>
+          Sequential
+        </span>
+      </div>
+
+      {/* Comment list */}
+      <div className="space-y-1 mb-2">
+        {comments.map((c, i) => (
+          <div key={c.id} className="flex items-start gap-1.5 group/comment">
+            {/* Thread line */}
+            <div className="flex flex-col items-center flex-shrink-0 pt-1">
+              <div className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold" style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}>
+                {i + 1}
+              </div>
+              {i < comments.length - 1 && (
+                <div className="w-px flex-1 min-h-[8px]" style={{ backgroundColor: "var(--border-light)" }} />
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              {editIdx === i ? (
+                <input
+                  type="text"
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveInlineEdit(); if (e.key === "Escape") setEditIdx(null); }}
+                  onBlur={saveInlineEdit}
+                  autoFocus
+                  className="w-full text-[11px] px-2 py-1 rounded border outline-none"
+                  style={{ backgroundColor: "var(--surface)", borderColor: "var(--primary)", color: "var(--text)" }}
+                />
+              ) : (
+                <div
+                  className="text-[11px] px-2 py-1 rounded cursor-text hover:bg-opacity-50"
+                  style={{ color: "var(--text-secondary)" }}
+                  onClick={() => startInlineEdit(i)}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--surface)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                >
+                  {c.text}
+                </div>
+              )}
+
+              {/* Delay + actions */}
+              <div className="flex items-center gap-1.5 mt-0.5 px-2">
+                <select
+                  value={c.delay}
+                  onChange={(e) => updateDelay(i, e.target.value)}
+                  className="text-[9px] px-1 py-0.5 rounded border-none outline-none"
+                  style={{ backgroundColor: "var(--surface)", color: "var(--text-muted)" }}
+                >
+                  <option value="0m">Immediate</option>
+                  <option value="1m">+1 min</option>
+                  <option value="2m">+2 min</option>
+                  <option value="5m">+5 min</option>
+                  <option value="10m">+10 min</option>
+                  <option value="15m">+15 min</option>
+                  <option value="30m">+30 min</option>
+                </select>
+                <button
+                  onClick={() => removeComment(i)}
+                  className="opacity-0 group-hover/comment:opacity-100 transition-opacity"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--error)" }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Add new comment */}
+      <div className="flex items-center gap-1.5">
+        <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0" style={{ border: "1.5px dashed var(--border-light)" }}>
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ color: "var(--text-muted)" }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+        <input
+          ref={inputRef}
+          type="text"
+          value={newText}
+          onChange={(e) => setNewText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") addComment(); }}
+          placeholder="Add a comment..."
+          className="flex-1 text-[11px] px-2 py-1.5 rounded border outline-none"
+          style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", color: "var(--text)" }}
+        />
+        <button
+          onClick={addComment}
+          disabled={!newText.trim()}
+          className="text-[10px] font-semibold px-2 py-1 rounded"
+          style={{ backgroundColor: newText.trim() ? "var(--primary)" : "var(--surface-active)", color: newText.trim() ? "white" : "var(--text-muted)" }}
+        >
+          Add
+        </button>
+      </div>
+
+      {/* Tip */}
+      {comments.length === 0 && (
+        <div className="text-[9px] mt-2 px-1" style={{ color: "var(--text-muted)" }}>
+          Comments are posted sequentially under the main post. Set delays between each.
+        </div>
+      )}
     </div>
   );
 }
