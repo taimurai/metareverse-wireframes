@@ -27,7 +27,12 @@ const navItems = [
       )},
       { label: "Reports", href: "/reports", icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-      )},
+      ), children: [
+        { label: "Overview", href: "/reports" },
+        { label: "Results", href: "/reports/results" },
+        { label: "Earnings", href: "/reports/earnings" },
+        { label: "Page Report", href: "/reports/page" },
+      ]},
     ],
   },
   {
@@ -100,41 +105,67 @@ export default function Sidebar() {
               <div className="mx-3 mb-2 border-t" style={{ borderColor: "var(--border-light)" }} />
             )}
             <div className="space-y-0.5">
-              {section.items.map((item) => {
+              {section.items.map((item: any) => {
                 const active = pathname === item.href;
+                const hasChildren = item.children && !collapsed;
+                const childActive = item.children?.some((c: any) => pathname === c.href);
+                const isOpen = active || childActive;
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium relative group ${
-                      collapsed ? "justify-center" : ""
-                    }`}
-                    style={{
-                      color: active ? "var(--primary)" : "var(--text-secondary)",
-                      backgroundColor: active ? "var(--primary-muted)" : "transparent",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!active) {
-                        e.currentTarget.style.backgroundColor = "var(--surface)";
-                        e.currentTarget.style.color = "var(--text)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!active) {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.color = "var(--text-secondary)";
-                      }
-                    }}
-                  >
-                    {active && (
-                      <div
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-                        style={{ backgroundColor: "var(--accent)" }}
-                      />
+                  <div key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium relative group ${
+                        collapsed ? "justify-center" : ""
+                      }`}
+                      style={{
+                        color: isOpen ? "var(--primary)" : "var(--text-secondary)",
+                        backgroundColor: isOpen ? "var(--primary-muted)" : "transparent",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isOpen) {
+                          e.currentTarget.style.backgroundColor = "var(--surface)";
+                          e.currentTarget.style.color = "var(--text)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isOpen) {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                          e.currentTarget.style.color = "var(--text-secondary)";
+                        }
+                      }}
+                    >
+                      {isOpen && (
+                        <div
+                          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+                          style={{ backgroundColor: "var(--accent)" }}
+                        />
+                      )}
+                      <span className="flex-shrink-0">{item.icon}</span>
+                      {!collapsed && <span>{item.label}</span>}
+                    </Link>
+                    {hasChildren && isOpen && (
+                      <div className="ml-8 mt-0.5 space-y-0.5">
+                        {item.children.map((child: any) => {
+                          const cActive = pathname === child.href;
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              className="block px-3 py-1.5 rounded-md text-[12px] font-medium"
+                              style={{
+                                color: cActive ? "var(--primary)" : "var(--text-muted)",
+                                backgroundColor: cActive ? "rgba(12, 106, 255, 0.06)" : "transparent",
+                              }}
+                              onMouseEnter={(e) => { if (!cActive) e.currentTarget.style.color = "var(--text-secondary)"; }}
+                              onMouseLeave={(e) => { if (!cActive) e.currentTarget.style.color = "var(--text-muted)"; }}
+                            >
+                              {child.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
                     )}
-                    <span className="flex-shrink-0">{item.icon}</span>
-                    {!collapsed && <span>{item.label}</span>}
-                  </Link>
+                  </div>
                 );
               })}
             </div>

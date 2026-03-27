@@ -1,35 +1,40 @@
 "use client";
 import { useState } from "react";
 import Header from "@/components/Header";
+import SparklineChart from "@/components/SparklineChart";
+import PlatformSwitcher from "@/components/PlatformSwitcher";
 import Link from "next/link";
 
 const recentPosts = [
-  { caption: "Did you know ancient Egyptians invented toothpaste?", type: "image", date: "Dec 14", views: "2.4M", engagement: "5.8%", shares: "12.4K", revenue: "$892", status: "published" },
-  { caption: "The most devastating volcanic eruption in recorded history...", type: "video", date: "Dec 13", views: "4.1M", engagement: "7.2%", shares: "28.1K", revenue: "$1,420", status: "published" },
-  { caption: "Why the Titanic sank: New evidence reveals...", type: "image", date: "Dec 12", views: "1.8M", engagement: "4.1%", shares: "8.2K", revenue: "$645", status: "published" },
-  { caption: "5 ancient civilizations that mysteriously vanished...", type: "image", date: "Dec 11", views: "3.2M", engagement: "6.5%", shares: "18.9K", revenue: "$1,105", status: "published" },
-  { caption: "The real story behind the Bermuda Triangle", type: "video", date: "Dec 10", views: "5.6M", engagement: "8.1%", shares: "34.2K", revenue: "$1,890", status: "published" },
-  { caption: "History's greatest unsolved mysteries: Part 3", type: "image", date: "Dec 9", views: "1.2M", engagement: "3.4%", shares: "5.8K", revenue: "$410", status: "partial" },
+  { caption: "Kaja Kallas — Estonia's PM during Ukraine invasion", type: "Photo", date: "Mar 26", views: "65,842", reach: "45,015", clicks: "7,277", photoClicks: "6,890", otherClicks: "387", reactions: "1,842", comments: "284", shares: "52", revenue: "$3.88", status: "published" },
+  { caption: "Norway health crisis response", type: "Photo", date: "Mar 25", views: "3,371", reach: "2,601", clicks: "94", photoClicks: "82", otherClicks: "12", reactions: "198", comments: "34", shares: "12", revenue: "$0.30", status: "published" },
+  { caption: "Shirley Chisholm — 1968 convention floor", type: "Photo", date: "Mar 24", views: "835", reach: "653", clicks: "10", photoClicks: "8", otherClicks: "2", reactions: "92", comments: "15", shares: "5", revenue: "$0.10", status: "published" },
+  { caption: "Motley Crue — Supreme Court case", type: "Photo", date: "Mar 23", views: "431", reach: "332", clicks: "4", photoClicks: "3", otherClicks: "1", reactions: "56", comments: "8", shares: "3", revenue: "$0.06", status: "published" },
+  { caption: "Sojourner Truth — Convention question, 1851", type: "Photo", date: "Mar 22", views: "320", reach: "231", clicks: "3", photoClicks: "2", otherClicks: "1", reactions: "31", comments: "2", shares: "2", revenue: "$0.03", status: "published" },
+  { caption: "Rosalind Franklin — Photo 51 and DNA", type: "Photo", date: "Mar 15", views: "46", reach: "28", clicks: "1", photoClicks: "1", otherClicks: "0", reactions: "0", comments: "0", shares: "0", revenue: "$0.00", status: "published" },
 ];
 
 export default function PageReport() {
-  const [period, setPeriod] = useState("7d");
+  const [period, setPeriod] = useState("28d");
+  const [platform, setPlatform] = useState("facebook");
+  const [postFilter, setPostFilter] = useState("all");
 
   return (
     <div>
       <div className="flex items-center gap-2 mb-4">
-        <Link href="/reports" className="text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Reports</Link>
+        <Link href="/reports" className="text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Insights</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><polyline points="9 18 15 12 9 6"/></svg>
-        <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>History Uncovered</span>
+        <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>Know Her Name</span>
       </div>
 
       <Header
-        title="History Uncovered"
-        subtitle="History & Facts &middot; 2.4M followers &middot; FB + IG + Threads"
+        title="Know Her Name"
+        subtitle="Women's History · 136 posts · Facebook"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <PlatformSwitcher active={platform} onChange={setPlatform} />
             <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
-              {["7d", "30d", "90d"].map((p) => (
+              {["7d", "28d", "90d"].map((p) => (
                 <button key={p} onClick={() => setPeriod(p)} className="px-3.5 py-1.5 rounded-lg text-[12px] font-medium" style={{
                   backgroundColor: period === p ? "var(--bg)" : "transparent",
                   color: period === p ? "var(--text)" : "var(--text-secondary)",
@@ -41,61 +46,87 @@ export default function PageReport() {
         }
       />
 
-      {/* Revenue + Performance Hero */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        {/* Revenue Card */}
-        <div className="rounded-xl border p-5 relative overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-          <div className="absolute top-0 right-0 w-48 h-full opacity-[0.06]" style={{ background: "radial-gradient(circle at top right, var(--success), transparent 70%)" }} />
-          <div className="relative">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Revenue</span>
-              <span className="text-[10px] px-2 py-0.5 rounded" style={{ backgroundColor: "var(--success-bg)", color: "var(--success)" }}>Monetized</span>
-            </div>
-            <div className="text-[28px] font-bold tracking-tight" style={{ color: "var(--text)" }}>$3,842</div>
-            <div className="text-[13px] mt-0.5" style={{ color: "var(--text-secondary)" }}>this week</div>
-            <div className="flex items-center gap-4 mt-3">
-              <div>
-                <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>RPM</div>
-                <div className="text-[15px] font-semibold" style={{ color: "var(--text)" }}>$9.12</div>
-              </div>
-              <div>
-                <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>This month</div>
-                <div className="text-[15px] font-semibold" style={{ color: "var(--text)" }}>$14,280</div>
-              </div>
-              <div>
-                <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>Change</div>
-                <div className="text-[15px] font-semibold" style={{ color: "var(--success)" }}>+18%</div>
-              </div>
-            </div>
-            {/* Mini chart */}
-            <div className="mt-4 h-16 rounded-lg flex items-end gap-0.5 px-1" style={{ backgroundColor: "var(--bg)" }}>
-              {[30, 45, 35, 52, 48, 65, 58, 72, 68, 78, 74, 88, 82, 95].map((h, i) => (
-                <div key={i} className="flex-1 rounded-t-sm" style={{ height: `${h}%`, backgroundColor: i >= 12 ? "var(--success)" : "rgba(74, 222, 128, 0.25)" }} />
-              ))}
-            </div>
+      {/* Metric Cards - 3 column */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {/* Views + Viewers */}
+        <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Views</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[24px] font-bold" style={{ color: "var(--text)" }}>77,522</span>
+            <span className="text-[11px] font-semibold" style={{ color: "var(--success)" }}>↑ 2.3K%</span>
+          </div>
+          <div className="mt-3 mb-3"><SparklineChart data={[20, 30, 25, 40, 35, 50, 300, 800]} color="var(--primary)" height={32} /></div>
+          <div className="space-y-1 text-[11px]">
+            <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>Viewers (unique)</span><span className="font-medium" style={{ color: "var(--text)" }}>53,281</span></div>
+            <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>From followers</span><span className="font-medium" style={{ color: "var(--text)" }}>11.8%</span></div>
+            <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>From non-followers</span><span className="font-medium" style={{ color: "var(--text)" }}>88.2%</span></div>
           </div>
         </div>
 
-        {/* Performance Card */}
+        {/* Interactions + Clicks */}
         <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-          <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>Performance</div>
-          <div className="grid grid-cols-2 gap-4">
-            {[
-              { label: "Views", value: "18.2M", change: "+12%", up: true },
-              { label: "Engagement", value: "4.2%", change: "+0.4%", up: true },
-              { label: "Reach", value: "12.1M", change: "+8%", up: true },
-              { label: "Shares", value: "45.2K", change: "+15%", up: true },
-              { label: "Comments", value: "18.4K", change: "+22%", up: true },
-              { label: "Posts", value: "284", change: "+6%", up: true },
-            ].map((m) => (
-              <div key={m.label} className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ backgroundColor: "var(--bg)" }}>
-                <div>
-                  <div className="text-[16px] font-bold tabular-nums" style={{ color: "var(--text)" }}>{m.value}</div>
-                  <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>{m.label}</div>
-                </div>
-                <span className="text-[11px] font-semibold" style={{ color: m.up ? "var(--success)" : "var(--error)" }}>{m.change}</span>
-              </div>
-            ))}
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Interactions</span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[24px] font-bold" style={{ color: "var(--text)" }}>2,641</span>
+            <span className="text-[11px] font-semibold" style={{ color: "var(--success)" }}>↑ 1.0K%</span>
+          </div>
+          <div className="mt-3 mb-3"><SparklineChart data={[2, 3, 4, 5, 8, 50, 180, 350]} color="#14B8A6" height={32} /></div>
+          <div className="space-y-1 text-[11px]">
+            <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>Reactions</span><span className="font-medium" style={{ color: "var(--text)" }}>2,219</span></div>
+            <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>Comments</span><span className="font-medium" style={{ color: "var(--text)" }}>348</span></div>
+            <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>Shares</span><span className="font-medium" style={{ color: "var(--text)" }}>74</span></div>
+          </div>
+        </div>
+
+        {/* Clicks + Earnings */}
+        <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Clicks & Earnings</span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[24px] font-bold" style={{ color: "var(--text)" }}>7,417</span>
+            <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>total clicks</span>
+          </div>
+          <div className="mt-3 mb-3"><SparklineChart data={[1, 2, 1, 3, 4, 30, 100, 400]} color="#F59E0B" height={32} /></div>
+          <div className="space-y-1 text-[11px]">
+            <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>Photo clicks</span><span className="font-medium" style={{ color: "var(--text)" }}>6,986</span></div>
+            <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>Other clicks</span><span className="font-medium" style={{ color: "var(--text)" }}>431</span></div>
+            <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>Approx. earnings</span><span className="font-semibold" style={{ color: "var(--success)" }}>$4.45</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Video/Reels metrics */}
+      <div className="rounded-xl border p-5 mb-6" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+        <div className="flex items-center gap-2 mb-3">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ color: "var(--text-muted)" }}><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Videos & Reels</span>
+        </div>
+        <div className="grid grid-cols-4 gap-6">
+          <div>
+            <div className="text-[20px] font-bold" style={{ color: "var(--text)" }}>90</div>
+            <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>3-second views</div>
+            <div className="text-[11px] font-medium" style={{ color: "var(--error)" }}>↓ 67.6%</div>
+          </div>
+          <div>
+            <div className="text-[20px] font-bold" style={{ color: "var(--text)" }}>15m 23s</div>
+            <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>Watch time</div>
+            <div className="text-[11px] font-medium" style={{ color: "var(--error)" }}>↓ 71.5%</div>
+          </div>
+          <div>
+            <div className="text-[20px] font-bold" style={{ color: "var(--text)" }}>0:42</div>
+            <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>Avg watch time</div>
+            <div className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>—</div>
+          </div>
+          <div>
+            <div className="text-[20px] font-bold" style={{ color: "var(--text)" }}>$0.00</div>
+            <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>Reels earnings</div>
+            <div className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>0%</div>
           </div>
         </div>
       </div>
@@ -105,12 +136,12 @@ export default function PageReport() {
         <div className="text-[11px] font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--text-muted)" }}>Reactions Breakdown</div>
         <div className="flex items-center gap-6">
           {[
-            { emoji: "👍", label: "Like", count: "842K", pct: 62 },
-            { emoji: "❤️", label: "Love", count: "245K", pct: 18 },
-            { emoji: "😂", label: "Haha", count: "124K", pct: 9 },
-            { emoji: "😮", label: "Wow", count: "89K", pct: 7 },
-            { emoji: "😢", label: "Sad", count: "32K", pct: 2 },
-            { emoji: "😡", label: "Angry", count: "18K", pct: 1 },
+            { emoji: "👍", label: "Like", count: "1,420", pct: 64 },
+            { emoji: "❤️", label: "Love", count: "445", pct: 20 },
+            { emoji: "😂", label: "Haha", count: "89", pct: 4 },
+            { emoji: "😮", label: "Wow", count: "178", pct: 8 },
+            { emoji: "😢", label: "Sad", count: "67", pct: 3 },
+            { emoji: "😡", label: "Angry", count: "20", pct: 1 },
           ].map((r) => (
             <div key={r.label} className="flex-1 text-center">
               <div className="text-2xl mb-1">{r.emoji}</div>
@@ -128,63 +159,69 @@ export default function PageReport() {
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
           <h3 className="text-[14px] font-semibold" style={{ color: "var(--text)" }}>Recent Posts</h3>
-          <select className="text-[12px] px-3 py-1.5 rounded-lg border outline-none" style={{ backgroundColor: "var(--bg)", borderColor: "var(--border-light)", color: "var(--text-secondary)" }}>
-            <option>All types</option>
-            <option>Images</option>
-            <option>Videos</option>
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={postFilter}
+              onChange={(e) => setPostFilter(e.target.value)}
+              className="text-[12px] px-3 py-1.5 rounded-lg border outline-none"
+              style={{ backgroundColor: "var(--bg)", borderColor: "var(--border-light)", color: "var(--text-secondary)" }}
+            >
+              <option value="all">All types</option>
+              <option value="photos">Photos</option>
+              <option value="videos">Videos</option>
+              <option value="text">Text</option>
+              <option value="reels">Reels</option>
+            </select>
+          </div>
         </div>
 
-        <table className="w-full text-[13px]">
-          <thead>
-            <tr className="text-left text-[10px] uppercase tracking-wider" style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border)" }}>
-              <th className="px-5 py-3 font-medium">Post</th>
-              <th className="px-5 py-3 font-medium text-right">Views</th>
-              <th className="px-5 py-3 font-medium text-right">Engagement</th>
-              <th className="px-5 py-3 font-medium text-right">Shares</th>
-              <th className="px-5 py-3 font-medium text-right">Revenue</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentPosts.map((post, i) => (
-              <tr key={i} className="group" style={{ borderBottom: "1px solid var(--border)" }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--surface-hover)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
-              >
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: post.type === "image" ? "rgba(99, 102, 241, 0.12)" : "rgba(236, 72, 153, 0.12)" }}>
-                      {post.type === "image" ? (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "#818CF8" }}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                      ) : (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "#F472B6" }}><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                      )}
-                    </div>
-                    <div>
-                      <div className="text-[12px] font-medium line-clamp-1" style={{ color: "var(--text)" }}>{post.caption}</div>
-                      <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>{post.date} &middot; {post.type}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-5 py-3.5 text-right font-medium tabular-nums" style={{ color: "var(--text)" }}>{post.views}</td>
-                <td className="px-5 py-3.5 text-right font-medium tabular-nums" style={{ color: "var(--text)" }}>{post.engagement}</td>
-                <td className="px-5 py-3.5 text-right font-medium tabular-nums" style={{ color: "var(--text)" }}>{post.shares}</td>
-                <td className="px-5 py-3.5 text-right font-semibold tabular-nums" style={{ color: "var(--success)" }}>{post.revenue}</td>
-                <td className="px-5 py-3.5">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium" style={{
-                    backgroundColor: post.status === "published" ? "var(--success-bg)" : "var(--warning-bg)",
-                    color: post.status === "published" ? "var(--success)" : "var(--warning)",
-                  }}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: post.status === "published" ? "var(--success)" : "var(--warning)" }} />
-                    {post.status === "published" ? "Published" : "Partial"}
-                  </span>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="text-left text-[10px] uppercase tracking-wider" style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border)" }}>
+                <th className="px-5 py-3 font-medium">Post</th>
+                <th className="px-3 py-3 font-medium text-right">Views</th>
+                <th className="px-3 py-3 font-medium text-right">Reach</th>
+                <th className="px-3 py-3 font-medium text-right">Clicks</th>
+                <th className="px-3 py-3 font-medium text-right">Reactions</th>
+                <th className="px-3 py-3 font-medium text-right">Comments</th>
+                <th className="px-3 py-3 font-medium text-right">Shares</th>
+                <th className="px-3 py-3 font-medium text-right">Earnings</th>
+                <th className="px-3 py-3 font-medium">Type</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {recentPosts.map((post, i) => (
+                <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--surface-hover)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                >
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "var(--surface-active)" }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--text-muted)" }}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-medium line-clamp-1 max-w-[200px]" style={{ color: "var(--text)" }}>{post.caption}</div>
+                        <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>{post.date}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-right font-medium tabular-nums" style={{ color: "var(--text)" }}>{post.views}</td>
+                  <td className="px-3 py-3 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{post.reach}</td>
+                  <td className="px-3 py-3 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{post.clicks}</td>
+                  <td className="px-3 py-3 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{post.reactions}</td>
+                  <td className="px-3 py-3 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{post.comments}</td>
+                  <td className="px-3 py-3 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{post.shares}</td>
+                  <td className="px-3 py-3 text-right font-semibold tabular-nums" style={{ color: "var(--success)" }}>{post.revenue}</td>
+                  <td className="px-3 py-3">
+                    <span className="text-[10px] px-2 py-0.5 rounded" style={{ backgroundColor: "var(--surface-active)", color: "var(--text-muted)" }}>{post.type}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
