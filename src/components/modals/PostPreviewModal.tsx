@@ -27,10 +27,10 @@ const typeColors: Record<string, string> = {
   text: "#9494A8",
 };
 
-export default function PostPreviewModal({ post, onClose }: { post: PostData; onClose: () => void }) {
+export default function PostPreviewModal({ post, onClose, initialTab = "preview" }: { post: PostData; onClose: () => void; initialTab?: "preview" | "comments" | "settings" }) {
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState(post.comments);
-  const [activeTab, setActiveTab] = useState<"preview" | "comments" | "settings">("preview");
+  const [activeTab, setActiveTab] = useState<"preview" | "comments" | "settings">(initialTab);
   const [previewPlatform, setPreviewPlatform] = useState<"fb" | "ig" | "th">(post.platforms[0] || "fb");
 
   const addComment = () => {

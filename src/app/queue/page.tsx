@@ -50,7 +50,13 @@ export default function QueuePage() {
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [previewPost, setPreviewPost] = useState<QueuePost | null>(null);
+  const [previewTab, setPreviewTab] = useState<"preview" | "comments" | "settings">("preview");
   const [bulkAction, setBulkAction] = useState<string | null>(null);
+
+  const openPreview = (post: QueuePost, tab: "preview" | "comments" | "settings" = "preview") => {
+    setPreviewPost(post);
+    setPreviewTab(tab);
+  };
 
   const pages = [
     { id: "all", name: "All Pages" },
@@ -219,7 +225,7 @@ export default function QueuePage() {
                     onDragOver={(e) => { e.preventDefault(); setDragOverId(post.id); }}
                     onDragLeave={() => setDragOverId(null)}
                     onDrop={() => setDragOverId(null)}
-                    onClick={() => setPreviewPost(post)}
+                    onClick={() => openPreview(post, "preview")}
                   >
                     {/* Checkbox */}
                     <div onClick={e => e.stopPropagation()}>
@@ -281,15 +287,28 @@ export default function QueuePage() {
                       {post.scheduledAt}
                     </div>
 
-                    {/* Thread comments count */}
+                    {/* Thread comments count — click opens modal on Comments tab */}
                     <div className="flex items-center gap-1">
                       {post.comments.length > 0 ? (
-                        <span className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md" style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}>
+                        <button
+                          onClick={e => { e.stopPropagation(); openPreview(post, "comments"); }}
+                          className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md hover:opacity-80 transition-opacity"
+                          style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}
+                          title="View & edit threaded comments"
+                        >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                           {post.comments.length}
-                        </span>
+                        </button>
                       ) : (
-                        <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>—</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); openPreview(post, "comments"); }}
+                          className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md hover:opacity-80 transition-opacity"
+                          style={{ color: "var(--text-muted)" }}
+                          title="Add threaded comments"
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                          +
+                        </button>
                       )}
                     </div>
 
@@ -316,7 +335,7 @@ export default function QueuePage() {
 
       {/* Post Preview Modal */}
       {previewPost && (
-        <PostPreviewModal post={previewPost} onClose={() => setPreviewPost(null)} />
+        <PostPreviewModal post={previewPost} initialTab={previewTab} onClose={() => setPreviewPost(null)} />
       )}
 
       {/* Queue summary bar */}
