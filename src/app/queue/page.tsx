@@ -48,7 +48,10 @@ export default function QueuePage() {
   const [filter, setFilter] = useState<"all" | "scheduled" | "draft" | "failed">("all");
   const [selectedPage, setSelectedPage] = useState("all");
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
+  const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [queue, setQueue] = useState<QueuePost[]>(MOCK_QUEUE);
+  const [swapToast, setSwapToast] = useState<string | null>(null);
   const [previewPost, setPreviewPost] = useState<QueuePost | null>(null);
   const [previewTab, setPreviewTab] = useState<"preview" | "comments" | "settings">("preview");
   const [bulkAction, setBulkAction] = useState<string | null>(null);
@@ -56,6 +59,28 @@ export default function QueuePage() {
   const openPreview = (post: QueuePost, tab: "preview" | "comments" | "settings" = "preview") => {
     setPreviewPost(post);
     setPreviewTab(tab);
+  };
+
+  const handleDrop = (targetId: string) => {
+    if (!dragId || dragId === targetId) { setDragId(null); setDragOverId(null); return; }
+    const dragPost = queue.find(p => p.id === dragId);
+    const targetPost = queue.find(p => p.id === targetId);
+    if (!dragPost || !targetPost) { setDragId(null); setDragOverId(null); return; }
+    // Only allow within same day group
+    if (dragPost.scheduledDate !== targetPost.scheduledDate) {
+      setSwapToast("cross-date");
+      setTimeout(() => setSwapToast(null), 3000);
+      setDragId(null); setDragOverId(null); return;
+    }
+    // Swap scheduled times between the two posts
+    setQueue(prev => prev.map(p => {
+      if (p.id === dragId) return { ...p, scheduledAt: targetPost.scheduledAt };
+      if (p.id === targetId) return { ...p, scheduledAt: dragPost.scheduledAt };
+      return p;
+    }));
+    setSwapToast(`swapped`);
+    setTimeout(() => setSwapToast(null), 2500);
+    setDragId(null); setDragOverId(null);
   };
 
   const pages = [
@@ -80,7 +105,7 @@ export default function QueuePage() {
 
   const filterNames = getFilteredNames();
 
-  const filtered = MOCK_QUEUE.filter(p => {
+  const filtered = queue.filter(p => {
     if (filter !== "all" && p.status !== filter) return false;
     if (filterNames && !filterNames.includes(p.page.name)) return false;
     return true;
@@ -89,10 +114,10 @@ export default function QueuePage() {
   const matchesScope = (p: QueuePost) => !filterNames || filterNames.includes(p.page.name);
 
   const counts = {
-    all: MOCK_QUEUE.filter(matchesScope).length,
-    scheduled: MOCK_QUEUE.filter(p => p.status === "scheduled" && matchesScope(p)).length,
-    draft: MOCK_QUEUE.filter(p => p.status === "draft" && matchesScope(p)).length,
-    failed: MOCK_QUEUE.filter(p => p.status === "failed" && matchesScope(p)).length,
+    all: queue.filter(matchesScope).length,
+    scheduled: queue.filter(p => p.status === "scheduled" && matchesScope(p)).length,
+    draft: queue.filter(p => p.status === "draft" && matchesScope(p)).length,
+    failed: queue.filter(p => p.status === "failed" && matchesScope(p)).length,
   };
 
   const toggleSelect = (id: string) => {
@@ -121,7 +146,7 @@ export default function QueuePage() {
     <div>
       <Header
         title="Queue"
-        subtitle={`${counts.all} posts queued across ${new Set(MOCK_QUEUE.map(p => p.page.name)).size} pages`}
+        subtitle={`${counts.all} posts queued across ${new Set(queue.map(p => p.page.name)).size} pages`}
         actions={
           <button
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white"
@@ -218,13 +243,15 @@ export default function QueuePage() {
                   <div
                     className="grid items-center px-4 py-3 border-b transition-all cursor-pointer"
                     style={{
-                      backgroundColor: selectedPosts.has(post.id) ? "var(--primary-muted)" : dragOverId === post.id ? "var(--surface-hover)" : "var(--surface)",
+                      backgroundColor: selectedPosts.has(post.id) ? "var(--primary-muted)" : dragOverId === post.id ? "rgba(255,107,43,0.08)" : dragId === post.id ? "var(--surface-hover)" : "var(--surface)",
                       borderColor: "var(--border)",
+                      borderLeft: dragOverId === post.id ? "2px solid var(--primary)" : "2px solid transparent",
+                      opacity: dragId === post.id ? 0.5 : 1,
                       gridTemplateColumns: "36px 3fr 120px 60px 90px 140px 60px 32px",
                     }}
                     onDragOver={(e) => { e.preventDefault(); setDragOverId(post.id); }}
                     onDragLeave={() => setDragOverId(null)}
-                    onDrop={() => setDragOverId(null)}
+                    onDrop={() => handleDrop(post.id)}
                     onClick={() => openPreview(post, "preview")}
                   >
                     {/* Checkbox */}
@@ -317,6 +344,9 @@ export default function QueuePage() {
                       draggable
                       className="cursor-grab active:cursor-grabbing flex items-center justify-center"
                       onClick={e => e.stopPropagation()}
+                      onDragStart={e => { e.stopPropagation(); setDragId(post.id); }}
+                      onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+                      title="Drag to swap publish time"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}>
                         <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
@@ -332,6 +362,30 @@ export default function QueuePage() {
           ))
         )}
       </div>
+
+      {/* Drag swap toast */}
+      {swapToast && (
+        <div className="fixed top-6 right-8 z-50 transition-all">
+          <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border"
+            style={{
+              backgroundColor: "var(--surface)",
+              borderColor: swapToast === "cross-date" ? "var(--warning)" : "var(--success)",
+              boxShadow: swapToast === "cross-date" ? "0 8px 30px rgba(251,191,36,0.15)" : "0 8px 30px rgba(74,222,128,0.15)"
+            }}>
+            {swapToast === "cross-date" ? (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span className="text-sm font-medium" style={{ color: "var(--text)" }}>Can&apos;t drag across days — use Reschedule instead</span>
+              </>
+            ) : (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span className="text-sm font-medium" style={{ color: "var(--text)" }}>Publish times swapped</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Post Preview Modal */}
       {previewPost && (
