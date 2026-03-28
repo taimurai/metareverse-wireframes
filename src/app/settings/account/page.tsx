@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 
 export default function AccountSettings() {
@@ -20,9 +19,7 @@ export default function AccountSettings() {
   ];
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: "var(--bg)" }}>
-      <Sidebar />
-      <div className="flex-1 flex flex-col ml-[240px]">
+    <div className="flex flex-col">
         <Header />
         <main className="flex-1 p-8 max-w-[900px] mx-auto w-full">
           <h1 className="text-[28px] font-bold mb-1" style={{ color: "var(--text)" }}>Account Settings</h1>
@@ -264,7 +261,6 @@ export default function AccountSettings() {
             </div>
           )}
         </main>
-      </div>
     </div>
   );
 }

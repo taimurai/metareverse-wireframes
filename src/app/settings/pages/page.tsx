@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 
 const PAGES = [
@@ -27,9 +26,7 @@ export default function PageSettings() {
   const selected = PAGES.find(p => p.id === selectedPage);
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: "var(--bg)" }}>
-      <Sidebar />
-      <div className="flex-1 flex flex-col ml-[240px]">
+    <div className="flex flex-col">
         <Header />
         <main className="flex-1 p-8 max-w-[1400px] mx-auto w-full">
           <div className="flex items-center justify-between mb-8">
@@ -258,7 +255,6 @@ export default function PageSettings() {
             </div>
           </div>
         </main>
-      </div>
     </div>
   );
 }

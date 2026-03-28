@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 
 type FailCategory = "retry" | "reconnect" | "edit";
@@ -120,9 +119,7 @@ export default function FailedPosts() {
   const retryCount = catCounts["retry"] || 0;
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: "var(--bg)" }}>
-      <Sidebar />
-      <div className="flex-1 flex flex-col ml-[240px]">
+    <div className="flex flex-col">
         <Header />
         <main className="flex-1 p-8 max-w-[1400px] mx-auto w-full">
           {/* Header */}
@@ -320,7 +317,6 @@ export default function FailedPosts() {
             </div>
           )}
         </main>
-      </div>
     </div>
   );
 }
