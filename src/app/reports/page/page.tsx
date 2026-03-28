@@ -36,8 +36,8 @@ function PageReportInner() {
   const allPosts = getRecentPosts(platform, pageId);
   const filtered = postFilter === "all" ? allPosts : allPosts.filter(p => p.type.toLowerCase() === postFilter);
   const sorted = [...filtered].sort((a, b) => {
-    const aVal = (a as Record<string, unknown>)[sortCol] as number;
-    const bVal = (b as Record<string, unknown>)[sortCol] as number;
+    const aVal = (a as unknown as Record<string, number>)[sortCol];
+    const bVal = (b as unknown as Record<string, number>)[sortCol];
     return sortDir === "desc" ? bVal - aVal : aVal - bVal;
   });
   const totalPages = Math.ceil(sorted.length / perPage);
