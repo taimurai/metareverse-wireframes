@@ -267,13 +267,37 @@ export default function QueuePage() {
       setTimeout(() => setSwapToast(null), 3000);
       setDragId(null); setDragOverId(null); return;
     }
-    // Swap scheduled times between the two posts
-    setQueue(prev => prev.map(p => {
-      if (p.id === dragId) return { ...p, scheduledAt: targetPost.scheduledAt };
-      if (p.id === targetId) return { ...p, scheduledAt: dragPost.scheduledAt };
-      return p;
-    }));
-    setSwapToast(`swapped`);
+
+    // Shift/insert — not swap
+    // Get all posts in this day sorted by time
+    const dayPosts = queue
+      .filter(p => p.scheduledDate === dragPost.scheduledDate)
+      .sort((a, b) => {
+        const toMs = (at: string) => {
+          const t = at.replace("Today, ", "").replace("Tomorrow, ", "");
+          return new Date(`${a.scheduledDate} ${t}`).getTime();
+        };
+        return toMs(a.scheduledAt) - toMs(b.scheduledAt);
+      });
+
+    const fromIdx = dayPosts.findIndex(p => p.id === dragId);
+    const toIdx   = dayPosts.findIndex(p => p.id === targetId);
+    if (fromIdx === -1 || toIdx === -1) { setDragId(null); setDragOverId(null); return; }
+
+    // Collect the ordered times before the move
+    const times = dayPosts.map(p => p.scheduledAt);
+
+    // Reorder the posts array (insert dragged item at target position)
+    const reordered = [...dayPosts];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+
+    // Reassign times in new order (position keeps its original time slot)
+    const timeMap: Record<string, string> = {};
+    reordered.forEach((p, i) => { timeMap[p.id] = times[i]; });
+
+    setQueue(prev => prev.map(p => timeMap[p.id] ? { ...p, scheduledAt: timeMap[p.id] } : p));
+    setSwapToast("reordered");
     setTimeout(() => setSwapToast(null), 2500);
     setDragId(null); setDragOverId(null);
   };
