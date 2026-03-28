@@ -235,6 +235,7 @@ function PageReportInner() {
                   </th>
                 ))}
                 <th className="px-3 py-3 font-medium">Type</th>
+                <th className="px-2 py-3 font-medium w-8"></th>
               </tr>
             </thead>
             <tbody>
@@ -267,6 +268,11 @@ function PageReportInner() {
                   <td className="px-3 py-3 text-right font-semibold tabular-nums" style={{ color: "var(--success)" }}>{post.revenue}</td>
                   <td className="px-3 py-3">
                     <span className="text-[10px] px-2 py-0.5 rounded" style={{ backgroundColor: post.type === "Reel" ? "rgba(236, 72, 153, 0.12)" : "var(--surface-active)", color: post.type === "Reel" ? "#F472B6" : "var(--text-muted)" }}>{post.type}</span>
+                  </td>
+                  <td className="px-2 py-3">
+                    <a href="#" onClick={e => e.stopPropagation()} title="View on Facebook" className="opacity-40 hover:opacity-100 transition-opacity">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-muted)" }}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </a>
                   </td>
                 </tr>
               ))}
