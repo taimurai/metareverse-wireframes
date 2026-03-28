@@ -50,6 +50,7 @@ export default function QueuePage() {
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [previewPost, setPreviewPost] = useState<QueuePost | null>(null);
+  const [bulkAction, setBulkAction] = useState<string | null>(null);
 
   const pages = [
     { id: "all", name: "All Pages" },
@@ -116,29 +117,14 @@ export default function QueuePage() {
         title="Queue"
         subtitle={`${counts.all} posts queued across ${new Set(MOCK_QUEUE.map(p => p.page.name)).size} pages`}
         actions={
-          <div className="flex items-center gap-3">
-            {selectedPosts.size > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>
-                  {selectedPosts.size} selected
-                </span>
-                <button className="px-3 py-1.5 rounded-lg text-[12px] font-medium" style={{ backgroundColor: "var(--warning-bg)", color: "var(--warning)" }}>
-                  Reschedule
-                </button>
-                <button className="px-3 py-1.5 rounded-lg text-[12px] font-medium" style={{ backgroundColor: "var(--error-bg)", color: "var(--error)" }}>
-                  Remove
-                </button>
-              </div>
-            )}
-            <button
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white"
-              style={{ backgroundColor: "var(--primary)", boxShadow: "0 4px 14px var(--primary-glow)" }}
-              onClick={() => window.location.href = "/upload"}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add Posts
-            </button>
-          </div>
+          <button
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white"
+            style={{ backgroundColor: "var(--primary)", boxShadow: "0 4px 14px var(--primary-glow)" }}
+            onClick={() => window.location.href = "/upload"}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Posts
+          </button>
         }
       />
 
@@ -354,6 +340,123 @@ export default function QueuePage() {
           <span className="text-[12px] font-semibold" style={{ color: "var(--primary)" }}>Today, 2:30 PM</span>
         </div>
       </div>
+
+      {/* ── Sticky Bulk Action Bar ── slides up when posts are selected */}
+      <div
+        className="fixed bottom-0 left-[250px] right-0 z-40 transition-all duration-300 ease-out"
+        style={{
+          transform: selectedPosts.size > 0 ? "translateY(0)" : "translateY(100%)",
+          opacity: selectedPosts.size > 0 ? 1 : 0,
+          pointerEvents: selectedPosts.size > 0 ? "auto" : "none",
+        }}
+      >
+        <div className="mx-8 mb-6">
+          <div className="rounded-2xl border shadow-2xl px-5 py-4 flex items-center justify-between"
+            style={{ backgroundColor: "var(--surface)", borderColor: "var(--primary)", boxShadow: "0 8px 40px rgba(255,107,43,0.15)" }}>
+
+            {/* Left: selection info */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-sm text-white" style={{ backgroundColor: "var(--primary)" }}>
+                  {selectedPosts.size}
+                </div>
+                <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+                  {selectedPosts.size === 1 ? "post selected" : "posts selected"}
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedPosts(new Set())}
+                className="text-xs px-2.5 py-1 rounded-lg transition-colors"
+                style={{ color: "var(--text-muted)", backgroundColor: "var(--surface-hover)" }}
+              >
+                Deselect all
+              </button>
+            </div>
+
+            {/* Right: actions */}
+            <div className="flex items-center gap-2">
+              {/* Reschedule */}
+              <button
+                onClick={() => setBulkAction("reschedule")}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                style={{ backgroundColor: "var(--surface-hover)", color: "var(--text)" }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Reschedule
+              </button>
+
+              {/* Move to Drafts */}
+              <button
+                onClick={() => setBulkAction("draft")}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                style={{ backgroundColor: "var(--surface-hover)", color: "var(--text)" }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Move to Drafts
+              </button>
+
+              {/* Duplicate */}
+              <button
+                onClick={() => setBulkAction("duplicate")}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                style={{ backgroundColor: "var(--surface-hover)", color: "var(--text)" }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Duplicate
+              </button>
+
+              {/* Divider */}
+              <div className="w-px h-6 mx-1" style={{ backgroundColor: "var(--border)" }} />
+
+              {/* Delete — destructive */}
+              {bulkAction === "delete" ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Delete {selectedPosts.size} posts?</span>
+                  <button
+                    onClick={() => { setSelectedPosts(new Set()); setBulkAction(null); }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-500"
+                  >
+                    Confirm Delete
+                  </button>
+                  <button
+                    onClick={() => setBulkAction(null)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                    style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setBulkAction("delete")}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors text-red-400 hover:bg-red-400/10"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                  Delete
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Action feedback toast ── */}
+      {bulkAction && bulkAction !== "delete" && (
+        <div className="fixed bottom-28 right-8 z-50">
+          <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border"
+            style={{ backgroundColor: "var(--surface)", borderColor: "var(--success)", boxShadow: "0 8px 30px rgba(74,222,128,0.15)" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span className="text-sm font-medium" style={{ color: "var(--text)" }}>
+              {bulkAction === "reschedule" && `${selectedPosts.size} posts queued for rescheduling`}
+              {bulkAction === "draft" && `${selectedPosts.size} posts moved to drafts`}
+              {bulkAction === "duplicate" && `${selectedPosts.size} posts duplicated`}
+            </span>
+            <button onClick={() => { setBulkAction(null); setSelectedPosts(new Set()); }} style={{ color: "var(--text-muted)" }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
