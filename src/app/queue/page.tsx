@@ -629,10 +629,6 @@ export default function QueuePage() {
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--success)" }} />
             <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>{counts.scheduled} scheduled</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--error)" }} />
-            <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>{counts.failed} failed</span>
-          </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Next publish:</span>
