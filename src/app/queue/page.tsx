@@ -3,6 +3,8 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import PostPreviewModal from "@/components/modals/PostPreviewModal";
 import PageBatchSelector from "@/components/PageBatchSelector";
+import { useFakeLoading } from "@/hooks/useFakeLoading";
+import { SkeletonLine, SkeletonTable } from "@/components/Skeleton";
 
 interface QueuePost {
   id: string;
@@ -239,7 +241,28 @@ const typeColors: Record<string, string> = {
   text: "#9494A8",
 };
 
+function QueueSkeleton() {
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px 0 20px" }}>
+        <div>
+          <SkeletonLine width={80} height={22} />
+          <div style={{ marginTop: 8 }}><SkeletonLine width={200} height={12} /></div>
+        </div>
+        <SkeletonLine width={110} height={38} style={{ borderRadius: "12px" }} />
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <SkeletonLine width={160} height={38} style={{ borderRadius: "12px" }} />
+        <SkeletonLine width={200} height={38} style={{ borderRadius: "12px" }} />
+      </div>
+      <SkeletonTable rows={8} columns={8} />
+    </div>
+  );
+}
+
 export default function QueuePage() {
+  const isLoading = useFakeLoading();
+  const [simulateEmpty, setSimulateEmpty] = useState(false);
   const [filter, setFilter] = useState<"all" | "scheduled">("all");
   const [selectedPage, setSelectedPage] = useState("all");
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
@@ -357,26 +380,41 @@ export default function QueuePage() {
   };
 
   const selectAll = () => {
-    if (selectedPosts.size === filtered.length) {
+    if (selectedPosts.size === displayFiltered.length) {
       setSelectedPosts(new Set());
     } else {
-      setSelectedPosts(new Set(filtered.map(p => p.id)));
+      setSelectedPosts(new Set(displayFiltered.map(p => p.id)));
     }
   };
 
   // Group by date
-  const grouped = filtered.reduce<Record<string, QueuePost[]>>((acc, post) => {
+  const displayFiltered = simulateEmpty ? [] : filtered;
+  const grouped = displayFiltered.reduce<Record<string, QueuePost[]>>((acc, post) => {
     const key = post.scheduledDate;
     if (!acc[key]) acc[key] = [];
     acc[key].push(post);
     return acc;
   }, {});
 
+  if (isLoading) return <QueueSkeleton />;
+
   return (
     <div>
+      {/* Wireframe designer toggle */}
+      <div className="flex justify-end mb-2">
+        <button
+          onClick={() => setSimulateEmpty(v => !v)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border"
+          style={{ backgroundColor: simulateEmpty ? "var(--primary-muted)" : "var(--surface)", color: simulateEmpty ? "var(--primary)" : "var(--text-muted)", borderColor: simulateEmpty ? "var(--primary)" : "var(--border)" }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+          {simulateEmpty ? "Showing empty state" : "Preview empty state"}
+        </button>
+      </div>
+
       <Header
         title="Queue"
-        subtitle={`${counts.all} posts queued across ${new Set(queue.map(p => p.page.name)).size} pages`}
+        subtitle={simulateEmpty ? "0 posts queued" : `${counts.all} posts queued across ${new Set(queue.map(p => p.page.name)).size} pages`}
         actions={
           <button
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white"
@@ -429,7 +467,7 @@ export default function QueuePage() {
           <div>
             <input
               type="checkbox"
-              checked={selectedPosts.size === filtered.length && filtered.length > 0}
+              checked={selectedPosts.size === displayFiltered.length && displayFiltered.length > 0}
               onChange={selectAll}
               className="rounded"
               style={{ accentColor: "var(--primary)" }}

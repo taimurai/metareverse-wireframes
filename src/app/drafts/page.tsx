@@ -136,10 +136,11 @@ export default function DraftsPage() {
   const [scheduledIds, setScheduledIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
   const [source, setSource] = useState<"all"|"bulk-upload"|"single-post">("all");
+  const [simulateEmpty, setSimulateEmpty] = useState(false);
 
   const pageNames = PAGES_MAP[selectedScope] || [];
 
-  const filtered = DRAFT_DATA
+  const filtered = simulateEmpty ? [] : DRAFT_DATA
     .filter(d => !scheduledIds.has(d.id))
     .filter(d => scopeType === "all" ? true : pageNames.includes(d.page.name))
     .filter(d => source === "all" ? true : d.source === source)
@@ -191,9 +192,19 @@ export default function DraftsPage() {
     <div className="flex min-h-screen" style={{ backgroundColor: "var(--bg)" }}>
       <Sidebar />
       <main className="flex-1 flex flex-col" style={{ marginLeft: "232px" }}>
+        <div className="flex justify-end px-8 pt-4">
+          <button
+            onClick={() => setSimulateEmpty(v => !v)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border"
+            style={{ backgroundColor: simulateEmpty ? "var(--primary-muted)" : "var(--surface)", color: simulateEmpty ? "var(--primary)" : "var(--text-muted)", borderColor: simulateEmpty ? "var(--primary)" : "var(--border)" }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+            {simulateEmpty ? "Showing empty state" : "Preview empty state"}
+          </button>
+        </div>
         <Header
           title="Drafts"
-          subtitle={`${filtered.length} draft${filtered.length !== 1 ? "s" : ""} waiting to be scheduled`}
+          subtitle={simulateEmpty ? "0 drafts" : `${filtered.length} draft${filtered.length !== 1 ? "s" : ""} waiting to be scheduled`}
           actions={
             <button
               onClick={() => window.location.href = "/upload"}

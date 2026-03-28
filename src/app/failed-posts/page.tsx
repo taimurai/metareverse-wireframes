@@ -79,8 +79,9 @@ export default function FailedPosts() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filterCat, setFilterCat] = useState<string>("all");
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+  const [simulateEmpty, setSimulateEmpty] = useState(false);
 
-  const filteredPosts = filterCat === "all" ? posts : posts.filter(p => p.category === filterCat);
+  const filteredPosts = simulateEmpty ? [] : (filterCat === "all" ? posts : posts.filter(p => p.category === filterCat));
 
   const catCounts = posts.reduce((acc, p) => {
     acc[p.category] = (acc[p.category] || 0) + 1;
@@ -122,6 +123,17 @@ export default function FailedPosts() {
     <div className="flex flex-col">
         <Header />
         <main className="flex-1 p-8 max-w-[1400px] mx-auto w-full">
+          {/* Wireframe toggle */}
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={() => setSimulateEmpty(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border"
+              style={{ backgroundColor: simulateEmpty ? "var(--primary-muted)" : "var(--surface)", color: simulateEmpty ? "var(--primary)" : "var(--text-muted)", borderColor: simulateEmpty ? "var(--primary)" : "var(--border)" }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+              {simulateEmpty ? "Showing empty state" : "Preview empty state"}
+            </button>
+          </div>
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -209,10 +221,12 @@ export default function FailedPosts() {
 
           {/* Posts */}
           {filteredPosts.length === 0 ? (
-            <div className="rounded-xl border p-16 text-center" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-              <div className="text-4xl mb-3">✅</div>
-              <p className="font-semibold text-lg" style={{ color: "var(--text)" }}>All clear</p>
-              <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>No failed posts right now</p>
+            <div className="rounded-xl border flex flex-col items-center justify-center py-20 text-center" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: "rgba(74,222,128,0.1)" }}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <p className="text-[16px] font-semibold mb-1" style={{ color: "var(--text)" }}>All clear</p>
+              <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>No failed posts right now — everything published successfully</p>
             </div>
           ) : (
             <div className="space-y-2">
