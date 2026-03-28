@@ -421,28 +421,6 @@ const RAW_POSTS: RawPost[] = [
   { caption: "Tomyris — the queen who killed Cyrus the Great", type: "Photo", date: "Feb 28", views: 19800, reach: 14200, clicks: 780, reactions: 1340, comments: 178, shares: 72, revenue: 1.85 },
 ];
 
-export function getRecentPosts(platform: Platform): RecentPost[] {
-  const mult = platform === "facebook" ? 1 : platform === "instagram" ? 0.4 : 0.15;
-  return RAW_POSTS.map(p => ({
-    caption: p.caption, type: p.type, date: p.date, status: "published",
-    views: formatNum(Math.round(p.views * mult)),
-    reach: formatNum(Math.round(p.reach * mult)),
-    clicks: formatNum(Math.round(p.clicks * mult)),
-    reactions: formatNum(Math.round(p.reactions * mult)),
-    comments: formatNum(Math.round(p.comments * mult)),
-    shares: formatNum(Math.round(p.shares * mult)),
-    revenue: `$${(p.revenue * mult).toFixed(2)}`,
-    // Store raw numeric values for sorting
-    _views: Math.round(p.views * mult),
-    _reach: Math.round(p.reach * mult),
-    _clicks: Math.round(p.clicks * mult),
-    _reactions: Math.round(p.reactions * mult),
-    _comments: Math.round(p.comments * mult),
-    _shares: Math.round(p.shares * mult),
-    _revenue: +(p.revenue * mult).toFixed(2),
-  }));
-}
-
 export interface PageRevenueRow {
   id: string;
   name: string;
