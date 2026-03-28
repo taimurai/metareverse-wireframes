@@ -64,7 +64,7 @@ const MOCK_QUEUE: QueuePost[] = [
 
   // Money Matters
   { id: "q126", thumbnail: "", caption: "The one budgeting rule that actually works — and it's not the 50/30/20 split", page: MM, platforms: ["fb","ig"], scheduledAt: "Today, 8:30 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q127", thumbnail: "", caption: "The $5 coffee habit is NOT why you're broke. Here's what actually matters", page: MM, platforms: ["fb","ig"], scheduledAt: "Today, 11:30 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "failed", comments: [] },
+  { id: "q127", thumbnail: "", caption: "The $5 coffee habit is NOT why you're broke. Here's what actually matters", page: MM, platforms: ["fb","ig"], scheduledAt: "Today, 11:30 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q128", thumbnail: "", caption: "Index funds beat 90% of actively managed funds over 20 years. Here's the data", page: MM, platforms: ["fb","ig"], scheduledAt: "Today, 2:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["S&P 500 20yr annualized return: 9.8%", "Average actively managed fund: 7.1% after fees", "That 2.7% gap = $340k difference on a $100k investment over 20 years"] },
   { id: "q129", thumbnail: "", caption: "How to build a $10k/month income with nothing but a smartphone — realistic 12-month breakdown", page: MM, platforms: ["fb","ig"], scheduledAt: "Today, 5:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q130", thumbnail: "", caption: "The most expensive financial mistake people make in their 30s (nobody talks about this)", page: MM, platforms: ["fb","ig"], scheduledAt: "Today, 8:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
@@ -113,7 +113,7 @@ const MOCK_QUEUE: QueuePost[] = [
   { id: "q225", thumbnail: "", caption: "What happens to your body if you stop working out for 2 weeks — week-by-week breakdown", page: FF, platforms: ["fb","ig"], scheduledAt: "Tomorrow, 8:00 PM", scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: [] },
 
   // Money Matters
-  { id: "q226", thumbnail: "", caption: "The hidden fees eating your investment returns — most people have no idea they're paying this", page: MM, platforms: ["fb","ig"], scheduledAt: "Tomorrow, 8:30 AM", scheduledDate: "Mar 28, 2026", type: "photo", status: "failed", comments: [] },
+  { id: "q226", thumbnail: "", caption: "The hidden fees eating your investment returns — most people have no idea they're paying this", page: MM, platforms: ["fb","ig"], scheduledAt: "Tomorrow, 8:30 AM", scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q227", thumbnail: "", caption: "Why renting is not 'throwing money away' — the actual math might surprise you", page: MM, platforms: ["fb","ig"], scheduledAt: "Tomorrow, 12:00 PM", scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q228", thumbnail: "", caption: "The 1% rule for real estate investing — how to quickly screen any rental property", page: MM, platforms: ["fb","ig"], scheduledAt: "Tomorrow, 3:00 PM", scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q229", thumbnail: "", caption: "Credit score myths debunked: what actually moves your number up or down", page: MM, platforms: ["fb","ig"], scheduledAt: "Tomorrow, 6:00 PM", scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: [] },
@@ -240,7 +240,7 @@ const typeColors: Record<string, string> = {
 };
 
 export default function QueuePage() {
-  const [filter, setFilter] = useState<"all" | "scheduled" | "failed">("all");
+  const [filter, setFilter] = useState<"all" | "scheduled">("all");
   const [selectedPage, setSelectedPage] = useState("all");
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [dragId, setDragId] = useState<string | null>(null);
@@ -339,7 +339,7 @@ export default function QueuePage() {
 
   const filtered = queue
     .filter(p => {
-      if (filter !== "all" && p.status !== filter) return false;
+      if (filter === "scheduled" && p.status !== "scheduled") return false;
       if (filterNames && !filterNames.includes(p.page.name)) return false;
       return true;
     })
@@ -348,7 +348,6 @@ export default function QueuePage() {
   const counts = {
     all: queue.filter(matchesScope).length,
     scheduled: queue.filter(p => p.status === "scheduled" && matchesScope(p)).length,
-    failed: queue.filter(p => p.status === "failed" && matchesScope(p)).length,
   };
 
   const toggleSelect = (id: string) => {
@@ -393,7 +392,7 @@ export default function QueuePage() {
       {/* Filters bar */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
-          {(["all", "scheduled", "failed"] as const).map(f => (
+          {(["all", "scheduled"] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -403,7 +402,7 @@ export default function QueuePage() {
                 color: filter === f ? "white" : "var(--text-secondary)",
               }}
             >
-              {f === "all" ? "All" : f === "scheduled" ? "Scheduled" : "Failed"}
+              {f === "all" ? "All" : "Scheduled"}
               <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{
                 backgroundColor: filter === f ? "rgba(255,255,255,0.2)" : "var(--surface-hover)",
                 color: filter === f ? "white" : "var(--text-muted)",
