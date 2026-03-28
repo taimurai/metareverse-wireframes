@@ -6,8 +6,11 @@ import PlatformSwitcher from "@/components/PlatformSwitcher";
 import PageBatchSelector from "@/components/PageBatchSelector";
 import Link from "next/link";
 import { getOverviewMetrics, getPageRevenue, getAggregateRevenue, getFilteredPageRevenue, getRecentPosts, type Period, type Platform, type ScopeType } from "@/data/reportingData";
+import { useFakeLoading } from "@/hooks/useFakeLoading";
+import ReportsLoading from "./loading";
 
 export default function ReportingOverview() {
+  const isLoading = useFakeLoading();
   const [period, setPeriod] = useState<Period>("28d");
   const [platform, setPlatform] = useState<Platform>("facebook");
   const [selectedScope, setSelectedScope] = useState("all");
@@ -18,6 +21,8 @@ export default function ReportingOverview() {
   const pageRevenue = getFilteredPageRevenue(selectedScope, scopeType, allPageRevenue);
   const aggRevenue = getAggregateRevenue(period, selectedScope, scopeType);
   const recentPosts = getRecentPosts(platform);
+
+  if (isLoading) return <ReportsLoading />;
 
   return (
     <div>

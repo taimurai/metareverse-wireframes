@@ -5,6 +5,8 @@ import AlertBanner from "@/components/AlertBanner";
 import ConnectFacebookModal from "@/components/modals/ConnectFacebookModal";
 import ReconnectModal from "@/components/modals/ReconnectModal";
 import RetryModal from "@/components/modals/RetryModal";
+import { useFakeLoading } from "@/hooks/useFakeLoading";
+import DashboardLoading from "./loading";
 
 // Page health data
 const ALL_PAGES = [
@@ -31,6 +33,7 @@ function formatNum(n: number): string {
 }
 
 export default function Dashboard() {
+  const isLoading = useFakeLoading();
   const [showTokenBanner, setShowTokenBanner] = useState(true);
   const [showDisconnectBanner, setShowDisconnectBanner] = useState(true);
   const [reconnectModal, setReconnectModal] = useState(false);
@@ -46,6 +49,8 @@ export default function Dashboard() {
   const healthyPages = ALL_PAGES.filter(p => p.status === "healthy");
   const emptyQueues = ALL_PAGES.filter(p => p.queueNext24h === 0);
   const expiringTokens = ALL_PAGES.filter(p => p.tokenDays > 0 && p.tokenDays <= 7);
+
+  if (isLoading) return <DashboardLoading />;
 
   return (
     <div>
