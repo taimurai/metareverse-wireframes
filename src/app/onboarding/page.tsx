@@ -65,9 +65,9 @@ export default function OnboardingPage() {
   const startConfiguring = () => {
     setStep("configuring");
     setConfigProgress(0);
-    const interval = setInterval(() => {
+    const timer = setInterval(() => {
       setConfigProgress(p => {
-        if (p >= 100) { clearInterval(interval); setStep("done"); return 100; }
+        if (p >= 100) { clearInterval(timer); setStep("done"); return 100; }
         return p + 8;
       });
     }, 160);
