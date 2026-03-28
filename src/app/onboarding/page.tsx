@@ -65,12 +65,13 @@ export default function OnboardingPage() {
   const startConfiguring = () => {
     setStep("configuring");
     setConfigProgress(0);
-    const timer = setInterval(() => {
-      setConfigProgress(p => {
-        if (p >= 100) { clearInterval(timer); setStep("done"); return 100; }
-        return p + 8;
-      });
-    }, 160);
+    let pct = 0;
+    const tick = () => {
+      pct += 8;
+      if (pct >= 100) { setConfigProgress(100); setStep("done"); }
+      else { setConfigProgress(pct); setTimeout(tick, 160); }
+    };
+    setTimeout(tick, 160);
   };
 
   const stepIndex = step === "welcome" || step === "connect" || step === "oauth-loading" ? 0
