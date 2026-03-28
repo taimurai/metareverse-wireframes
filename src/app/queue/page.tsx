@@ -22,13 +22,13 @@ const MOCK_QUEUE: QueuePost[] = [
   { id: "q1",  thumbnail: "", caption: "The forgotten queen who ruled an empire for 40 years — yet history barely remembers her name...", page: { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" }, platforms: ["fb", "ig", "th"], scheduledAt: "Today, 6:00 AM",  scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["Thread 1: She was born in a small village in 1402...", "Thread 2: By age 20 she had already commanded three armies"] },
   { id: "q2",  thumbnail: "", caption: "Monday morning energy hits different when you've had 3 coffees and no sleep 😭", page: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6" }, platforms: ["fb", "ig"], scheduledAt: "Today, 7:30 AM",  scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [] },
   { id: "q3",  thumbnail: "", caption: "10-minute morning routine that changed my entire day — backed by neuroscience", page: { name: "Daily Health Tips", avatar: "DH", color: "#6366F1" }, platforms: ["fb"], scheduledAt: "Today, 9:00 AM",  scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["Step 1: 2 min cold water on face to spike cortisol naturally", "Step 2: 5 min sunlight exposure to set circadian rhythm", "Step 3: 3 min journaling — just 3 things you want to do today"] },
-  { id: "q4",  thumbnail: "", caption: "Apple just leaked their next chip — and it's not what anyone expected", page: { name: "TechByte", avatar: "TB", color: "#14B8A6" }, platforms: ["fb", "ig", "th"], scheduledAt: "Today, 10:30 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "draft",     comments: [] },
+  { id: "q4",  thumbnail: "", caption: "Apple just leaked their next chip — and it's not what anyone expected", page: { name: "TechByte", avatar: "TB", color: "#14B8A6" }, platforms: ["fb", "ig", "th"], scheduledAt: "Today, 10:30 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q5",  thumbnail: "", caption: "5 exercises you're doing wrong — and the simple fixes that double your results", page: { name: "Fitness Factory", avatar: "FF", color: "#EC4899" }, platforms: ["fb"], scheduledAt: "Today, 12:00 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: ["Fix #1: Squats — stop letting your knees cave inward", "Fix #2: Deadlifts — engage your lats before pulling"] },
   { id: "q6",  thumbnail: "", caption: "The one budgeting rule that actually works — and it's not the 50/30/20 split", page: { name: "Money Matters", avatar: "MM", color: "#F59E0B" }, platforms: ["fb", "ig"], scheduledAt: "Today, 1:30 PM",  scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q7",  thumbnail: "", caption: "She led the first women's suffrage march in 1848. Most people can't name her.", page: { name: "Know Her Name", avatar: "KH", color: "#0EA5E9" }, platforms: ["fb", "ig", "th"], scheduledAt: "Today, 2:30 PM",  scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["Elizabeth Cady Stanton organized the Seneca Falls Convention...", "She drafted the Declaration of Sentiments — modeled on the Declaration of Independence"] },
   { id: "q8",  thumbnail: "", caption: "When your code works on the first try and you don't trust it 😭", page: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6" }, platforms: ["fb", "ig", "th"], scheduledAt: "Today, 4:00 PM",  scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q9",  thumbnail: "", caption: "GPT-5 just dropped — here's what actually changed vs GPT-4 (honest breakdown)", page: { name: "TechByte", avatar: "TB", color: "#14B8A6" }, platforms: ["fb", "ig"], scheduledAt: "Today, 5:30 PM",  scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["Context window: 256k tokens vs 128k", "Reasoning tasks: 34% better on MATH benchmark"] },
-  { id: "q10", thumbnail: "", caption: "The Roman Empire fell for 3 reasons historians keep arguing about — here's the real answer", page: { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" }, platforms: ["fb"], scheduledAt: "Today, 7:00 PM",  scheduledDate: "Mar 27, 2026", type: "photo", status: "draft",     comments: [] },
+  { id: "q10", thumbnail: "", caption: "The Roman Empire fell for 3 reasons historians keep arguing about — here's the real answer", page: { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" }, platforms: ["fb"], scheduledAt: "Today, 7:00 PM",  scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
 
   // ── Mar 28 (Tomorrow) — 10 posts ──
   { id: "q11", thumbnail: "", caption: "This 3,000-year-old artifact was found in a farmer's backyard. It changes everything.", page: { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" }, platforms: ["fb", "ig"], scheduledAt: "Tomorrow, 6:00 AM",  scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: ["The artifact was a bronze seal from the Hittite empire...", "Archaeologists believe it proves direct trade between Anatolia and Egypt"] },
@@ -40,7 +40,7 @@ const MOCK_QUEUE: QueuePost[] = [
   { id: "q17", thumbnail: "", caption: "She was told women couldn't be scientists. She won two Nobel Prizes anyway.", page: { name: "Know Her Name", avatar: "KH", color: "#0EA5E9" }, platforms: ["fb", "th"], scheduledAt: "Tomorrow, 3:00 PM",  scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: ["Marie Curie was denied entry to University of Warsaw because she was a woman", "She moved to Paris, studied in secret, and became the first woman to win a Nobel Prize"] },
   { id: "q18", thumbnail: "", caption: "My WiFi password is stronger than most of my life decisions 💀", page: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6" }, platforms: ["fb", "ig", "th"], scheduledAt: "Tomorrow, 4:30 PM",  scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q19", thumbnail: "", caption: "Alexander the Great's battle strategy that no modern army has successfully replicated", page: { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" }, platforms: ["fb", "ig"], scheduledAt: "Tomorrow, 6:00 PM",  scheduledDate: "Mar 28, 2026", type: "reel", status: "scheduled", comments: ["The oblique order at Gaugamela: concentrate force on the enemy's strongest point", "While his left wing held, Alexander personally led the Companion Cavalry through the gap"] },
-  { id: "q20", thumbnail: "", caption: "How to build a $10k/month income with nothing but a smartphone — realistic breakdown", page: { name: "Money Matters", avatar: "MM", color: "#F59E0B" }, platforms: ["fb", "ig"], scheduledAt: "Tomorrow, 7:30 PM",  scheduledDate: "Mar 28, 2026", type: "photo", status: "draft",     comments: [] },
+  { id: "q20", thumbnail: "", caption: "How to build a $10k/month income with nothing but a smartphone — realistic breakdown", page: { name: "Money Matters", avatar: "MM", color: "#F59E0B" }, platforms: ["fb", "ig"], scheduledAt: "Tomorrow, 7:30 PM",  scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: [] },
 
   // ── Mar 29 — 8 posts ──
   { id: "q21", thumbnail: "", caption: "She led the first women's suffrage march in 1848. Most people can't name her.", page: { name: "Know Her Name", avatar: "KH", color: "#0EA5E9" }, platforms: ["fb", "ig", "th"], scheduledAt: "Mar 29, 9:00 AM",  scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: [] },
@@ -50,7 +50,7 @@ const MOCK_QUEUE: QueuePost[] = [
   { id: "q25", thumbnail: "", caption: "When you're 5 minutes into a 'quick' meeting that could've been an email 💀", page: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6" }, platforms: ["fb", "ig", "th"], scheduledAt: "Mar 29, 3:00 PM",  scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q26", thumbnail: "", caption: "Sleep debt is real — and 1 week of poor sleep has the same cognitive effect as 24hrs awake", page: { name: "Daily Health Tips", avatar: "DH", color: "#6366F1" }, platforms: ["fb"], scheduledAt: "Mar 29, 4:30 PM",  scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q27", thumbnail: "", caption: "Index funds beat 90% of actively managed funds over 20 years. Here's the data.", page: { name: "Money Matters", avatar: "MM", color: "#F59E0B" }, platforms: ["fb", "ig"], scheduledAt: "Mar 29, 6:00 PM",  scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: ["S&P 500 20yr return: 9.8% annually", "Average actively managed fund: 7.1% annually after fees"] },
-  { id: "q28", thumbnail: "", caption: "The protein myth: you don't need 1g per pound of bodyweight. Here's what science says.", page: { name: "Fitness Factory", avatar: "FF", color: "#EC4899" }, platforms: ["fb", "ig"], scheduledAt: "Mar 29, 7:30 PM",  scheduledDate: "Mar 29, 2026", type: "photo", status: "draft",     comments: [] },
+  { id: "q28", thumbnail: "", caption: "The protein myth: you don't need 1g per pound of bodyweight. Here's what science says.", page: { name: "Fitness Factory", avatar: "FF", color: "#EC4899" }, platforms: ["fb", "ig"], scheduledAt: "Mar 29, 7:30 PM",  scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: [] },
 
   // ── Mar 30 — 6 posts ──
   { id: "q29", thumbnail: "", caption: "Rosalind Franklin discovered the structure of DNA. Watson and Crick took the credit.", page: { name: "Know Her Name", avatar: "KH", color: "#0EA5E9" }, platforms: ["fb", "ig", "th"], scheduledAt: "Mar 30, 8:00 AM",  scheduledDate: "Mar 30, 2026", type: "photo", status: "scheduled", comments: ["Franklin's Photo 51 was the key X-ray image that revealed DNA's double helix", "Watson saw her image without permission — he admitted this in his autobiography"] },
@@ -74,7 +74,7 @@ const typeColors: Record<string, string> = {
 };
 
 export default function QueuePage() {
-  const [filter, setFilter] = useState<"all" | "scheduled" | "draft" | "failed">("all");
+  const [filter, setFilter] = useState<"all" | "scheduled" | "failed">("all");
   const [selectedPage, setSelectedPage] = useState("all");
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [dragId, setDragId] = useState<string | null>(null);
@@ -134,18 +134,30 @@ export default function QueuePage() {
 
   const filterNames = getFilteredNames();
 
-  const filtered = queue.filter(p => {
-    if (filter !== "all" && p.status !== filter) return false;
-    if (filterNames && !filterNames.includes(p.page.name)) return false;
-    return true;
-  });
+  // Parse "Today, 2:30 PM" / "Tomorrow, 9:00 AM" / "Mar 29, 10:00 AM" into sortable number
+  const parseTime = (post: QueuePost): number => {
+    const timeStr = post.scheduledAt.replace("Today, ", "").replace("Tomorrow, ", "");
+    const datePrefix = post.scheduledDate; // "Mar 27, 2026"
+    try {
+      return new Date(`${datePrefix} ${timeStr}`).getTime();
+    } catch {
+      return 0;
+    }
+  };
 
   const matchesScope = (p: QueuePost) => !filterNames || filterNames.includes(p.page.name);
+
+  const filtered = queue
+    .filter(p => {
+      if (filter !== "all" && p.status !== filter) return false;
+      if (filterNames && !filterNames.includes(p.page.name)) return false;
+      return true;
+    })
+    .sort((a, b) => parseTime(a) - parseTime(b)); // always sorted by publish time
 
   const counts = {
     all: queue.filter(matchesScope).length,
     scheduled: queue.filter(p => p.status === "scheduled" && matchesScope(p)).length,
-    draft: queue.filter(p => p.status === "draft" && matchesScope(p)).length,
     failed: queue.filter(p => p.status === "failed" && matchesScope(p)).length,
   };
 
@@ -191,7 +203,7 @@ export default function QueuePage() {
       {/* Filters bar */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
-          {(["all", "scheduled", "draft", "failed"] as const).map(f => (
+          {(["all", "scheduled", "failed"] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -201,7 +213,7 @@ export default function QueuePage() {
                 color: filter === f ? "white" : "var(--text-secondary)",
               }}
             >
-              {f === "all" ? "All" : f === "scheduled" ? "Scheduled" : f === "draft" ? "Drafts" : "Failed"}
+              {f === "all" ? "All" : f === "scheduled" ? "Scheduled" : "Failed"}
               <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{
                 backgroundColor: filter === f ? "rgba(255,255,255,0.2)" : "var(--surface-hover)",
                 color: filter === f ? "white" : "var(--text-muted)",
@@ -427,10 +439,6 @@ export default function QueuePage() {
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--success)" }} />
             <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>{counts.scheduled} scheduled</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--warning)" }} />
-            <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>{counts.draft} drafts</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--error)" }} />
