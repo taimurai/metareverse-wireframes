@@ -59,6 +59,42 @@ export default function BulkGrid() {
   const [editingCell, setEditingCell] = useState<{ row: string; field: string } | null>(null);
   const [newCommentText, setNewCommentText] = useState("");
 
+  // ── Auto-fill schedule ──
+  const [autoFillOpen, setAutoFillOpen] = useState(false);
+  const [startTime, setStartTime] = useState("09:00");
+  const [intervalMins, setIntervalMins] = useState(90);
+  const [startDate, setStartDate] = useState("today");
+  const [autoFillApplied, setAutoFillApplied] = useState(false);
+
+  const INTERVAL_OPTIONS = [
+    { label: "30 min", value: 30 },
+    { label: "1 hr",   value: 60 },
+    { label: "1.5 hr", value: 90 },
+    { label: "2 hr",   value: 120 },
+    { label: "2.5 hr", value: 150 },
+    { label: "3 hr",   value: 180 },
+    { label: "4 hr",   value: 240 },
+  ];
+
+  const applyAutoFill = () => {
+    const [h, m] = startTime.split(":").map(Number);
+    let totalMinutes = h * 60 + m;
+
+    setRows(prev => prev.map((row, i) => {
+      const mins = totalMinutes + i * intervalMins;
+      const hh = Math.floor(mins / 60) % 24;
+      const mm = mins % 60;
+      const period = hh >= 12 ? "PM" : "AM";
+      const displayH = hh % 12 === 0 ? 12 : hh % 12;
+      const displayM = mm.toString().padStart(2, "0");
+      return { ...row, schedule: `${displayH}:${displayM} ${period}` };
+    }));
+
+    setAutoFillApplied(true);
+    setAutoFillOpen(false);
+    setTimeout(() => setAutoFillApplied(false), 3000);
+  };
+
   const toggleSelect = (id: string) => {
     setRows((r) => r.map((row) => (row.id === id ? { ...row, selected: !row.selected } : row)));
   };
@@ -73,6 +109,122 @@ export default function BulkGrid() {
 
   return (
     <div>
+
+      {/* ── Auto-fill schedule bar ── */}
+      <div className="flex items-center justify-between mb-3 px-1">
+        <div className="flex items-center gap-2">
+          {autoFillApplied && (
+            <span className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg" style={{ backgroundColor: "rgba(74,222,128,0.1)", color: "var(--success)" }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Schedule applied to {rows.length} posts
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => setAutoFillOpen(o => !o)}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-medium transition-all"
+          style={{
+            backgroundColor: autoFillOpen ? "var(--primary)" : "var(--surface)",
+            color: autoFillOpen ? "white" : "var(--text-secondary)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          Auto-fill Schedule
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: autoFillOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+
+      {/* Auto-fill expanded panel */}
+      {autoFillOpen && (
+        <div className="rounded-xl border mb-4 p-4" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+          <div className="flex items-end gap-4 flex-wrap">
+            {/* Start date */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Start Date</label>
+              <div className="flex gap-1">
+                {["today", "tomorrow", "custom"].map(opt => (
+                  <button
+                    key={opt}
+                    onClick={() => setStartDate(opt)}
+                    className="px-3 py-1.5 rounded-lg text-[12px] font-medium capitalize transition-all"
+                    style={{
+                      backgroundColor: startDate === opt ? "var(--primary)" : "var(--surface-hover)",
+                      color: startDate === opt ? "white" : "var(--text-secondary)",
+                    }}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Start time */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Start Time</label>
+              <input
+                type="time"
+                value={startTime}
+                onChange={e => setStartTime(e.target.value)}
+                className="px-3 py-2 rounded-lg text-[13px] font-medium"
+                style={{ backgroundColor: "var(--surface-hover)", color: "var(--text)", border: "1px solid var(--border)", outline: "none" }}
+              />
+            </div>
+
+            {/* Interval */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Interval Between Posts</label>
+              <div className="flex gap-1 flex-wrap">
+                {INTERVAL_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setIntervalMins(opt.value)}
+                    className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                    style={{
+                      backgroundColor: intervalMins === opt.value ? "var(--primary)" : "var(--surface-hover)",
+                      color: intervalMins === opt.value ? "white" : "var(--text-secondary)",
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Preview + Apply */}
+            <div className="flex flex-col gap-1.5 ml-auto">
+              <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                Preview — {rows.length} posts
+              </label>
+              <div className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
+                {(() => {
+                  const [h, m] = startTime.split(":").map(Number);
+                  const first = h * 60 + m;
+                  const last = first + (rows.length - 1) * intervalMins;
+                  const fmt = (mins: number) => {
+                    const hh = Math.floor(mins / 60) % 24;
+                    const mm = mins % 60;
+                    const p = hh >= 12 ? "PM" : "AM";
+                    const dh = hh % 12 === 0 ? 12 : hh % 12;
+                    return `${dh}:${mm.toString().padStart(2, "0")} ${p}`;
+                  };
+                  return `${fmt(first)} → ${fmt(last)} · every ${intervalMins >= 60 ? `${intervalMins/60}h` : `${intervalMins}m`}`;
+                })()}
+              </div>
+              <button
+                onClick={applyAutoFill}
+                className="px-4 py-2 rounded-lg text-[13px] font-semibold text-white"
+                style={{ backgroundColor: "var(--primary)", boxShadow: "0 2px 8px var(--primary-glow)" }}
+              >
+                Apply to All Posts
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toolbar */}
       {selectedCount > 0 && (
         <div
