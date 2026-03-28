@@ -349,7 +349,7 @@ export function getRecentPosts(platform: Platform, pageId?: string): RecentPost[
 
   // Generate posts from page-specific pool
   const posts: RecentPost[] = pool.captions.map((caption, i) => {
-    const s = seeded(hashStr(caption));
+    const s = seeded(hashStr(caption))();
     const baseViews = Math.round((s * 80000 + 50) * mult);
     const baseReach = Math.round(baseViews * (0.6 + s * 0.2));
     const baseClicks = Math.round(baseViews * (0.01 + s * 0.08));
