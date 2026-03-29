@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import PostPreviewModal from "@/components/modals/PostPreviewModal";
@@ -267,6 +267,7 @@ export default function QueuePage() {
   const [simulateEmpty, setSimulateEmpty] = useState(false);
   const [filter, setFilter] = useState<"all" | "scheduled">("all");
   const [selectedPage, setSelectedPage] = useState("all");
+  const [activeDate, setActiveDate] = useState<string>("");
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -382,21 +383,38 @@ export default function QueuePage() {
   };
 
   const selectAll = () => {
-    if (selectedPosts.size === displayFiltered.length) {
+    if (selectedPosts.size === displayPosts.length) {
       setSelectedPosts(new Set());
     } else {
-      setSelectedPosts(new Set(displayFiltered.map(p => p.id)));
+      setSelectedPosts(new Set(displayPosts.map(p => p.id)));
     }
   };
 
-  // Group by date
   const displayFiltered = simulateEmpty ? [] : filtered;
-  const grouped = displayFiltered.reduce<Record<string, QueuePost[]>>((acc, post) => {
-    const key = post.scheduledDate;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(post);
-    return acc;
-  }, {});
+  const availableDates = [...new Set(displayFiltered.map(p => p.scheduledDate))];
+
+  // Auto-select first date when filter/page changes or dates change
+  useEffect(() => {
+    if (availableDates.length > 0 && !availableDates.includes(activeDate)) {
+      setActiveDate(availableDates[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayFiltered.length, filter, selectedPage, simulateEmpty]);
+
+  const displayPosts = displayFiltered.filter(p => p.scheduledDate === activeDate);
+
+  const activeDateIdx = availableDates.indexOf(activeDate);
+
+  // Friendly label helpers
+  const dateLabelBadge = (date: string): string | null => {
+    if (date === "Mar 27, 2026") return "Today";
+    if (date === "Mar 28, 2026") return "Tomorrow";
+    return null;
+  };
+  const dateShort = (date: string): string => {
+    // "Mar 27, 2026" → "Mar 27"
+    return date.replace(/, \d{4}$/, "");
+  };
 
   if (isLoading) return <QueueSkeleton />;
 
@@ -503,13 +521,89 @@ export default function QueuePage() {
         </div>
       </div>
 
+      {/* Date Navigator */}
+      {availableDates.length > 0 && (
+        <div className="flex items-center gap-2 mb-5">
+          {/* ← arrow */}
+          <button
+            onClick={() => setActiveDate(availableDates[activeDateIdx - 1])}
+            disabled={activeDateIdx <= 0}
+            className="flex items-center justify-center w-8 h-8 rounded-lg border transition-all"
+            style={{
+              backgroundColor: "var(--surface)",
+              borderColor: "var(--border)",
+              color: activeDateIdx <= 0 ? "var(--text-muted)" : "var(--text-secondary)",
+              opacity: activeDateIdx <= 0 ? 0.4 : 1,
+              cursor: activeDateIdx <= 0 ? "not-allowed" : "pointer",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+
+          {availableDates.map(date => {
+            const isActive = date === activeDate;
+            const badge = dateLabelBadge(date);
+            const count = displayFiltered.filter(p => p.scheduledDate === date).length;
+            return (
+              <button
+                key={date}
+                onClick={() => setActiveDate(date)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border transition-all text-[12px] font-semibold"
+                style={{
+                  backgroundColor: isActive ? "var(--primary)" : "var(--surface)",
+                  color: isActive ? "white" : "var(--text-secondary)",
+                  borderColor: isActive ? "var(--primary)" : "var(--border)",
+                  transform: isActive ? "scale(1.04)" : "scale(1)",
+                }}
+              >
+                <span>{dateShort(date)}</span>
+                {badge && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: isActive ? "rgba(255,255,255,0.25)" : "var(--surface-hover)",
+                      color: isActive ? "white" : "var(--text-muted)",
+                    }}
+                  >
+                    {badge}
+                  </span>
+                )}
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: isActive ? "rgba(255,255,255,0.2)" : "var(--surface-hover)",
+                    color: isActive ? "white" : "var(--text-muted)",
+                  }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* → arrow */}
+          <button
+            onClick={() => setActiveDate(availableDates[activeDateIdx + 1])}
+            disabled={activeDateIdx >= availableDates.length - 1}
+            className="flex items-center justify-center w-8 h-8 rounded-lg border transition-all"
+            style={{
+              backgroundColor: "var(--surface)",
+              borderColor: "var(--border)",
+              color: activeDateIdx >= availableDates.length - 1 ? "var(--text-muted)" : "var(--text-secondary)",
+              opacity: activeDateIdx >= availableDates.length - 1 ? 0.4 : 1,
+              cursor: activeDateIdx >= availableDates.length - 1 ? "not-allowed" : "pointer",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      )}
+
       {/* Queue grid header */}
       <div className="rounded-t-xl border border-b-0" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
         <div className="grid items-center px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", gridTemplateColumns: "36px 3fr 120px 60px 90px 140px 60px 32px" }}>
           <div>
             <input
               type="checkbox"
-              checked={selectedPosts.size === displayFiltered.length && displayFiltered.length > 0}
+              checked={selectedPosts.size === displayPosts.length && displayPosts.length > 0}
               onChange={selectAll}
               className="rounded"
               style={{ accentColor: "var(--primary)" }}
@@ -525,30 +619,35 @@ export default function QueuePage() {
         </div>
       </div>
 
-      {/* Queue rows grouped by date */}
+      {/* Queue rows for active date */}
       <div className="rounded-b-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
-        {Object.keys(grouped).length === 0 ? (
+        {displayFiltered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20" style={{ backgroundColor: "var(--surface)" }}>
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: "var(--primary-muted)" }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
             <h3 className="text-[16px] font-semibold mb-1" style={{ color: "var(--text)" }}>No posts in queue</h3>
             <p className="text-[13px] mb-4" style={{ color: "var(--text-secondary)" }}>Upload content or create a single post to get started</p>
-            <button className="px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white" style={{ backgroundColor: "var(--primary)", boxShadow: "0 4px 14px var(--primary-glow)" }}>
-              Go to Bulk Upload
+            <button className="px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white" style={{ backgroundColor: "var(--primary)", boxShadow: "0 4px 14px var(--primary-glow)" }}
+              onClick={() => window.location.href = "/upload"}>
+              Add Posts
+            </button>
+          </div>
+        ) : displayPosts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20" style={{ backgroundColor: "var(--surface)" }}>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: "var(--primary-muted)" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <h3 className="text-[16px] font-semibold mb-1" style={{ color: "var(--text)" }}>No posts scheduled for {activeDate}</h3>
+            <p className="text-[13px] mb-4" style={{ color: "var(--text-secondary)" }}>Select another day or add posts via Bulk Upload</p>
+            <button className="px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white" style={{ backgroundColor: "var(--primary)", boxShadow: "0 4px 14px var(--primary-glow)" }}
+              onClick={() => window.location.href = "/upload"}>
+              Add Posts
             </button>
           </div>
         ) : (
-          Object.entries(grouped).map(([date, posts]) => (
-            <div key={date}>
-              {/* Date separator */}
-              <div className="px-4 py-2.5 border-b flex items-center gap-2" style={{ backgroundColor: "var(--bg)", borderColor: "var(--border)" }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>{date}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>{posts.length}</span>
-              </div>
-
-              {posts.map((post) => (
+          <>
+            {displayPosts.map((post) => (
                 <div key={post.id}>
                   <div
                     className="grid items-center px-4 py-3 border-b transition-all cursor-pointer"
@@ -667,32 +766,22 @@ export default function QueuePage() {
                   </div>
 
                 </div>
-              ))}
-            </div>
-          ))
+            ))}
+          </>
         )}
       </div>
 
       {/* Drag swap toast */}
-      {swapToast && (
+      {swapToast === "reordered" && (
         <div className="fixed top-6 right-8 z-50 transition-all">
           <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border"
             style={{
               backgroundColor: "var(--surface)",
-              borderColor: swapToast === "cross-date" ? "var(--warning)" : "var(--success)",
-              boxShadow: swapToast === "cross-date" ? "0 8px 30px rgba(251,191,36,0.15)" : "0 8px 30px rgba(74,222,128,0.15)"
+              borderColor: "var(--success)",
+              boxShadow: "0 8px 30px rgba(74,222,128,0.15)"
             }}>
-            {swapToast === "cross-date" ? (
-              <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                <span className="text-sm font-medium" style={{ color: "var(--text)" }}>Can&apos;t drag across days — use Reschedule instead</span>
-              </>
-            ) : (
-              <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                <span className="text-sm font-medium" style={{ color: "var(--text)" }}>Publish times swapped</span>
-              </>
-            )}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span className="text-sm font-medium" style={{ color: "var(--text)" }}>Publish times swapped</span>
           </div>
         </div>
       )}
@@ -707,12 +796,19 @@ export default function QueuePage() {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--success)" }} />
-            <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>{counts.scheduled} scheduled</span>
+            <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>
+              {displayPosts.length} posts on {activeDate || "—"}
+            </span>
+          </div>
+          <div className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+            {counts.scheduled} total scheduled
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Next publish:</span>
-          <span className="text-[12px] font-semibold" style={{ color: "var(--primary)" }}>Today, 2:30 PM</span>
+          <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Next:</span>
+          <span className="text-[12px] font-semibold" style={{ color: "var(--primary)" }}>
+            {displayPosts.length > 0 ? displayPosts[0].scheduledAt : "—"}
+          </span>
         </div>
       </div>
 
