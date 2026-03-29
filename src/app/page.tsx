@@ -27,6 +27,12 @@ const FAILED_POSTS = [
   { id: "f4", page: "TechByte", avatar: "TB", color: "#14B8A6", caption: "AI Revolution: What's Next...", time: "1d ago", error: "Rate limited", platforms: "FB" },
 ];
 
+const VIRAL_POSTS = [
+  { id: "v1", page: "Laugh Central", avatar: "LC", color: "#8B5CF6", caption: "Monday morning energy hits different when you've had 3 coffees...", views: "2.4M", baseline: "180K", multiplier: "13x", platform: "FB", hoursAgo: 3 },
+  { id: "v2", page: "History Uncovered", avatar: "HU", color: "#FF6B2B", caption: "The forgotten queen who ruled an empire for 40 years...", views: "890K", baseline: "95K", multiplier: "9x", platform: "FB+IG", hoursAgo: 6 },
+  { id: "v3", page: "Know Her Name", avatar: "KH", color: "#0EA5E9", caption: "Marie Curie was told women couldn't be scientists. She won two Nobel Prizes...", views: "340K", baseline: "38K", multiplier: "9x", platform: "FB", hoursAgo: 11 },
+];
+
 function formatNum(n: number): string {
   if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
@@ -42,6 +48,9 @@ export default function Dashboard() {
   const [retryModal, setRetryModal] = useState(false);
   const [connectModal, setConnectModal] = useState(false);
   const [pageSearch, setPageSearch] = useState("");
+  const [selectedTablePages, setSelectedTablePages] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<string | null>(null);
+  const [bulkTagInput, setBulkTagInput] = useState("");
 
   const totalRevenue = ALL_PAGES.reduce((s, p) => s + p.revenue, 0);
   const avgRpm = ALL_PAGES.filter(p => p.rpm > 0).reduce((s, p, _, a) => s + p.rpm / a.length, 0);
@@ -51,6 +60,25 @@ export default function Dashboard() {
   const healthyPages = ALL_PAGES.filter(p => p.status === "healthy");
   const emptyQueues = ALL_PAGES.filter(p => p.queueNext24h === 0);
   const expiringTokens = ALL_PAGES.filter(p => p.tokenDays > 0 && p.tokenDays <= 7);
+  const totalViews7d = ALL_PAGES.reduce((s, p) => s + p.views7d, 0);
+  const monetizedViews = Math.round(totalViews7d * 0.504);
+  const totalScheduled = ALL_PAGES.reduce((s, p) => s + p.queueNext24h, 0);
+
+  const toggleTablePage = (id: string) => {
+    setSelectedTablePages(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const selectAllTablePages = () => {
+    const filtered = [...ALL_PAGES].filter(p => p.name.toLowerCase().includes(pageSearch.toLowerCase()));
+    if (selectedTablePages.size === filtered.length) {
+      setSelectedTablePages(new Set());
+    } else {
+      setSelectedTablePages(new Set(filtered.map(p => p.id)));
+    }
+  };
 
   if (isLoading) return <DashboardLoading />;
 
@@ -179,9 +207,9 @@ export default function Dashboard() {
         }
       />
 
-      {/* === SECTION 1: MONEY === */}
-      <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-        {/* Today's earnings */}
+      {/* === SECTION 1: HERO CARDS === */}
+      <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr" }}>
+        {/* Revenue This Week */}
         <div className="rounded-xl border p-5 relative overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           <div className="absolute top-0 right-0 w-32 h-full opacity-[0.08]" style={{ background: "radial-gradient(circle at top right, var(--success), transparent 70%)" }} />
           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Revenue This Week</span>
@@ -192,7 +220,7 @@ export default function Dashboard() {
           <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>$48,392 this month</div>
         </div>
 
-        {/* Avg RPM */}
+        {/* Portfolio RPM */}
         <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           <span className="text-[11px] font-semibold uppercase tracking-wider group/rpm relative cursor-help" style={{ color: "var(--text-muted)" }}>
             Portfolio RPM
@@ -208,10 +236,21 @@ export default function Dashboard() {
           <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>5 of 7 pages monetized</div>
         </div>
 
-        {/* Operations pulse */}
+        {/* Total Network Views */}
+        <div className="rounded-xl border p-5 relative overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+          <div className="absolute top-0 right-0 w-32 h-full opacity-[0.08]" style={{ background: "radial-gradient(circle at top right, #3B82F6, transparent 70%)" }} />
+          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Total Network Views (7D)</span>
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-[28px] font-bold tracking-tight" style={{ color: "var(--text)" }}>{formatNum(totalViews7d)}</span>
+            <span className="text-[12px] font-semibold" style={{ color: "var(--success)" }}>↑ 8%</span>
+          </div>
+          <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>{formatNum(monetizedViews)} monetized views</div>
+        </div>
+
+        {/* Operations Pulse */}
         <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Operations Pulse</span>
-          <div className="grid grid-cols-3 gap-3 mt-3">
+          <div className="grid grid-cols-2 gap-3 mt-3">
             <div className="text-center">
               <div className="text-[20px] font-bold" style={{ color: totalFailed > 0 ? "var(--error)" : "var(--success)" }}>{totalFailed}</div>
               <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>Failed</div>
@@ -223,6 +262,10 @@ export default function Dashboard() {
             <div className="text-center">
               <div className="text-[20px] font-bold" style={{ color: expiringTokens.length > 0 ? "var(--warning)" : "var(--success)" }}>{expiringTokens.length}</div>
               <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>Expiring</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[20px] font-bold" style={{ color: "var(--success)" }}>{totalScheduled}</div>
+              <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>Scheduled</div>
             </div>
           </div>
         </div>
@@ -261,21 +304,39 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Disconnected pages */}
-            {criticalPages.map(page => (
-              <div key={page.id} className="flex items-center justify-between p-4 rounded-xl border" style={{ backgroundColor: "var(--error-bg)", borderColor: "rgba(239, 68, 68, 0.2)" }}>
+            {/* Disconnected pages — grouped if > 2, individual otherwise */}
+            {criticalPages.length > 2 ? (
+              <div className="flex items-center justify-between p-4 rounded-xl border" style={{ backgroundColor: "var(--error-bg)", borderColor: "rgba(239, 68, 68, 0.2)" }}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-bold text-white" style={{ backgroundColor: page.color }}>
-                    {page.avatar}
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "rgba(239, 68, 68, 0.2)" }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                   </div>
                   <div>
-                    <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{page.name} — Disconnected</span>
-                    <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>Token expired · {page.failedPosts} failed posts · Queue empty</div>
+                    <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{criticalPages.length} Pages Disconnected</span>
+                    <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>Tokens expired — publishing stopped on all affected pages</div>
                   </div>
                 </div>
-                <button onClick={() => setReconnectModal(true)} className="text-[12px] font-semibold px-4 py-1.5 rounded-lg text-white" style={{ backgroundColor: "var(--primary)" }}>Reconnect</button>
+                <div className="flex items-center gap-2">
+                  <a href="/settings/pages" className="text-[11px] font-medium px-3 py-1.5 rounded-lg" style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)" }}>View All</a>
+                  <button onClick={() => setReconnectModal(true)} className="text-[12px] font-semibold px-4 py-1.5 rounded-lg text-white" style={{ backgroundColor: "var(--primary)" }}>Bulk Reconnect →</button>
+                </div>
               </div>
-            ))}
+            ) : (
+              criticalPages.map(page => (
+                <div key={page.id} className="flex items-center justify-between p-4 rounded-xl border" style={{ backgroundColor: "var(--error-bg)", borderColor: "rgba(239, 68, 68, 0.2)" }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-bold text-white" style={{ backgroundColor: page.color }}>
+                      {page.avatar}
+                    </div>
+                    <div>
+                      <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{page.name} — Disconnected</span>
+                      <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>Token expired · {page.failedPosts} failed posts · Queue empty</div>
+                    </div>
+                  </div>
+                  <button onClick={() => setReconnectModal(true)} className="text-[12px] font-semibold px-4 py-1.5 rounded-lg text-white" style={{ backgroundColor: "var(--primary)" }}>Reconnect</button>
+                </div>
+              ))
+            )}
 
             {/* Empty queues */}
             {emptyQueues.filter(p => p.status !== "critical").map(page => (
@@ -293,26 +354,106 @@ export default function Dashboard() {
               </div>
             ))}
 
-            {/* Expiring tokens */}
-            {expiringTokens.map(page => (
-              <div key={`exp-${page.id}`} className="flex items-center justify-between p-4 rounded-xl border" style={{ backgroundColor: "var(--warning-bg)", borderColor: "rgba(251, 191, 36, 0.2)" }}>
+            {/* Expiring tokens — grouped if > 2, individual otherwise */}
+            {expiringTokens.length > 2 ? (
+              <div className="flex items-center justify-between p-4 rounded-xl border" style={{ backgroundColor: "var(--warning-bg)", borderColor: "rgba(251, 191, 36, 0.2)" }}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-bold text-white" style={{ backgroundColor: page.color }}>
-                    {page.avatar}
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "rgba(251,191,36,0.2)" }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   </div>
                   <div>
-                    <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{page.name} — Token expires in {page.tokenDays} days</span>
-                    <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>Reconnect to avoid posting interruptions</div>
+                    <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{expiringTokens.length} Pages — Token Expiring Soon</span>
+                    <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>Tokens expire within 7 days — reconnect to avoid interruption</div>
                   </div>
                 </div>
-                <button onClick={() => setReconnectModal(true)} className="text-[12px] font-medium px-4 py-1.5 rounded-lg" style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)" }}>Reconnect</button>
+                <div className="flex items-center gap-2">
+                  <a href="/settings/pages" className="text-[11px] font-medium px-3 py-1.5 rounded-lg" style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)" }}>View All</a>
+                  <button onClick={() => setReconnectModal(true)} className="text-[12px] font-medium px-4 py-1.5 rounded-lg" style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)" }}>Reconnect All</button>
+                </div>
               </div>
-            ))}
+            ) : (
+              expiringTokens.map(page => (
+                <div key={`exp-${page.id}`} className="flex items-center justify-between p-4 rounded-xl border" style={{ backgroundColor: "var(--warning-bg)", borderColor: "rgba(251, 191, 36, 0.2)" }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-bold text-white" style={{ backgroundColor: page.color }}>
+                      {page.avatar}
+                    </div>
+                    <div>
+                      <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{page.name} — Token expires in {page.tokenDays} days</span>
+                      <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>Reconnect to avoid posting interruptions</div>
+                    </div>
+                  </div>
+                  <button onClick={() => setReconnectModal(true)} className="text-[12px] font-medium px-4 py-1.5 rounded-lg" style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)" }}>Reconnect</button>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
 
-      {/* === SECTION 3: PAGE HEALTH GRID === */}
+      {/* === SECTION 3: FASTEST GROWERS + VIRAL RADAR === */}
+      <div className="grid grid-cols-2 gap-4 mb-5">
+        {/* Fastest Growers */}
+        <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>🚀 Fastest Growers</span>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--success-bg)", color: "var(--success)" }}>This Week</span>
+          </div>
+          <div className="space-y-3">
+            {[...ALL_PAGES].filter(p => p.viewsChange > 0).sort((a, b) => b.viewsChange - a.viewsChange).slice(0, 3).map(page => (
+              <a key={page.id} href={`/reports/page?id=${page.id}`} className="flex items-center gap-3 cursor-pointer" style={{ textDecoration: "none" }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ backgroundColor: page.color }}>
+                  {page.avatar}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{page.name}</span>
+                    <span className="text-[12px] font-semibold" style={{ color: "var(--success)" }}>↑ {page.viewsChange}%</span>
+                  </div>
+                  <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>{page.followers} followers · ${page.revenue.toLocaleString()} rev</div>
+                </div>
+              </a>
+            ))}
+          </div>
+          <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
+            <a href="/reports" className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>See all in Reports →</a>
+          </div>
+        </div>
+
+        {/* Viral Radar */}
+        <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>⚡ Viral Radar</span>
+            <span className="flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(255,107,43,0.15)", color: "var(--primary)" }}>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: "var(--primary)" }} />
+              Live
+            </span>
+          </div>
+          <div className="space-y-3">
+            {VIRAL_POSTS.map(post => (
+              <div key={post.id} className="flex items-start gap-3">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 mt-0.5" style={{ backgroundColor: post.color }}>
+                  {post.avatar}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[11px] font-semibold" style={{ color: "var(--text)" }}>{post.page}</span>
+                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>· {post.hoursAgo}h ago</span>
+                  </div>
+                  <div className="text-[11px] mb-1 truncate" style={{ color: "var(--text-secondary)" }}>&ldquo;{post.caption}&rdquo;</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-medium" style={{ color: "var(--success)" }}>👁 {post.views} views</span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(251,191,36,0.15)", color: "#FBBF24" }}>⚡ {post.multiplier} baseline</span>
+                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{post.platform}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* === SECTION 4: ALL PAGES TABLE === */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>All Pages</span>
@@ -354,7 +495,19 @@ export default function Dashboard() {
 
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
         {/* Header */}
-        <div className="grid items-center px-4 py-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", backgroundColor: "var(--surface)", gridTemplateColumns: "200px 1fr 90px 90px 90px 80px 60px" }}>
+        <div className="grid items-center px-4 py-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", backgroundColor: "var(--surface)", gridTemplateColumns: "36px 200px 1fr 90px 90px 90px 80px 60px" }}>
+          <div>
+            <input
+              type="checkbox"
+              className="cursor-pointer"
+              checked={(() => {
+                const filtered = [...ALL_PAGES].filter(p => p.name.toLowerCase().includes(pageSearch.toLowerCase()));
+                return filtered.length > 0 && selectedTablePages.size === filtered.length;
+              })()}
+              onChange={selectAllTablePages}
+              style={{ accentColor: "var(--primary)" }}
+            />
+          </div>
           <div>Page</div>
           <div>Revenue</div>
           <div className="group/rpmcol relative cursor-help">
@@ -371,110 +524,190 @@ export default function Dashboard() {
         </div>
 
         {/* Rows sorted by revenue desc, filtered by search */}
-        {[...ALL_PAGES].filter(p => p.name.toLowerCase().includes(pageSearch.toLowerCase())).sort((a, b) => b.revenue - a.revenue).map(page => (
-          <div
-            key={page.id}
-            className="grid items-center px-4 py-3 border-t cursor-pointer transition-all"
-            style={{
-              gridTemplateColumns: "200px 1fr 90px 90px 90px 80px 60px",
-              borderColor: "var(--border)",
-              backgroundColor: page.status === "critical" ? "var(--error-bg)" : "var(--surface)",
-            }}
-            onClick={() => window.location.href = `/reports/page?id=${page.id}`}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = page.status === "critical" ? "rgba(239,68,68,0.15)" : "var(--surface-hover)"; }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = page.status === "critical" ? "var(--error-bg)" : "var(--surface)"; }}
-          >
-            {/* Page */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: page.color }}>
-                {page.avatar}
+        {[...ALL_PAGES].filter(p => p.name.toLowerCase().includes(pageSearch.toLowerCase())).sort((a, b) => b.revenue - a.revenue).map(page => {
+          const isSelected = selectedTablePages.has(page.id);
+          return (
+            <div
+              key={page.id}
+              className="grid items-center px-4 py-3 border-t cursor-pointer transition-all"
+              style={{
+                gridTemplateColumns: "36px 200px 1fr 90px 90px 90px 80px 60px",
+                borderColor: "var(--border)",
+                backgroundColor: isSelected ? "rgba(255,107,43,0.06)" : page.status === "critical" ? "var(--error-bg)" : "var(--surface)",
+              }}
+              onClick={() => window.location.href = `/reports/page?id=${page.id}`}
+              onMouseEnter={e => {
+                if (!isSelected) e.currentTarget.style.backgroundColor = page.status === "critical" ? "rgba(239,68,68,0.15)" : "var(--surface-hover)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = isSelected ? "rgba(255,107,43,0.06)" : page.status === "critical" ? "var(--error-bg)" : "var(--surface)";
+              }}
+            >
+              {/* Checkbox */}
+              <div onClick={e => { e.stopPropagation(); toggleTablePage(page.id); }}>
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => toggleTablePage(page.id)}
+                  className="cursor-pointer"
+                  style={{ accentColor: "var(--primary)" }}
+                />
               </div>
-              <div>
-                <div className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{page.name}</div>
-                <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>{page.followers} followers</div>
-              </div>
-            </div>
 
-            {/* Revenue bar — bar color = page brand color, consistent */}
-            <div className="flex items-center gap-3 pr-4">
-              <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: "var(--bg)" }}>
-                <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((page.revenue / 5000) * 100, 100)}%`, backgroundColor: page.revenue > 0 ? page.color : "transparent" }} />
-              </div>
-              <div className="min-w-[70px] text-right">
-                <span className="text-[12px] font-semibold" style={{ color: page.revenue > 0 ? "var(--text)" : "var(--text-muted)" }}>
-                  {page.revenue > 0 ? `$${page.revenue.toLocaleString()}` : "—"}
-                </span>
-                {page.revenue > 0 && page.revenue < 100 && (
-                  <div className="text-[9px]" style={{ color: "var(--text-muted)" }}>+${page.revenue.toFixed(2)}</div>
-                )}
-                {page.revenue === 0 && page.rpm === 0 && (
-                  <div className="text-[9px]" style={{ color: "var(--warning)" }}>Not enrolled</div>
-                )}
-              </div>
-            </div>
-
-            {/* RPM */}
-            <div>
-              <span className="text-[12px] font-medium" style={{ color: "var(--text)" }}>{page.rpm > 0 ? `$${page.rpm.toFixed(2)}` : "—"}</span>
-              {page.rpmChange !== 0 && page.rpm > 0 && (
-                <div className="text-[10px]" style={{ color: page.rpmChange > 0 ? "var(--success)" : "var(--error)" }}>
-                  {page.rpmChange > 0 ? "↑" : "↓"}{Math.abs(page.rpmChange)}%
+              {/* Page */}
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: page.color }}>
+                  {page.avatar}
                 </div>
-              )}
-            </div>
+                <div>
+                  <div className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{page.name}</div>
+                  <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>{page.followers} followers</div>
+                </div>
+              </div>
 
-            {/* Views */}
-            <div>
-              <span className="text-[12px] font-medium" style={{ color: "var(--text)" }}>{formatNum(page.views7d)}</span>
-              <div className="text-[10px]" style={{ color: page.viewsChange > 0 ? "var(--success)" : page.viewsChange < -10 ? "var(--error)" : "var(--text-muted)" }}>
-                {page.viewsChange > 0 ? "↑" : "↓"}{Math.abs(page.viewsChange)}%
+              {/* Revenue bar */}
+              <div className="flex items-center gap-3 pr-4">
+                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: "var(--bg)" }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((page.revenue / 5000) * 100, 100)}%`, backgroundColor: page.revenue > 0 ? page.color : "transparent" }} />
+                </div>
+                <div className="min-w-[70px] text-right">
+                  <span className="text-[12px] font-semibold" style={{ color: page.revenue > 0 ? "var(--text)" : "var(--text-muted)" }}>
+                    {page.revenue > 0 ? `$${page.revenue.toLocaleString()}` : "—"}
+                  </span>
+                  {page.revenue > 0 && page.revenue < 100 && (
+                    <div className="text-[9px]" style={{ color: "var(--text-muted)" }}>+${page.revenue.toFixed(2)}</div>
+                  )}
+                  {page.revenue === 0 && page.rpm === 0 && (
+                    <div className="text-[9px]" style={{ color: "var(--warning)" }}>Not enrolled</div>
+                  )}
+                </div>
+              </div>
+
+              {/* RPM */}
+              <div>
+                <span className="text-[12px] font-medium" style={{ color: "var(--text)" }}>{page.rpm > 0 ? `$${page.rpm.toFixed(2)}` : "—"}</span>
+                {page.rpmChange !== 0 && page.rpm > 0 && (
+                  <div className="text-[10px]" style={{ color: page.rpmChange > 0 ? "var(--success)" : "var(--error)" }}>
+                    {page.rpmChange > 0 ? "↑" : "↓"}{Math.abs(page.rpmChange)}%
+                  </div>
+                )}
+              </div>
+
+              {/* Views */}
+              <div>
+                <span className="text-[12px] font-medium" style={{ color: "var(--text)" }}>{formatNum(page.views7d)}</span>
+                <div className="text-[10px]" style={{ color: page.viewsChange > 0 ? "var(--success)" : page.viewsChange < -10 ? "var(--error)" : "var(--text-muted)" }}>
+                  {page.viewsChange > 0 ? "↑" : "↓"}{Math.abs(page.viewsChange)}%
+                </div>
+              </div>
+
+              {/* Queue */}
+              <div>
+                <span className="text-[12px] font-medium" style={{ color: page.queueNext24h === 0 ? "var(--warning)" : "var(--text)" }}>
+                  {page.queueNext24h} posts
+                </span>
+                {page.queueNext24h === 0 && <span className="text-[10px] block" style={{ color: "var(--warning)" }}>Empty!</span>}
+              </div>
+
+              {/* Token */}
+              <div>
+                {page.tokenDays === 0 ? (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--error-bg)", color: "var(--error)" }}>Expired</span>
+                ) : page.tokenDays <= 7 ? (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--warning-bg)", color: "var(--warning)" }}>{page.tokenDays}d</span>
+                ) : (
+                  <span className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>{page.tokenDays}d</span>
+                )}
+              </div>
+
+              {/* Health dot */}
+              <div className="flex justify-center">
+                <span className="w-3 h-3 rounded-full" style={{
+                  backgroundColor: page.status === "healthy" ? "var(--success)" : page.status === "attention" ? "var(--warning)" : "var(--error)",
+                  boxShadow: page.status === "critical" ? "0 0 8px var(--error)" : page.status === "attention" ? "0 0 8px var(--warning)" : "none",
+                }} />
               </div>
             </div>
-
-            {/* Queue */}
-            <div>
-              <span className="text-[12px] font-medium" style={{ color: page.queueNext24h === 0 ? "var(--warning)" : "var(--text)" }}>
-                {page.queueNext24h} posts
-              </span>
-              {page.queueNext24h === 0 && <span className="text-[10px] block" style={{ color: "var(--warning)" }}>Empty!</span>}
-            </div>
-
-            {/* Token */}
-            <div>
-              {page.tokenDays === 0 ? (
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--error-bg)", color: "var(--error)" }}>Expired</span>
-              ) : page.tokenDays <= 7 ? (
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--warning-bg)", color: "var(--warning)" }}>{page.tokenDays}d</span>
-              ) : (
-                <span className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>{page.tokenDays}d</span>
-              )}
-            </div>
-
-            {/* Health dot */}
-            <div className="flex justify-center">
-              <span className="w-3 h-3 rounded-full" style={{
-                backgroundColor: page.status === "healthy" ? "var(--success)" : page.status === "attention" ? "var(--warning)" : "var(--error)",
-                boxShadow: page.status === "critical" ? "0 0 8px var(--error)" : page.status === "attention" ? "0 0 8px var(--warning)" : "none",
-              }} />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* === SECTION 4: TOP & BOTTOM EARNERS === */}
-      <div className="grid grid-cols-2 gap-3 mt-5">
+      {/* Bulk Action Bar */}
+      {selectedTablePages.size > 0 && (
+        <div
+          className="fixed bottom-0 right-0 z-40 flex items-center gap-3 px-5 py-3"
+          style={{
+            left: "250px",
+            backgroundColor: "var(--surface)",
+            borderTop: "2px solid var(--primary)",
+            boxShadow: "0 -4px 24px rgba(255,107,43,0.15)",
+          }}
+        >
+          <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{selectedTablePages.size} page{selectedTablePages.size !== 1 ? "s" : ""} selected</span>
+          <button
+            onClick={() => setSelectedTablePages(new Set())}
+            className="text-[12px] font-medium px-3 py-1.5 rounded-lg"
+            style={{ backgroundColor: "var(--bg)", color: "var(--text-secondary)" }}
+          >
+            Deselect all
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={() => setReconnectModal(true)}
+            className="flex items-center gap-1.5 text-[12px] font-semibold px-4 py-1.5 rounded-lg"
+            style={{ backgroundColor: "rgba(255,107,43,0.12)", color: "var(--primary)" }}
+          >
+            🔗 Reconnect Selected
+          </button>
+          <button
+            onClick={() => setBulkAction(bulkAction === "pause" ? null : "pause")}
+            className="flex items-center gap-1.5 text-[12px] font-semibold px-4 py-1.5 rounded-lg"
+            style={{ backgroundColor: bulkAction === "pause" ? "rgba(251,191,36,0.15)" : "var(--bg)", color: bulkAction === "pause" ? "var(--warning)" : "var(--text-secondary)" }}
+          >
+            ⏸ Pause Publishing
+          </button>
+          {bulkAction === "pause" && (
+            <span className="text-[11px] px-3 py-1.5 rounded-lg" style={{ backgroundColor: "var(--warning-bg)", color: "var(--warning)" }}>
+              Confirm: pause publishing for {selectedTablePages.size} page{selectedTablePages.size !== 1 ? "s" : ""}?
+            </span>
+          )}
+          <button
+            onClick={() => setBulkAction(bulkAction === "tag" ? null : "tag")}
+            className="flex items-center gap-1.5 text-[12px] font-semibold px-4 py-1.5 rounded-lg"
+            style={{ backgroundColor: bulkAction === "tag" ? "rgba(99,102,241,0.15)" : "var(--bg)", color: bulkAction === "tag" ? "#6366F1" : "var(--text-secondary)" }}
+          >
+            🏷 Assign Tag
+          </button>
+          {bulkAction === "tag" && (
+            <input
+              type="text"
+              value={bulkTagInput}
+              onChange={e => setBulkTagInput(e.target.value)}
+              placeholder="Enter tag name..."
+              className="text-[12px] px-3 py-1.5 rounded-lg outline-none"
+              style={{ backgroundColor: "var(--bg)", color: "var(--text)", border: "1px solid var(--border)", width: "140px" }}
+            />
+          )}
+        </div>
+      )}
+
+      {/* === SECTION 5: TOP & BOTTOM EARNERS === */}
+      <div className="grid grid-cols-2 gap-3 mt-5" style={{ marginBottom: selectedTablePages.size > 0 ? "60px" : undefined }}>
         {/* Top earners */}
         <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Top Earners This Week</span>
           <div className="space-y-3 mt-3">
-            {[...ALL_PAGES].filter(p => p.revenue > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 3).map((page, i) => (
+            {[...ALL_PAGES].filter(p => p.revenue > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 5).map((page, i) => (
               <div key={page.id} className="flex items-center gap-3">
-                <span className="text-[14px] font-bold w-5" style={{ color: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : "#CD7F32" }}>{i + 1}</span>
+                <span className="text-[14px] font-bold w-5" style={{ color: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "var(--text-muted)" }}>{i + 1}</span>
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: page.color }}>{page.avatar}</div>
                 <span className="text-[12px] font-medium flex-1" style={{ color: "var(--text)" }}>{page.name}</span>
                 <span className="text-[13px] font-bold" style={{ color: "var(--success)" }}>${page.revenue.toLocaleString()}</span>
               </div>
             ))}
+          </div>
+          <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
+            <a href="/reports" className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>See all pages in Reports →</a>
           </div>
         </div>
 
