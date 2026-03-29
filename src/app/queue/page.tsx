@@ -1198,15 +1198,11 @@ export default function QueuePage() {
                   <div
                     className="grid items-center px-4 py-3 border-b transition-all cursor-pointer"
                     style={{
-                      backgroundColor: selectedPosts.has(post.id) ? "var(--primary-muted)" : dragOverId === post.id ? "rgba(255,107,43,0.08)" : dragId === post.id ? "var(--surface-hover)" : "var(--surface)",
+                      backgroundColor: selectedPosts.has(post.id) ? "var(--primary-muted)" : "var(--surface)",
                       borderColor: "var(--border)",
-                      borderLeft: dragOverId === post.id ? "2px solid var(--primary)" : "2px solid transparent",
-                      opacity: dragId === post.id ? 0.5 : 1,
+                      borderLeft: "2px solid transparent",
                       gridTemplateColumns: "36px 3fr 120px 60px 90px 140px 60px 32px",
                     }}
-                    onDragOver={(e) => { e.preventDefault(); setDragOverId(post.id); }}
-                    onDragLeave={() => setDragOverId(null)}
-                    onDrop={() => handleDrop(post.id)}
                     onClick={() => openPreview(post, "preview")}
                   >
                     {/* Checkbox */}
@@ -1301,14 +1297,11 @@ export default function QueuePage() {
                       )}
                     </div>
 
-                    {/* Drag handle */}
+                    {/* Drag disabled in Time view — tooltip hints Group by Page */}
                     <div
-                      draggable
-                      className="cursor-grab active:cursor-grabbing flex items-center justify-center"
+                      className="flex items-center justify-center opacity-25"
+                      title="Switch to 'Group by Page' to drag-reorder posts"
                       onClick={e => e.stopPropagation()}
-                      onDragStart={e => { e.stopPropagation(); setDragId(post.id); }}
-                      onDragEnd={() => { setDragId(null); setDragOverId(null); }}
-                      title="Drag to swap publish time"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}>
                         <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
