@@ -1225,7 +1225,7 @@ export default function QueuePage() {
                             </div>
                             {/* Col 3: Thumbnail */}
                             <div className="flex flex-col gap-2 shrink-0">
-                              <div className="relative flex items-center justify-center" style={{ width: 120, height: 90, borderRadius: 10, backgroundColor: "var(--surface-hover)", overflow: "hidden" }}>
+                              <div className="relative flex items-center justify-center" style={{ width: 120, height: 120, borderRadius: 10, backgroundColor: "var(--surface-hover)", overflow: "hidden" }}>
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--text-muted)" }}>
                                   <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                                 </svg>
@@ -1412,7 +1412,7 @@ export default function QueuePage() {
                     </div>
                     {/* Col 2: Thumbnail */}
                     <div className="flex flex-col gap-2 shrink-0">
-                      <div className="relative flex items-center justify-center" style={{ width: 120, height: 90, borderRadius: 10, backgroundColor: "var(--surface-hover)", overflow: "hidden" }}>
+                      <div className="relative flex items-center justify-center" style={{ width: 120, height: 120, borderRadius: 10, backgroundColor: "var(--surface-hover)", overflow: "hidden" }}>
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--text-muted)" }}>
                           <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                         </svg>
