@@ -277,6 +277,41 @@ export default function QueuePage() {
   const [previewTab, setPreviewTab] = useState<"preview" | "comments" | "settings">("preview");
   const [bulkAction, setBulkAction] = useState<string | null>(null);
 
+  // Feature 1: Density view
+  const [viewMode, setViewMode] = useState<"list" | "density">("list");
+
+  // Feature 2: Reschedule modal
+  const [reschedulePost, setReschedulePost] = useState<QueuePost | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const openReschedule = (post: QueuePost) => {
+    setReschedulePost(post);
+    setRescheduleDate(post.scheduledDate);
+    const rawTime = post.scheduledAt
+      .replace("Today, ", "")
+      .replace("Tomorrow, ", "")
+      .replace(/^Mar \d+, \d+, /, "");
+    // Convert "6:00 AM" → "06:00"
+    const to24 = (t: string) => {
+      const m = t.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+      if (!m) return "06:00";
+      let h = parseInt(m[1]);
+      const min = m[2];
+      const ampm = m[3].toUpperCase();
+      if (ampm === "PM" && h !== 12) h += 12;
+      if (ampm === "AM" && h === 12) h = 0;
+      return `${String(h).padStart(2, "0")}:${min}`;
+    };
+    setRescheduleTime(to24(rawTime));
+  };
+
+  // Feature 3: Advanced filters
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterType, setFilterType] = useState<"all" | "photo" | "reel" | "text">("all");
+  const [filterPlatform, setFilterPlatform] = useState<"all" | "fb" | "ig" | "th">("all");
+  const [filterThread, setFilterThread] = useState<"all" | "has" | "missing">("all");
+  const hasAdvancedFilters = filterType !== "all" || filterPlatform !== "all" || filterThread !== "all";
+
   const openPreview = (post: QueuePost, tab: "preview" | "comments" | "settings" = "preview") => {
     setPreviewPost(post);
     setPreviewTab(tab);
@@ -367,6 +402,10 @@ export default function QueuePage() {
     .filter(p => {
       if (filter === "scheduled" && p.status !== "scheduled") return false;
       if (filterNames && !filterNames.includes(p.page.name)) return false;
+      if (filterType !== "all" && p.type !== filterType) return false;
+      if (filterPlatform !== "all" && !p.platforms.includes(filterPlatform as "fb" | "ig" | "th")) return false;
+      if (filterThread === "has" && p.comments.length === 0) return false;
+      if (filterThread === "missing" && p.comments.length > 0) return false;
       return true;
     })
     .sort((a, b) => parseTime(a) - parseTime(b)); // always sorted by publish time
@@ -476,53 +515,158 @@ export default function QueuePage() {
         title="Queue"
         subtitle={simulateEmpty ? "0 posts queued" : `${counts.all} posts queued across ${new Set(queue.map(p => p.page.name)).size} pages`}
         actions={
-          <button
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white"
-            style={{ backgroundColor: "var(--primary)", boxShadow: "0 4px 14px var(--primary-glow)" }}
-            onClick={() => window.location.href = "/upload"}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add Posts
-          </button>
+          <div className="flex items-center gap-3">
+            {/* View mode toggle */}
+            <div className="flex items-center p-1 rounded-xl" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+              <button
+                onClick={() => setViewMode("list")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                style={{
+                  backgroundColor: viewMode === "list" ? "var(--primary)" : "transparent",
+                  color: viewMode === "list" ? "white" : "var(--text-secondary)",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                List
+              </button>
+              <button
+                onClick={() => setViewMode("density")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                style={{
+                  backgroundColor: viewMode === "density" ? "var(--primary)" : "transparent",
+                  color: viewMode === "density" ? "white" : "var(--text-secondary)",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Density
+              </button>
+            </div>
+            <button
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white"
+              style={{ backgroundColor: "var(--primary)", boxShadow: "0 4px 14px var(--primary-glow)" }}
+              onClick={() => window.location.href = "/upload"}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Posts
+            </button>
+          </div>
         }
       />
 
       {/* Filters bar */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
-          {(["all", "scheduled"] as const).map(f => (
+      <div className="mb-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
+              {(["all", "scheduled"] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-medium transition-all"
+                  style={{
+                    backgroundColor: filter === f ? "var(--primary)" : "transparent",
+                    color: filter === f ? "white" : "var(--text-secondary)",
+                  }}
+                >
+                  {f === "all" ? "All" : "Scheduled"}
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{
+                    backgroundColor: filter === f ? "rgba(255,255,255,0.2)" : "var(--surface-hover)",
+                    color: filter === f ? "white" : "var(--text-muted)",
+                  }}>
+                    {counts[f]}
+                  </span>
+                </button>
+              ))}
+            </div>
+            {/* Filters toggle button */}
             <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-medium transition-all"
+              onClick={() => setShowAdvancedFilters(v => !v)}
+              className="relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-medium border transition-all"
               style={{
-                backgroundColor: filter === f ? "var(--primary)" : "transparent",
-                color: filter === f ? "white" : "var(--text-secondary)",
+                backgroundColor: showAdvancedFilters ? "var(--primary-muted)" : "var(--surface)",
+                color: showAdvancedFilters ? "var(--primary)" : "var(--text-secondary)",
+                borderColor: showAdvancedFilters ? "var(--primary)" : "var(--border)",
               }}
             >
-              {f === "all" ? "All" : "Scheduled"}
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{
-                backgroundColor: filter === f ? "rgba(255,255,255,0.2)" : "var(--surface-hover)",
-                color: filter === f ? "white" : "var(--text-muted)",
-              }}>
-                {counts[f]}
-              </span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              Filters
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              {hasAdvancedFilters && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+              )}
             </button>
-          ))}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Page filter */}
+            <PageBatchSelector
+              selected={selectedPage}
+              onChange={(id) => setSelectedPage(id)}
+            />
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Page filter */}
-          <PageBatchSelector
-            selected={selectedPage}
-            onChange={(id) => setSelectedPage(id)}
-          />
-
-        </div>
+        {/* Advanced filter panel */}
+        {showAdvancedFilters && (
+          <div className="mt-3 flex items-start gap-6 px-4 py-3 rounded-xl" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+            {/* Media Type */}
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Media Type</div>
+              <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ backgroundColor: "var(--bg)" }}>
+                {([["all","All"],["photo","📷 Photo"],["reel","🎬 Reel"],["text","📝 Text"]] as const).map(([val,label]) => (
+                  <button key={val} onClick={() => setFilterType(val as typeof filterType)}
+                    className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-all"
+                    style={{
+                      backgroundColor: filterType === val ? "var(--primary)" : "transparent",
+                      color: filterType === val ? "white" : "var(--text-secondary)",
+                    }}>{label}</button>
+                ))}
+              </div>
+            </div>
+            {/* Platform */}
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Platform</div>
+              <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ backgroundColor: "var(--bg)" }}>
+                {([["all","All"],["fb","FB"],["ig","IG"],["th","TH"]] as const).map(([val,label]) => (
+                  <button key={val} onClick={() => setFilterPlatform(val as typeof filterPlatform)}
+                    className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-all"
+                    style={{
+                      backgroundColor: filterPlatform === val ? "var(--primary)" : "transparent",
+                      color: filterPlatform === val ? "white" : "var(--text-secondary)",
+                    }}>{label}</button>
+                ))}
+              </div>
+            </div>
+            {/* Thread Status */}
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Thread Status</div>
+              <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ backgroundColor: "var(--bg)" }}>
+                {([["all","All"],["has","Has Thread"],["missing","Missing Thread"]] as const).map(([val,label]) => (
+                  <button key={val} onClick={() => setFilterThread(val as typeof filterThread)}
+                    className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-all"
+                    style={{
+                      backgroundColor: filterThread === val ? "var(--primary)" : "transparent",
+                      color: filterThread === val ? "white" : "var(--text-secondary)",
+                    }}>{label}</button>
+                ))}
+              </div>
+            </div>
+            {/* Clear filters */}
+            {hasAdvancedFilters && (
+              <div className="flex items-end pb-0.5 ml-auto">
+                <button
+                  onClick={() => { setFilterType("all"); setFilterPlatform("all"); setFilterThread("all"); }}
+                  className="text-[11px] font-medium hover:underline"
+                  style={{ color: "var(--primary)" }}
+                >Clear filters</button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Date Navigator */}
-      {availableDates.length > 0 && (
+      {/* Date Navigator — hidden in density mode */}
+      {availableDates.length > 0 && viewMode === "list" && (
         <div className="flex items-center gap-2 mb-5">
           {/* ← arrow */}
           <button
@@ -597,8 +741,114 @@ export default function QueuePage() {
         </div>
       )}
 
-      {/* Queue grid header */}
-      <div className="rounded-t-xl border border-b-0" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+      {/* ── Density / Heatmap View ── */}
+      {viewMode === "density" && (() => {
+        const allDates = [...new Set(MOCK_QUEUE.map(p => p.scheduledDate))];
+        const allPages = [HU, LC, DH, TB, FF, MM, KH];
+        const countFor = (pageName: string, date: string) =>
+          MOCK_QUEUE.filter(p => p.page.name === pageName && p.scheduledDate === date).length;
+        const totalForDate = (date: string) =>
+          MOCK_QUEUE.filter(p => p.scheduledDate === date).length;
+        const totalAll = MOCK_QUEUE.length;
+        const cellColor = (n: number) => {
+          if (n === 0) return { bg: "rgba(239,68,68,0.15)", text: "#EF4444" };
+          if (n <= 3) return { bg: "rgba(251,191,36,0.15)", text: "#FBBF24" };
+          if (n <= 6) return { bg: "rgba(74,222,128,0.15)", text: "#4ADE80" };
+          return { bg: "rgba(59,130,246,0.15)", text: "#60A5FA" };
+        };
+        return (
+          <div style={{ backgroundColor: "var(--surface)", borderRadius: 16, border: "1px solid var(--border)", padding: 24, marginBottom: 24 }}>
+            {/* Summary + legend row */}
+            <div className="flex items-center justify-between mb-5">
+              <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
+                Schedule density across {allPages.length} pages · {allDates.length} days · {totalAll} posts total
+              </span>
+              <div className="flex items-center gap-4">
+                {([["#EF4444","0 posts"],["#FBBF24","1–3"],["#4ADE80","4–6"],["#60A5FA","7+"]] as const).map(([color, label]) => (
+                  <span key={label} className="flex items-center gap-1 text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                    <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: color }} />
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+            {/* Grid */}
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ borderCollapse: "separate", borderSpacing: 6, width: "100%" }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: 160, textAlign: "left", padding: "0 8px 8px", color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Page</th>
+                    {allDates.map(date => (
+                      <th key={date} style={{ width: 110, textAlign: "center", padding: "0 0 8px", color: "var(--text-muted)", fontSize: 11, fontWeight: 600 }}>
+                        <div>{dateShort(date)}</div>
+                        {dateLabelBadge(date) && <div style={{ color: "var(--primary)", fontSize: 10, fontWeight: 700 }}>{dateLabelBadge(date)}</div>}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {allPages.map(page => (
+                    <tr key={page.name}>
+                      <td style={{ padding: "3px 8px 3px 0" }}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0" style={{ backgroundColor: page.color }}>{page.avatar}</div>
+                          <span className="text-[12px] font-medium truncate" style={{ color: "var(--text-secondary)", maxWidth: 110 }}>{page.name}</span>
+                        </div>
+                      </td>
+                      {allDates.map(date => {
+                        const n = countFor(page.name, date);
+                        const { bg, text } = cellColor(n);
+                        return (
+                          <td key={date} style={{ padding: 3 }}>
+                            <button
+                              onClick={() => { setViewMode("list"); setActiveDate(date); setSelectedPage(page.avatar.toLowerCase() === "kh" ? "khn" : page.avatar.toLowerCase()); }}
+                              style={{
+                                width: 110, height: 70, borderRadius: 10,
+                                backgroundColor: bg, border: "1px solid transparent",
+                                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                                cursor: "pointer", transition: "filter 0.15s",
+                              }}
+                              onMouseEnter={e => (e.currentTarget.style.filter = "brightness(1.3)")}
+                              onMouseLeave={e => (e.currentTarget.style.filter = "brightness(1)")}
+                              title={`${n} post${n !== 1 ? "s" : ""} · ${page.name} · ${dateShort(date)}`}
+                            >
+                              <span style={{ fontSize: 22, fontWeight: 700, color: text, lineHeight: 1 }}>{n === 0 ? "–" : n}</span>
+                              {n > 0 && <span style={{ fontSize: 10, color: text, opacity: 0.7, marginTop: 2 }}>posts</span>}
+                            </button>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                  {/* Total row */}
+                  <tr>
+                    <td style={{ padding: "8px 8px 3px 0" }}>
+                      <span className="text-[12px] font-bold" style={{ color: "var(--text)" }}>Total</span>
+                    </td>
+                    {allDates.map(date => {
+                      const n = totalForDate(date);
+                      return (
+                        <td key={date} style={{ padding: "8px 3px 3px" }}>
+                          <div style={{
+                            width: 110, height: 44, borderRadius: 10,
+                            backgroundColor: "var(--bg)", border: "1px solid var(--border)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}>
+                            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{n}</span>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Queue grid header — list mode only */}
+      {viewMode === "list" && (<><div className="rounded-t-xl border border-b-0" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
         <div className="grid items-center px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", gridTemplateColumns: "36px 3fr 120px 60px 90px 140px 60px 32px" }}>
           <div>
             <input
@@ -718,9 +968,16 @@ export default function QueuePage() {
                       </span>
                     </div>
 
-                    {/* Schedule time */}
-                    <div className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>
-                      {post.scheduledAt}
+                    {/* Schedule time — click to reschedule */}
+                    <div>
+                      <button
+                        onClick={e => { e.stopPropagation(); openReschedule(post); }}
+                        className="text-[12px] font-medium hover:underline"
+                        style={{ color: "var(--text-secondary)", cursor: "pointer", background: "none", border: "none", padding: 0 }}
+                        title="Click to reschedule"
+                      >
+                        {post.scheduledAt}
+                      </button>
                     </div>
 
                     {/* Thread comments count — click opens modal on Comments tab */}
@@ -771,6 +1028,8 @@ export default function QueuePage() {
         )}
       </div>
 
+      </>)}
+
       {/* Drag swap toast */}
       {swapToast === "reordered" && (
         <div className="fixed top-6 right-8 z-50 transition-all">
@@ -790,6 +1049,115 @@ export default function QueuePage() {
       {previewPost && (
         <PostPreviewModal post={previewPost} initialTab={previewTab} onClose={() => setPreviewPost(null)} />
       )}
+
+      {/* ── Quick Reschedule Modal ── */}
+      {reschedulePost && (() => {
+        const allDates = [...new Set(MOCK_QUEUE.map(p => p.scheduledDate))];
+        const quickTimes = ["06:00","09:00","12:00","15:00","18:00","21:00"];
+        const quickLabels = ["6:00 AM","9:00 AM","12:00 PM","3:00 PM","6:00 PM","9:00 PM"];
+        const to12 = (t: string) => {
+          const [hStr, mStr] = t.split(":");
+          let h = parseInt(hStr);
+          const ampm = h >= 12 ? "PM" : "AM";
+          if (h > 12) h -= 12;
+          if (h === 0) h = 12;
+          return `${h}:${mStr} ${ampm}`;
+        };
+        const handleSave = () => {
+          const dateLabel = rescheduleDate === "Mar 27, 2026" ? "Today" : rescheduleDate === "Mar 28, 2026" ? "Tomorrow" : dateShort(rescheduleDate);
+          const timeLabel = to12(rescheduleTime);
+          const newScheduledAt = rescheduleDate === "Mar 27, 2026" || rescheduleDate === "Mar 28, 2026"
+            ? `${dateLabel}, ${timeLabel}`
+            : `${dateShort(rescheduleDate)}, ${timeLabel}`;
+          setQueue(prev => prev.map(p =>
+            p.id === reschedulePost.id ? { ...p, scheduledAt: newScheduledAt, scheduledDate: rescheduleDate } : p
+          ));
+          setReschedulePost(null);
+        };
+        return (
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 100, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}
+            onClick={() => setReschedulePost(null)}
+          >
+            <div
+              style={{ width: 400, backgroundColor: "var(--surface)", borderRadius: 16, padding: 24, border: "1px solid var(--border)", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[15px] font-bold" style={{ color: "var(--text)" }}>Reschedule Post</span>
+                <button onClick={() => setReschedulePost(null)} style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer" }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              {/* Thumbnail + caption */}
+              <div className="flex items-center gap-3 mb-5 p-3 rounded-xl" style={{ backgroundColor: "var(--bg)" }}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: reschedulePost.page.color }}>
+                  <span className="text-[9px] font-bold text-white">{reschedulePost.page.avatar}</span>
+                </div>
+                <p className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                  {reschedulePost.caption.slice(0, 40)}{reschedulePost.caption.length > 40 ? "…" : ""}
+                </p>
+              </div>
+              {/* Date */}
+              <div className="mb-4">
+                <label className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: "var(--text-muted)" }}>Date</label>
+                <select
+                  value={rescheduleDate}
+                  onChange={e => setRescheduleDate(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl text-[13px] font-medium"
+                  style={{ backgroundColor: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", outline: "none" }}
+                >
+                  {allDates.map(d => (
+                    <option key={d} value={d}>{d === "Mar 27, 2026" ? `${d} (Today)` : d === "Mar 28, 2026" ? `${d} (Tomorrow)` : d}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Time */}
+              <div className="mb-4">
+                <label className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: "var(--text-muted)" }}>Time</label>
+                <input
+                  type="time"
+                  value={rescheduleTime}
+                  onChange={e => setRescheduleTime(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl text-[13px] font-medium"
+                  style={{ backgroundColor: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", outline: "none" }}
+                />
+              </div>
+              {/* Quick picks */}
+              <div className="mb-5">
+                <label className="text-[11px] font-semibold uppercase tracking-wider mb-2 block" style={{ color: "var(--text-muted)" }}>Quick picks</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {quickTimes.map((t, i) => (
+                    <button
+                      key={t}
+                      onClick={() => setRescheduleTime(t)}
+                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all"
+                      style={{
+                        backgroundColor: rescheduleTime === t ? "var(--primary)" : "var(--surface-hover)",
+                        color: rescheduleTime === t ? "white" : "var(--text-secondary)",
+                      }}
+                    >{quickLabels[i]}</button>
+                  ))}
+                </div>
+              </div>
+              {/* Footer */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setReschedulePost(null)}
+                  className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold"
+                  style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)" }}
+                >Cancel</button>
+                <button
+                  onClick={handleSave}
+                  className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "var(--primary)" }}
+                >Save Changes <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Queue summary bar */}
       <div className="mt-4 flex items-center justify-between px-4 py-3 rounded-xl" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
