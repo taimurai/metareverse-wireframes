@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Header from "@/components/Header";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import AlertBanner from "@/components/AlertBanner";
 import ConnectFacebookModal from "@/components/modals/ConnectFacebookModal";
 import ReconnectModal from "@/components/modals/ReconnectModal";
@@ -33,6 +34,7 @@ function formatNum(n: number): string {
 }
 
 export default function Dashboard() {
+  const isMobile = useIsMobile();
   const isLoading = useFakeLoading();
   const [showTokenBanner, setShowTokenBanner] = useState(true);
   const [showDisconnectBanner, setShowDisconnectBanner] = useState(true);
@@ -51,6 +53,94 @@ export default function Dashboard() {
   const expiringTokens = ALL_PAGES.filter(p => p.tokenDays > 0 && p.tokenDays <= 7);
 
   if (isLoading) return <DashboardLoading />;
+
+  if (isMobile) {
+    const totalQueueToday = ALL_PAGES.reduce((s, p) => s + p.queueNext24h, 0);
+    return (
+      <div className="px-4 py-4 space-y-4">
+        {/* Revenue hero card */}
+        <div className="rounded-xl p-4 relative overflow-hidden" style={{ backgroundColor: "#2D2D44", border: "1px solid #3A3A52" }}>
+          <div className="absolute top-0 right-0 w-24 h-full opacity-[0.08]" style={{ background: "radial-gradient(circle at top right, #4ADE80, transparent 70%)" }} />
+          <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#9494A8" }}>Revenue This Week</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[28px] font-bold" style={{ color: "#F0F0F5" }}>${totalRevenue.toLocaleString()}</span>
+            <span className="text-[12px] font-semibold" style={{ color: "#4ADE80" }}>↑ 14%</span>
+          </div>
+          <div className="flex items-center gap-4 mt-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: "#9494A8" }}>Avg RPM</div>
+              <div className="text-[16px] font-bold" style={{ color: "#F0F0F5" }}>${avgRpm.toFixed(2)}</div>
+            </div>
+            <div className="w-px h-8" style={{ backgroundColor: "#3A3A52" }} />
+            <div>
+              <div className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: "#9494A8" }}>Pages</div>
+              <div className="text-[16px] font-bold" style={{ color: "#F0F0F5" }}>{ALL_PAGES.length}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Failed posts alert */}
+        {totalFailed > 0 && (
+          <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
+            <div className="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              <span className="text-[13px] font-semibold" style={{ color: "#F0F0F5" }}>{totalFailed} posts failed</span>
+            </div>
+            <a href="/failed-posts" className="text-[12px] font-semibold px-3 py-1 rounded-lg text-white" style={{ backgroundColor: "#EF4444" }}>View</a>
+          </div>
+        )}
+
+        {/* Token expiry warning */}
+        {expiringTokens.length > 0 && (
+          <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.2)" }}>
+            <div className="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span className="text-[13px] font-semibold" style={{ color: "#F0F0F5" }}>{expiringTokens[0].name} token expires in {expiringTokens[0].tokenDays}d</span>
+            </div>
+          </div>
+        )}
+
+        {/* Page health dots */}
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#9494A8" }}>Page Health</div>
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {ALL_PAGES.map(page => (
+              <div key={page.id} className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: page.color }}>
+                    {page.avatar}
+                  </div>
+                  <span
+                    className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
+                    style={{
+                      backgroundColor: page.status === "healthy" ? "#4ADE80" : page.status === "attention" ? "#FBBF24" : "#EF4444",
+                      borderColor: "#1A1A2E",
+                    }}
+                  />
+                </div>
+                <span className="text-[9px] text-center max-w-[44px] leading-tight" style={{ color: "#9494A8" }}>
+                  {page.avatar}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Today's Queue */}
+        <div className="rounded-xl p-4" style={{ backgroundColor: "#2D2D44", border: "1px solid #3A3A52" }}>
+          <div className="flex items-center justify-between">
+            <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#9494A8" }}>Today&apos;s Queue</div>
+            <a href="/queue" className="text-[11px] font-medium" style={{ color: "#FF6B2B" }}>View →</a>
+          </div>
+          <div className="flex items-baseline gap-1 mt-2">
+            <span className="text-[28px] font-bold" style={{ color: "#F0F0F5" }}>{totalQueueToday}</span>
+            <span className="text-[13px]" style={{ color: "#9494A8" }}>posts scheduled today</span>
+          </div>
+          <div className="text-[11px] mt-1" style={{ color: "#9494A8" }}>across {ALL_PAGES.filter(p => p.queueNext24h > 0).length} pages</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Header from "@/components/Header";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import PostPreviewModal from "@/components/modals/PostPreviewModal";
 import PageBatchSelector from "@/components/PageBatchSelector";
 import { useFakeLoading } from "@/hooks/useFakeLoading";
@@ -261,6 +262,7 @@ function QueueSkeleton() {
 }
 
 export default function QueuePage() {
+  const isMobile = useIsMobile();
   const isLoading = useFakeLoading();
   const [simulateEmpty, setSimulateEmpty] = useState(false);
   const [filter, setFilter] = useState<"all" | "scheduled">("all");
@@ -397,6 +399,46 @@ export default function QueuePage() {
   }, {});
 
   if (isLoading) return <QueueSkeleton />;
+
+  if (isMobile) {
+    const todayPosts = MOCK_QUEUE.filter(p => p.scheduledDate === "Mar 27, 2026");
+    return (
+      <div className="px-4 py-4">
+        {/* Desktop-only banner */}
+        <div className="flex items-center gap-2 p-3 rounded-xl mb-4" style={{ backgroundColor: "rgba(255,107,43,0.1)", border: "1px solid rgba(255,107,43,0.2)" }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF6B2B" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span className="text-[12px] font-medium" style={{ color: "#FF6B2B" }}>Manage your queue from desktop</span>
+        </div>
+
+        <div className="text-[13px] font-semibold mb-3" style={{ color: "#F0F0F5" }}>
+          Today — {todayPosts.length} posts
+        </div>
+
+        <div className="space-y-2">
+          {todayPosts.map(post => (
+            <div key={post.id} className="flex items-start gap-3 p-3 rounded-xl" style={{ backgroundColor: "#2D2D44", border: "1px solid #3A3A52" }}>
+              {/* Thumbnail placeholder */}
+              <div className="w-12 h-12 rounded-lg flex-shrink-0 flex items-center justify-center text-[9px] font-bold" style={{ backgroundColor: post.page.color, color: "white" }}>
+                {post.type === "reel" ? "▶" : "IMG"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[12px] font-medium leading-snug mb-1" style={{ color: "#F0F0F5" }}>
+                  {post.caption.length > 60 ? post.caption.slice(0, 60) + "…" : post.caption}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: post.page.color + "33", color: post.page.color }}>
+                    {post.page.name}
+                  </span>
+                  <span className="text-[10px]" style={{ color: "#9494A8" }}>{post.scheduledAt}</span>
+                  <span className="text-[10px]" style={{ color: "#9494A8" }}>{post.platforms.map(p => p.toUpperCase()).join(" + ")}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
