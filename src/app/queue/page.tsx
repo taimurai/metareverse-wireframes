@@ -1123,7 +1123,7 @@ export default function QueuePage() {
 
                     {/* Accordion body — posts list */}
                     {isExpanded && posts.map((post) => (
-                      <div key={post.id}>
+                      <div key={post.id} className="group">
                         <div
                           className="grid items-center px-4 py-3 border-b transition-all cursor-pointer"
                           style={{
@@ -1131,7 +1131,7 @@ export default function QueuePage() {
                             borderColor: "var(--border)",
                             borderLeft: dragOverId === post.id ? "2px solid var(--primary)" : "2px solid transparent",
                             opacity: dragId === post.id ? 0.5 : 1,
-                            gridTemplateColumns: "36px 3fr 60px 90px 140px 60px 32px",
+                            gridTemplateColumns: "20px 36px 3fr 60px 90px 140px 60px",
                             paddingLeft: 48,
                           }}
                           onDragOver={(e) => { e.preventDefault(); setDragOverId(post.id); }}
@@ -1139,6 +1139,21 @@ export default function QueuePage() {
                           onDrop={() => handleDrop(post.id)}
                           onClick={() => openPreview(post, "preview")}
                         >
+                          {/* Drag handle — far left, visible only on row hover */}
+                          <div
+                            draggable
+                            className="cursor-grab active:cursor-grabbing flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={e => e.stopPropagation()}
+                            onDragStart={e => { e.stopPropagation(); setDragId(post.id); }}
+                            onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+                            title="Drag to reorder"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}>
+                              <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
+                              <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+                              <circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
+                            </svg>
+                          </div>
                           <div onClick={e => e.stopPropagation()}>
                             <input type="checkbox" checked={selectedPosts.has(post.id)} onChange={() => toggleSelect(post.id)} style={{ accentColor: "var(--primary)" }} />
                           </div>
@@ -1179,9 +1194,6 @@ export default function QueuePage() {
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>+
                               </button>
                             )}
-                          </div>
-                          <div draggable className="cursor-grab active:cursor-grabbing flex items-center justify-center" onClick={e => e.stopPropagation()} onDragStart={e => { e.stopPropagation(); setDragId(post.id); }} onDragEnd={() => { setDragId(null); setDragOverId(null); }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
                           </div>
                         </div>
                       </div>
