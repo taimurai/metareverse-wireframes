@@ -283,8 +283,28 @@ export default function QueuePage() {
   const [bulkThreadOverwrite, setBulkThreadOverwrite] = useState(false);
   const [threadSuccessToast, setThreadSuccessToast] = useState<string | null>(null);
 
-  // Feature 1: Density view
-  const [viewMode, setViewMode] = useState<"list" | "density">("list");
+  // Feature 1: Density / Visual view
+  const [viewMode, setViewMode] = useState<"list" | "visual" | "density">("list");
+
+  // Inline caption editing (visual mode)
+  const [editingCaptionId, setEditingCaptionId] = useState<string | null>(null);
+  const [editingCaptionText, setEditingCaptionText] = useState("");
+
+  const startEditCaption = (post: QueuePost, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingCaptionId(post.id);
+    setEditingCaptionText(post.caption);
+  };
+
+  const saveCaption = (postId: string) => {
+    setQueue(prev => prev.map(p => p.id === postId ? { ...p, caption: editingCaptionText } : p));
+    setEditingCaptionId(null);
+  };
+
+  const cancelCaption = () => {
+    setEditingCaptionId(null);
+    setEditingCaptionText("");
+  };
 
   // Feature 2: Reschedule modal
   const [reschedulePost, setReschedulePost] = useState<QueuePost | null>(null);
@@ -585,8 +605,22 @@ export default function QueuePage() {
                   color: viewMode === "list" ? "white" : "var(--text-secondary)",
                 }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                List
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                Compact
+              </button>
+              <button
+                onClick={() => setViewMode("visual")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                style={{
+                  backgroundColor: viewMode === "visual" ? "var(--primary)" : "transparent",
+                  color: viewMode === "visual" ? "white" : "var(--text-secondary)",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="18" height="7" rx="1"/>
+                  <rect x="3" y="14" width="18" height="7" rx="1"/>
+                </svg>
+                Visual
               </button>
               <button
                 onClick={() => setViewMode("density")}
@@ -871,7 +905,7 @@ export default function QueuePage() {
       </div>
 
       {/* Date Navigator — hidden in density mode */}
-      {availableDates.length > 0 && viewMode === "list" && (
+      {availableDates.length > 0 && (viewMode === "list" || viewMode === "visual") && (
         <div className="flex items-center gap-2 mb-5">
           {/* ← arrow */}
           <button
@@ -1052,8 +1086,16 @@ export default function QueuePage() {
         );
       })()}
 
-      {/* Queue grid header — list mode only */}
-      {viewMode === "list" && (<><div className="rounded-t-xl border border-b-0" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+      {/* Queue grid header — list/visual mode only */}
+      {(viewMode === "list" || viewMode === "visual") && (<>{viewMode === "visual" ? (
+        <div className="mb-3 flex items-center gap-3 px-4 py-2" style={{ backgroundColor: "rgba(255,107,43,0.06)", border: "1px solid rgba(255,107,43,0.15)", borderRadius: 10, fontSize: 12, color: "var(--text-secondary)" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Visual mode — click any caption to edit inline</span>
+          <span style={{ color: "var(--text-muted)" }}>·</span>
+          <button onClick={() => setViewMode("list")} style={{ color: "var(--primary)", background: "none", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Switch to Compact</button>
+        </div>
+      ) : (
+      <div className="rounded-t-xl border border-b-0" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
         <div className="grid items-center px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", gridTemplateColumns: "36px 3fr 120px 60px 90px 140px 60px 32px" }}>
           <div>
             <input
@@ -1073,6 +1115,7 @@ export default function QueuePage() {
           <div></div>
         </div>
       </div>
+      )}
 
       {/* Queue rows for active date */}
       <div className="rounded-b-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
@@ -1158,6 +1201,130 @@ export default function QueuePage() {
                     {/* Accordion body — posts list */}
                     {isExpanded && posts.map((post) => (
                       <div key={post.id} className="group">
+                        {viewMode === "visual" ? (
+                          /* ── Visual row (group-by-page) ── */
+                          <div
+                            className="grid border-b transition-all cursor-pointer"
+                            style={{
+                              minHeight: 130,
+                              gridTemplateColumns: "20px 36px 120px 1fr 160px",
+                              padding: "12px 16px",
+                              paddingLeft: 48,
+                              borderBottom: "1px solid var(--border)",
+                              backgroundColor: selectedPosts.has(post.id) ? "var(--primary-muted)" : dragOverId === post.id ? "rgba(255,107,43,0.08)" : dragId === post.id ? "var(--surface-hover)" : "var(--surface)",
+                              borderLeft: dragOverId === post.id ? "2px solid var(--primary)" : "2px solid transparent",
+                              opacity: dragId === post.id ? 0.5 : 1,
+                              alignItems: "start",
+                            }}
+                            onDragOver={(e) => { e.preventDefault(); setDragOverId(post.id); }}
+                            onDragLeave={() => setDragOverId(null)}
+                            onDrop={() => handleDrop(post.id)}
+                            onClick={(e) => { if (editingCaptionId) { e.stopPropagation(); return; } openPreview(post, "preview"); }}
+                          >
+                            {/* Col 1: Drag handle */}
+                            <div
+                              draggable
+                              className="cursor-grab active:cursor-grabbing flex items-start justify-center pt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={e => e.stopPropagation()}
+                              onDragStart={e => { e.stopPropagation(); setDragId(post.id); }}
+                              onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+                              title="Drag to reorder"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}>
+                                <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
+                                <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+                                <circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
+                              </svg>
+                            </div>
+                            {/* Col 2: Checkbox */}
+                            <div className="flex items-start pt-1" onClick={e => e.stopPropagation()}>
+                              <input type="checkbox" checked={selectedPosts.has(post.id)} onChange={() => toggleSelect(post.id)} style={{ accentColor: "var(--primary)" }} />
+                            </div>
+                            {/* Col 3: Thumbnail */}
+                            <div className="flex flex-col gap-2 shrink-0">
+                              <div className="relative flex items-center justify-center" style={{ width: 120, height: 90, borderRadius: 10, backgroundColor: "var(--surface-hover)", overflow: "hidden" }}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--text-muted)" }}>
+                                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                                {post.type === "reel" && (
+                                  <div style={{ position: "absolute", bottom: 0, left: 0, backgroundColor: "rgba(0,0,0,0.6)", borderRadius: "0 6px 0 10px", padding: "2px 6px", fontSize: 9, color: "white" }}>▶ REEL</div>
+                                )}
+                              </div>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full text-center w-fit" style={{
+                                backgroundColor: post.type === "photo" ? "rgba(59,130,246,0.15)" : post.type === "reel" ? "rgba(236,72,153,0.15)" : "var(--surface-hover)",
+                                color: post.type === "photo" ? "#3B82F6" : post.type === "reel" ? "#EC4899" : "var(--text-muted)",
+                              }}>{post.type}</span>
+                            </div>
+                            {/* Col 4: Content */}
+                            <div className="flex flex-col gap-1.5 min-w-0 px-3">
+                              {/* Page info row */}
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0" style={{ backgroundColor: post.page.color }}>{post.page.avatar}</div>
+                                <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{post.page.name}</span>
+                                <span style={{ color: "var(--text-muted)", fontSize: 11 }}>·</span>
+                                {post.platforms.map(p => (
+                                  <span key={p}>
+                                    {p === "fb" && <svg width="12" height="12" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>}
+                                    {p === "ig" && <svg width="12" height="12" viewBox="0 0 24 24" fill="#E1306C"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>}
+                                    {p === "th" && <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.181 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-5.602.04-8.196 3.2-8.257 8.358v.457c.504 5.07 3.278 7.957 8.254 7.957h.023c2.627-.02 4.643-.64 6.163-1.898.93-.77 1.614-1.742 2.033-2.89l1.98.676c-.56 1.54-1.46 2.82-2.674 3.803C18.14 23.02 15.478 23.978 12.186 24z"/><path d="M12.167 17.053c-3.091 0-5.15-2.514-5.15-5.053 0-2.54 2.059-5.054 5.15-5.054 3.092 0 5.15 2.514 5.15 5.054 0 2.539-2.058 5.053-5.15 5.053zm0-8.14c-1.843 0-3.183 1.394-3.183 3.087 0 1.693 1.34 3.087 3.183 3.087 1.844 0 3.184-1.394 3.184-3.087 0-1.693-1.34-3.087-3.184-3.087z"/></svg>}
+                                  </span>
+                                ))}
+                                <span style={{ color: "var(--text-muted)", fontSize: 11 }}>·</span>
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--success-bg)", color: "var(--success)" }}>{post.status}</span>
+                              </div>
+                              {/* Caption row */}
+                              <div className="relative">
+                                {editingCaptionId === post.id ? (
+                                  <div onClick={e => e.stopPropagation()}>
+                                    <textarea
+                                      autoFocus
+                                      rows={4}
+                                      value={editingCaptionText}
+                                      onChange={e => setEditingCaptionText(e.target.value)}
+                                      onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveCaption(post.id); } if (e.key === "Escape") cancelCaption(); }}
+                                      onBlur={() => saveCaption(post.id)}
+                                      onClick={e => e.stopPropagation()}
+                                      style={{ width: "100%", backgroundColor: "var(--bg)", border: "1px solid var(--primary)", borderRadius: 8, padding: 8, fontSize: 13, color: "var(--text)", resize: "none", outline: "none", lineHeight: 1.5 }}
+                                    />
+                                    <div className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>Enter to save · Esc to cancel</div>
+                                  </div>
+                                ) : (
+                                  <div className="relative cursor-text" onClick={e => startEditCaption(post, e)}>
+                                    <p className="text-[13px] font-medium" style={{ color: "var(--text)", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>{post.caption}</p>
+                                    <span className="text-[10px] opacity-0 group-hover:opacity-60 transition-opacity mt-0.5 block" style={{ color: "var(--text-muted)" }}>✏️ Click to edit</span>
+                                  </div>
+                                )}
+                              </div>
+                              {/* Thread comment summary */}
+                              {post.comments.length > 0 && (
+                                <button onClick={e => { e.stopPropagation(); openPreview(post, "comments"); }} className="flex items-center gap-1 text-left" style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                                  <span style={{ fontSize: 11 }}>💬</span>
+                                  <span className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>{post.comments[0]}</span>
+                                </button>
+                              )}
+                            </div>
+                            {/* Col 5: Metadata */}
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              <button onClick={e => { e.stopPropagation(); openReschedule(post); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "right" }}>
+                                <div className="text-[14px] font-bold hover:underline" style={{ color: "var(--primary)" }}>{post.scheduledAt.replace(post.scheduledDate + ", ", "").replace("Today, ", "").replace("Tomorrow, ", "")}</div>
+                                <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>{post.scheduledDate}</div>
+                              </button>
+                              <div className="mt-1">
+                                {post.comments.length > 0 ? (
+                                  <button onClick={e => { e.stopPropagation(); openPreview(post, "comments"); }} className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md" style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                    {post.comments.length}
+                                  </button>
+                                ) : (
+                                  <button onClick={e => { e.stopPropagation(); openPreview(post, "comments"); }} className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md" style={{ color: "var(--text-muted)" }}>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>+
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                        /* ── Compact row (group-by-page) ── */
                         <div
                           className="grid items-center px-4 py-3 border-b transition-all cursor-pointer"
                           style={{
@@ -1230,6 +1397,7 @@ export default function QueuePage() {
                             )}
                           </div>
                         </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1240,7 +1408,107 @@ export default function QueuePage() {
         ) : (
           <>
             {displayPosts.map((post) => (
-                <div key={post.id}>
+                <div key={post.id} className="group">
+                  {viewMode === "visual" ? (
+                  /* ── Visual row (group-by-time) ── */
+                  <div
+                    className="grid border-b transition-all cursor-pointer"
+                    style={{
+                      minHeight: 130,
+                      gridTemplateColumns: "36px 120px 1fr 160px",
+                      padding: "12px 16px",
+                      borderBottom: "1px solid var(--border)",
+                      backgroundColor: selectedPosts.has(post.id) ? "var(--primary-muted)" : "var(--surface)",
+                      alignItems: "start",
+                    }}
+                    onClick={(e) => { if (editingCaptionId) { e.stopPropagation(); return; } openPreview(post, "preview"); }}
+                  >
+                    {/* Col 1: Checkbox */}
+                    <div className="flex items-start pt-1" onClick={e => e.stopPropagation()}>
+                      <input type="checkbox" checked={selectedPosts.has(post.id)} onChange={() => toggleSelect(post.id)} style={{ accentColor: "var(--primary)" }} />
+                    </div>
+                    {/* Col 2: Thumbnail */}
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <div className="relative flex items-center justify-center" style={{ width: 120, height: 90, borderRadius: 10, backgroundColor: "var(--surface-hover)", overflow: "hidden" }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--text-muted)" }}>
+                          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        {post.type === "reel" && (
+                          <div style={{ position: "absolute", bottom: 0, left: 0, backgroundColor: "rgba(0,0,0,0.6)", borderRadius: "0 6px 0 10px", padding: "2px 6px", fontSize: 9, color: "white" }}>▶ REEL</div>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full text-center w-fit" style={{
+                        backgroundColor: post.type === "photo" ? "rgba(59,130,246,0.15)" : post.type === "reel" ? "rgba(236,72,153,0.15)" : "var(--surface-hover)",
+                        color: post.type === "photo" ? "#3B82F6" : post.type === "reel" ? "#EC4899" : "var(--text-muted)",
+                      }}>{post.type}</span>
+                    </div>
+                    {/* Col 3: Content */}
+                    <div className="flex flex-col gap-1.5 min-w-0 px-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0" style={{ backgroundColor: post.page.color }}>{post.page.avatar}</div>
+                        <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{post.page.name}</span>
+                        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>·</span>
+                        {post.platforms.map(p => (
+                          <span key={p}>
+                            {p === "fb" && <svg width="12" height="12" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>}
+                            {p === "ig" && <svg width="12" height="12" viewBox="0 0 24 24" fill="#E1306C"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>}
+                            {p === "th" && <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.181 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-5.602.04-8.196 3.2-8.257 8.358v.457c.504 5.07 3.278 7.957 8.254 7.957h.023c2.627-.02 4.643-.64 6.163-1.898.93-.77 1.614-1.742 2.033-2.89l1.98.676c-.56 1.54-1.46 2.82-2.674 3.803C18.14 23.02 15.478 23.978 12.186 24z"/><path d="M12.167 17.053c-3.091 0-5.15-2.514-5.15-5.053 0-2.54 2.059-5.054 5.15-5.054 3.092 0 5.15 2.514 5.15 5.054 0 2.539-2.058 5.053-5.15 5.053zm0-8.14c-1.843 0-3.183 1.394-3.183 3.087 0 1.693 1.34 3.087 3.183 3.087 1.844 0 3.184-1.394 3.184-3.087 0-1.693-1.34-3.087-3.184-3.087z"/></svg>}
+                          </span>
+                        ))}
+                        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>·</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--success-bg)", color: "var(--success)" }}>{post.status}</span>
+                      </div>
+                      <div className="relative">
+                        {editingCaptionId === post.id ? (
+                          <div onClick={e => e.stopPropagation()}>
+                            <textarea
+                              autoFocus
+                              rows={4}
+                              value={editingCaptionText}
+                              onChange={e => setEditingCaptionText(e.target.value)}
+                              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveCaption(post.id); } if (e.key === "Escape") cancelCaption(); }}
+                              onBlur={() => saveCaption(post.id)}
+                              onClick={e => e.stopPropagation()}
+                              style={{ width: "100%", backgroundColor: "var(--bg)", border: "1px solid var(--primary)", borderRadius: 8, padding: 8, fontSize: 13, color: "var(--text)", resize: "none", outline: "none", lineHeight: 1.5 }}
+                            />
+                            <div className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>Enter to save · Esc to cancel</div>
+                          </div>
+                        ) : (
+                          <div className="relative cursor-text" onClick={e => startEditCaption(post, e)}>
+                            <p className="text-[13px] font-medium" style={{ color: "var(--text)", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>{post.caption}</p>
+                            <span className="text-[10px] opacity-0 group-hover:opacity-60 transition-opacity mt-0.5 block" style={{ color: "var(--text-muted)" }}>✏️ Click to edit</span>
+                          </div>
+                        )}
+                      </div>
+                      {post.comments.length > 0 && (
+                        <button onClick={e => { e.stopPropagation(); openPreview(post, "comments"); }} className="flex items-center gap-1 text-left" style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                          <span style={{ fontSize: 11 }}>💬</span>
+                          <span className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>{post.comments[0]}</span>
+                        </button>
+                      )}
+                    </div>
+                    {/* Col 4: Metadata */}
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <button onClick={e => { e.stopPropagation(); openReschedule(post); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "right" }}>
+                        <div className="text-[14px] font-bold hover:underline" style={{ color: "var(--primary)" }}>{post.scheduledAt.replace(post.scheduledDate + ", ", "").replace("Today, ", "").replace("Tomorrow, ", "")}</div>
+                        <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>{post.scheduledDate}</div>
+                      </button>
+                      <div className="mt-1">
+                        {post.comments.length > 0 ? (
+                          <button onClick={e => { e.stopPropagation(); openPreview(post, "comments"); }} className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md" style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            {post.comments.length}
+                          </button>
+                        ) : (
+                          <button onClick={e => { e.stopPropagation(); openPreview(post, "comments"); }} className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md" style={{ color: "var(--text-muted)" }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>+
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  ) : (
+                  /* ── Compact row (group-by-time) ── */
                   <div
                     className="grid items-center px-4 py-3 border-b transition-all cursor-pointer"
                     style={{
@@ -1356,7 +1624,7 @@ export default function QueuePage() {
                       </svg>
                     </div>
                   </div>
-
+                  )}
                 </div>
             ))}
           </>
