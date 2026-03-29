@@ -35,6 +35,9 @@ const MOCK_QUEUE: QueuePost[] = [
   { id: "q103", thumbnail: "", caption: "This 3,000-year-old map was accurate to within 50 miles. Ancient cartography was extraordinary", page: HU, platforms: ["fb","ig"], scheduledAt: "Today, 12:30 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: ["The Babylonian World Map (700 BC) shows Babylon at the center...", "It correctly identifies the Euphrates, major cities, and surrounding oceans"] },
   { id: "q104", thumbnail: "", caption: "Why the Library of Alexandria wasn't destroyed in a single fire — the real collapse took 600 years", page: HU, platforms: ["fb","ig"], scheduledAt: "Today, 4:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q105", thumbnail: "", caption: "Genghis Khan's postal system connected 25% of the world's land. It worked faster than email", page: HU, platforms: ["fb"], scheduledAt: "Today, 7:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["The Yam system had relay stations every 25 miles across the Mongol Empire", "Riders could cover 200 miles per day — messages reached from China to Poland in weeks"] },
+  { id: "q105b", thumbnail: "", caption: "The real reason Julius Caesar was assassinated — it wasn't just about power", page: HU, platforms: ["fb","ig"], scheduledAt: "Today, 5:00 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [] },
+  { id: "q105c", thumbnail: "", caption: "How the Aztec Empire built one of the world's most sophisticated water systems in 1400 AD", page: HU, platforms: ["fb"], scheduledAt: "Today, 8:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
+  { id: "q105d", thumbnail: "", caption: "The Black Death accidentally created the middle class — the economics of the plague explained", page: HU, platforms: ["fb","ig","th"], scheduledAt: "Today, 9:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
 
   // Laugh Central
   { id: "q106", thumbnail: "", caption: "Monday morning energy hits different when you've had 3 coffees and no sleep", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 6:30 AM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [] },
@@ -64,19 +67,12 @@ const MOCK_QUEUE: QueuePost[] = [
   { id: "q124", thumbnail: "", caption: "The protein myth: you don't need 1g per pound of bodyweight. Here's what the research actually says", page: FF, platforms: ["fb","ig"], scheduledAt: "Today, 5:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q125", thumbnail: "", caption: "I tried waking up at 4:30am for 30 days. Here's exactly what happened (honest review)", page: FF, platforms: ["fb","ig"], scheduledAt: "Today, 8:30 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [] },
 
-  // Money Matters
-  { id: "q126", thumbnail: "", caption: "The one budgeting rule that actually works — and it's not the 50/30/20 split", page: MM, platforms: ["fb","ig"], scheduledAt: "Today, 8:30 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q127", thumbnail: "", caption: "The $5 coffee habit is NOT why you're broke. Here's what actually matters", page: MM, platforms: ["fb","ig"], scheduledAt: "Today, 11:30 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q128", thumbnail: "", caption: "Index funds beat 90% of actively managed funds over 20 years. Here's the data", page: MM, platforms: ["fb","ig"], scheduledAt: "Today, 2:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["S&P 500 20yr annualized return: 9.8%", "Average actively managed fund: 7.1% after fees", "That 2.7% gap = $340k difference on a $100k investment over 20 years"] },
-  { id: "q129", thumbnail: "", caption: "How to build a $10k/month income with nothing but a smartphone — realistic 12-month breakdown", page: MM, platforms: ["fb","ig"], scheduledAt: "Today, 5:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q130", thumbnail: "", caption: "The most expensive financial mistake people make in their 30s (nobody talks about this)", page: MM, platforms: ["fb","ig"], scheduledAt: "Today, 8:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
+  // Money Matters — token expired, NO posts on Mar 27 (shows red in heatmap)
+  // (intentionally empty for Mar 27 to demonstrate disconnected page state)
 
-  // Know Her Name
+  // Know Her Name — new small page, only 2 posts/day (shows yellow in heatmap)
   { id: "q131", thumbnail: "", caption: "Elizabeth Cady Stanton organized the first women's rights convention in 1848. Most people can't name her", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Today, 9:00 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["She organized Seneca Falls Convention at age 33", "Drafted the Declaration of Sentiments modeled on the Declaration of Independence", "Fought for suffrage for 50 years — died 18 years before women could vote"] },
-  { id: "q132", thumbnail: "", caption: "Marie Curie was told women couldn't be scientists. She won two Nobel Prizes anyway", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Today, 11:00 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q133", thumbnail: "", caption: "Rosalind Franklin discovered the structure of DNA. Watson and Crick took the credit and the Nobel Prize", page: KH, platforms: ["fb","ig"], scheduledAt: "Today, 1:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["Her Photo 51 X-ray image was shown to Watson without her permission", "Watson admitted this in his autobiography — she was never acknowledged", "She died in 1958, four years before Watson, Crick and Wilkins won the Nobel Prize"] },
-  { id: "q134", thumbnail: "", caption: "Hedy Lamarr was Hollywood's biggest star — and secretly invented the technology behind WiFi and Bluetooth", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Today, 4:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q135", thumbnail: "", caption: "Sojourner Truth never learned to read or write. Her speeches changed the course of American history", page: KH, platforms: ["fb","ig"], scheduledAt: "Today, 7:00 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [] },
+  { id: "q132", thumbnail: "", caption: "Marie Curie was told women couldn't be scientists. She won two Nobel Prizes anyway", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Today, 3:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
 
   // ─────────────── MAR 28 — TOMORROW (5 per page = 35 posts) ───────────────
   // History Uncovered
@@ -123,10 +119,7 @@ const MOCK_QUEUE: QueuePost[] = [
 
   // Know Her Name
   { id: "q231", thumbnail: "", caption: "Ada Lovelace wrote the first computer program in 1843 — for a machine that didn't exist yet", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Tomorrow, 9:00 AM", scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: ["Charles Babbage got the credit but Lovelace wrote the algorithm", "Her notes were more insightful than Babbage's own work on the Analytical Engine"] },
-  { id: "q232", thumbnail: "", caption: "Harriet Tubman made 13 missions and freed 70 people. She never lost a single passenger", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Tomorrow, 11:30 AM", scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q233", thumbnail: "", caption: "Katherine Johnson calculated the trajectories for Apollo 11 by hand. NASA double-checked her math — she was right", page: KH, platforms: ["fb","ig"], scheduledAt: "Tomorrow, 2:00 PM", scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q234", thumbnail: "", caption: "Wangari Maathai planted 47 million trees and won the Nobel Peace Prize. This is her story", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Tomorrow, 5:00 PM", scheduledDate: "Mar 28, 2026", type: "reel", status: "scheduled", comments: [] },
-  { id: "q235", thumbnail: "", caption: "Malala Yousafzai survived a Taliban assassination attempt at 15. She graduated from Oxford at 20", page: KH, platforms: ["fb","ig"], scheduledAt: "Tomorrow, 7:30 PM", scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: [] },
+  { id: "q232", thumbnail: "", caption: "Harriet Tubman made 13 missions and freed 70 people. She never lost a single passenger", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Tomorrow, 3:00 PM", scheduledDate: "Mar 28, 2026", type: "photo", status: "scheduled", comments: [] },
 
   // ─────────────── MAR 29 (5 per page = 35 posts) ───────────────
   // History Uncovered
@@ -173,10 +166,7 @@ const MOCK_QUEUE: QueuePost[] = [
 
   // Know Her Name
   { id: "q331", thumbnail: "", caption: "Simone de Beauvoir wrote 'The Second Sex' in 14 months. It changed feminism forever", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Mar 29, 9:00 AM", scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q332", thumbnail: "", caption: "Frida Kahlo painted 55 of her 143 works while lying flat in bed recovering from injuries", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Mar 29, 11:30 AM", scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q333", thumbnail: "", caption: "Maya Angelou had more than 50 jobs before writing 'I Know Why the Caged Bird Sings' at age 41", page: KH, platforms: ["fb","ig"], scheduledAt: "Mar 29, 2:00 PM", scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q334", thumbnail: "", caption: "Coco Chanel single-handedly ended the corset era and redefined what women wear. Here's how", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Mar 29, 4:30 PM", scheduledDate: "Mar 29, 2026", type: "reel", status: "scheduled", comments: [] },
-  { id: "q335", thumbnail: "", caption: "Ruth Bader Ginsburg applied to 40 law firms after graduating top of her class. All rejected her for being a woman", page: KH, platforms: ["fb","ig"], scheduledAt: "Mar 29, 7:00 PM", scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: [] },
+  { id: "q332", thumbnail: "", caption: "Frida Kahlo painted 55 of her 143 works while lying flat in bed recovering from injuries", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Mar 29, 3:00 PM", scheduledDate: "Mar 29, 2026", type: "photo", status: "scheduled", comments: [] },
 
   // ─────────────── MAR 30 (5 per page = 35 posts) ───────────────
   // History Uncovered
@@ -201,11 +191,7 @@ const MOCK_QUEUE: QueuePost[] = [
   { id: "q415", thumbnail: "", caption: "Dehydration at just 2% affects decision-making, memory and mood. Most people live at this level", page: DH, platforms: ["fb"], scheduledAt: "Mar 30, 8:30 PM", scheduledDate: "Mar 30, 2026", type: "photo", status: "scheduled", comments: [] },
 
   // TechByte
-  { id: "q416", thumbnail: "", caption: "The programming language you learn first matters less than you think — here's what actually matters", page: TB, platforms: ["fb","ig"], scheduledAt: "Mar 30, 7:30 AM", scheduledDate: "Mar 30, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q417", thumbnail: "", caption: "Every website you visit knows your location, device, browser, and browsing history. Here's how to stop it", page: TB, platforms: ["fb","ig","th"], scheduledAt: "Mar 30, 11:00 AM", scheduledDate: "Mar 30, 2026", type: "reel", status: "scheduled", comments: [] },
-  { id: "q418", thumbnail: "", caption: "Quantum computing explained for normal people — and why it's not the threat to encryption everyone thinks", page: TB, platforms: ["fb","ig"], scheduledAt: "Mar 30, 2:00 PM", scheduledDate: "Mar 30, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q419", thumbnail: "", caption: "The 10 keyboard shortcuts that will save you 45 minutes every single day", page: TB, platforms: ["fb","ig","th"], scheduledAt: "Mar 30, 5:00 PM", scheduledDate: "Mar 30, 2026", type: "reel", status: "scheduled", comments: [] },
-  { id: "q420", thumbnail: "", caption: "Why the best developers write less code, not more — the philosophy behind elegant software", page: TB, platforms: ["fb","ig"], scheduledAt: "Mar 30, 8:00 PM", scheduledDate: "Mar 30, 2026", type: "photo", status: "scheduled", comments: [] },
+  // TechByte — token expiring, no posts scheduled Mar 30 (shows red gap in heatmap)
 
   // Fitness Factory
   { id: "q421", thumbnail: "", caption: "Rest days are not optional — here's what your body actually does when you take one", page: FF, platforms: ["fb","ig"], scheduledAt: "Mar 30, 8:00 AM", scheduledDate: "Mar 30, 2026", type: "photo", status: "scheduled", comments: [] },
@@ -223,10 +209,7 @@ const MOCK_QUEUE: QueuePost[] = [
 
   // Know Her Name
   { id: "q431", thumbnail: "", caption: "Amelia Earhart was told flying was for men. She flew solo across the Atlantic anyway", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Mar 30, 9:00 AM", scheduledDate: "Mar 30, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q432", thumbnail: "", caption: "Toni Morrison was a single mother working as an editor when she wrote 'The Bluest Eye' at 5am every morning", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Mar 30, 11:30 AM", scheduledDate: "Mar 30, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q433", thumbnail: "", caption: "Angela Merkel led Germany for 16 years and is the longest-serving female head of government in history", page: KH, platforms: ["fb","ig"], scheduledAt: "Mar 30, 2:00 PM", scheduledDate: "Mar 30, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q434", thumbnail: "", caption: "Serena Williams won the Australian Open while 8 weeks pregnant and didn't know it", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Mar 30, 5:00 PM", scheduledDate: "Mar 30, 2026", type: "reel", status: "scheduled", comments: [] },
-  { id: "q435", thumbnail: "", caption: "Florence Nightingale invented data visualization. Her 'rose diagram' saved more lives than her nursing did", page: KH, platforms: ["fb","ig"], scheduledAt: "Mar 30, 7:30 PM", scheduledDate: "Mar 30, 2026", type: "photo", status: "scheduled", comments: [] },
+  { id: "q432", thumbnail: "", caption: "Toni Morrison was a single mother working as an editor when she wrote 'The Bluest Eye' at 5am every morning", page: KH, platforms: ["fb","ig","th"], scheduledAt: "Mar 30, 3:00 PM", scheduledDate: "Mar 30, 2026", type: "photo", status: "scheduled", comments: [] },
 ];
 
 const platformIcons: Record<string, { label: string; color: string }> = {
@@ -1042,14 +1025,14 @@ export default function QueuePage() {
                             <button
                               onClick={() => { setViewMode("list"); setActiveDate(date); const pid = page.avatar.toLowerCase() === "kh" ? "khn" : page.avatar.toLowerCase(); setSelectedPages(new Set([pid])); }}
                               style={{
-                                width: 110, height: 70, borderRadius: 10,
-                                backgroundColor: bg, border: "1px solid transparent",
+                                width: "100%", height: 70, borderRadius: 10,
+                                backgroundColor: bg, border: `1px solid ${n === 0 ? "rgba(239,68,68,0.25)" : "transparent"}`,
                                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                                 cursor: "pointer", transition: "filter 0.15s",
                               }}
-                              onMouseEnter={e => (e.currentTarget.style.filter = "brightness(1.3)")}
+                              onMouseEnter={e => (e.currentTarget.style.filter = "brightness(1.25)")}
                               onMouseLeave={e => (e.currentTarget.style.filter = "brightness(1)")}
-                              title={`${n} post${n !== 1 ? "s" : ""} · ${page.name} · ${dateShort(date)}`}
+                              title={`${n} post${n !== 1 ? "s" : ""} · ${page.name} · ${dateShort(date)} — click to view`}
                             >
                               <span style={{ fontSize: 22, fontWeight: 700, color: text, lineHeight: 1 }}>{n === 0 ? "–" : n}</span>
                               {n > 0 && <span style={{ fontSize: 10, color: text, opacity: 0.7, marginTop: 2 }}>posts</span>}
@@ -1069,7 +1052,7 @@ export default function QueuePage() {
                       return (
                         <td key={date} style={{ padding: "8px 3px 3px" }}>
                           <div style={{
-                            width: 110, height: 44, borderRadius: 10,
+                            width: "100%", height: 44, borderRadius: 10,
                             backgroundColor: "var(--bg)", border: "1px solid var(--border)",
                             display: "flex", alignItems: "center", justifyContent: "center",
                           }}>
