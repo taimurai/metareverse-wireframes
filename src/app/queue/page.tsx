@@ -1,9 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Header from "@/components/Header";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import PostPreviewModal from "@/components/modals/PostPreviewModal";
-import PageBatchSelector from "@/components/PageBatchSelector";
 import { useFakeLoading } from "@/hooks/useFakeLoading";
 import { SkeletonLine, SkeletonTable } from "@/components/Skeleton";
 
@@ -266,7 +265,10 @@ export default function QueuePage() {
   const isLoading = useFakeLoading();
   const [simulateEmpty, setSimulateEmpty] = useState(false);
   const [filter, setFilter] = useState<"all" | "scheduled">("all");
-  const [selectedPage, setSelectedPage] = useState("all");
+  const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set());
+  const [showPageDropdown, setShowPageDropdown] = useState(false);
+  const [pageSearch, setPageSearch] = useState("");
+  const pageDropdownRef = useRef<HTMLDivElement>(null);
   const [activeDate, setActiveDate] = useState<string>("");
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [dragId, setDragId] = useState<string | null>(null);
@@ -276,6 +278,10 @@ export default function QueuePage() {
   const [previewPost, setPreviewPost] = useState<QueuePost | null>(null);
   const [previewTab, setPreviewTab] = useState<"preview" | "comments" | "settings">("preview");
   const [bulkAction, setBulkAction] = useState<string | null>(null);
+  const [showBulkThreadModal, setShowBulkThreadModal] = useState(false);
+  const [bulkThreadText, setBulkThreadText] = useState("");
+  const [bulkThreadOverwrite, setBulkThreadOverwrite] = useState(false);
+  const [threadSuccessToast, setThreadSuccessToast] = useState<string | null>(null);
 
   // Feature 1: Density view
   const [viewMode, setViewMode] = useState<"list" | "density">("list");
@@ -311,6 +317,18 @@ export default function QueuePage() {
   const [filterPlatform, setFilterPlatform] = useState<"all" | "fb" | "ig" | "th">("all");
   const [filterThread, setFilterThread] = useState<"all" | "has" | "missing">("all");
   const hasAdvancedFilters = filterType !== "all" || filterPlatform !== "all" || filterThread !== "all";
+
+  // Feature 4: Group By
+  const [groupBy, setGroupBy] = useState<"time" | "page">("time");
+  const [showGroupByDropdown, setShowGroupByDropdown] = useState(false);
+  const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set());
+  const togglePageAccordion = (pageName: string) => {
+    setExpandedPages(prev => {
+      const next = new Set(prev);
+      next.has(pageName) ? next.delete(pageName) : next.add(pageName);
+      return next;
+    });
+  };
 
   const openPreview = (post: QueuePost, tab: "preview" | "comments" | "settings" = "preview") => {
     setPreviewPost(post);
@@ -363,27 +381,34 @@ export default function QueuePage() {
     setDragId(null); setDragOverId(null);
   };
 
-  const pages = [
-    { id: "all", name: "All Pages" },
-    { id: "hu", name: "History Uncovered" },
-    { id: "lc", name: "Laugh Central" },
-    { id: "tb", name: "TechByte" },
-    { id: "ff", name: "Fitness Factory" },
-    { id: "dh", name: "Daily Health Tips" },
-    { id: "mm", name: "Money Matters" },
-    { id: "khn", name: "Know Her Name" },
+  const PAGE_DEFS = [
+    { id: "lc", name: "Laugh Central", avatar: "LC", color: "#8B5CF6", followers: "3.2M" },
+    { id: "hu", name: "History Uncovered", avatar: "HU", color: "#FF6B2B", followers: "2.4M" },
+    { id: "tb", name: "TechByte", avatar: "TB", color: "#14B8A6", followers: "1.1M" },
+    { id: "dh", name: "Daily Health Tips", avatar: "DH", color: "#6366F1", followers: "420K" },
+    { id: "ff", name: "Fitness Factory", avatar: "FF", color: "#EC4899", followers: "310K" },
+    { id: "mm", name: "Money Matters", avatar: "MM", color: "#F59E0B", followers: "680K" },
+    { id: "khn", name: "Know Her Name", avatar: "KH", color: "#0EA5E9", followers: "136" },
   ];
+  const BATCH_DEFS = [
+    { id: "b1", name: "Partner A \u2013 Lifestyle", pages: ["lc","ff","dh"] },
+    { id: "b2", name: "Partner B \u2013 Education", pages: ["hu","tb","mm"] },
+    { id: "b3", name: "Partner C \u2013 Women\u2019s", pages: ["khn"] },
+  ];
+  const PAGE_NAMES: Record<string,string> = { lc:"Laugh Central", hu:"History Uncovered", tb:"TechByte", dh:"Daily Health Tips", ff:"Fitness Factory", mm:"Money Matters", khn:"Know Her Name" };
 
-  const pageIdToName: Record<string, string> = { hu: "History Uncovered", lc: "Laugh Central", tb: "TechByte", ff: "Fitness Factory", dh: "Daily Health Tips", mm: "Money Matters", khn: "Know Her Name" };
-  const batchPages: Record<string, string[]> = { b1: ["lc", "ff", "dh"], b2: ["hu", "tb", "mm"], b3: ["khn"] };
+  const filterNames = selectedPages.size === 0 ? null : [...selectedPages].map(id => PAGE_NAMES[id]).filter(Boolean);
 
-  const getFilteredNames = (): string[] | null => {
-    if (selectedPage === "all") return null;
-    if (batchPages[selectedPage]) return batchPages[selectedPage].map(id => pageIdToName[id]);
-    return [pageIdToName[selectedPage]].filter(Boolean);
-  };
-
-  const filterNames = getFilteredNames();
+  // Click-outside handler for page dropdown
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (pageDropdownRef.current && !pageDropdownRef.current.contains(e.target as Node)) {
+        setShowPageDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   // Parse "Today, 2:30 PM" / "Tomorrow, 9:00 AM" / "Mar 29, 10:00 AM" into sortable number
   const parseTime = (post: QueuePost): number => {
@@ -438,7 +463,7 @@ export default function QueuePage() {
       setActiveDate(availableDates[0]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayFiltered.length, filter, selectedPage, simulateEmpty]);
+  }, [displayFiltered.length, filter, selectedPages.size, simulateEmpty]);
 
   const displayPosts = displayFiltered.filter(p => p.scheduledDate === activeDate);
 
@@ -595,14 +620,160 @@ export default function QueuePage() {
                 <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
               )}
             </button>
+
+            {/* Group By dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowGroupByDropdown(v => !v)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-medium border transition-all"
+                style={{
+                  backgroundColor: groupBy !== "time" ? "var(--primary-muted)" : "var(--surface)",
+                  color: groupBy !== "time" ? "var(--primary)" : "var(--text-secondary)",
+                  borderColor: groupBy !== "time" ? "var(--primary)" : "var(--border)",
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+                Group: {groupBy === "time" ? "Time" : "Page"}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              {showGroupByDropdown && (
+                <div
+                  className="absolute left-0 top-full mt-1 z-50 rounded-xl shadow-2xl overflow-hidden"
+                  style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", minWidth: 200 }}
+                >
+                  {([
+                    { value: "time", label: "Time", desc: "Chronological — what's publishing next", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+                    { value: "page", label: "Page", desc: "Grouped by page — collapsible", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setGroupBy(opt.value); setShowGroupByDropdown(false); setExpandedPages(new Set()); }}
+                      className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:opacity-80"
+                      style={{
+                        backgroundColor: groupBy === opt.value ? "var(--primary-muted)" : "transparent",
+                        borderBottom: opt.value === "time" ? "1px solid var(--border)" : "none",
+                      }}
+                    >
+                      <span style={{ color: groupBy === opt.value ? "var(--primary)" : "var(--text-muted)", marginTop: 2 }}>{opt.icon}</span>
+                      <div>
+                        <div className="text-[12px] font-semibold" style={{ color: groupBy === opt.value ? "var(--primary)" : "var(--text)" }}>{opt.label}</div>
+                        <div className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>{opt.desc}</div>
+                      </div>
+                      {groupBy === opt.value && (
+                        <svg className="ml-auto mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Page filter */}
-            <PageBatchSelector
-              selected={selectedPage}
-              onChange={(id) => setSelectedPage(id)}
-            />
+            {/* Multi-select page filter */}
+            <div className="relative" ref={pageDropdownRef}>
+              <button
+                onClick={() => setShowPageDropdown(v => !v)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[13px] font-medium"
+                style={{ backgroundColor: "var(--surface)", borderColor: showPageDropdown ? "var(--primary)" : "var(--border)", color: "var(--text)", minWidth: 180 }}
+              >
+                <span className="flex-1 text-left">
+                  {selectedPages.size === 0 ? "✦ All Pages" : selectedPages.size === 1 ? PAGE_NAMES[[...selectedPages][0]] : `${selectedPages.size} pages selected`}
+                </span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)", transform: showPageDropdown ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }}><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              {showPageDropdown && (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, width: 280, backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 30px rgba(0,0,0,0.3)", zIndex: 50 }}>
+                  {/* Search */}
+                  <div className="p-3 pb-2">
+                    <input
+                      type="text"
+                      value={pageSearch}
+                      onChange={e => setPageSearch(e.target.value)}
+                      placeholder="Search pages..."
+                      className="w-full px-3 py-2 rounded-lg text-[12px] outline-none"
+                      style={{ backgroundColor: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}
+                    />
+                  </div>
+                  {/* Quick select */}
+                  <div className="px-3 pb-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>Quick select</div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setSelectedPages(new Set())}
+                        className="px-3 py-1 rounded-lg text-[11px] font-medium"
+                        style={{ backgroundColor: selectedPages.size === 0 ? "var(--primary)" : "var(--surface-hover)", color: selectedPages.size === 0 ? "white" : "var(--text)" }}
+                      >All</button>
+                      <button
+                        onClick={() => setSelectedPages(new Set(PAGE_DEFS.map(p => p.id)))}
+                        className="px-3 py-1 rounded-lg text-[11px] font-medium"
+                        style={{ backgroundColor: "var(--surface-hover)", color: "var(--text)" }}
+                      >None</button>
+                    </div>
+                  </div>
+                  <div style={{ height: 1, backgroundColor: "var(--border)", margin: "4px 0" }} />
+                  {/* Batches */}
+                  {!pageSearch && (
+                    <>
+                      <div className="px-3 pt-2 pb-1">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>Batches</div>
+                        {BATCH_DEFS.map(batch => {
+                          const allIn = batch.pages.every(id => selectedPages.has(id));
+                          return (
+                            <button
+                              key={batch.id}
+                              onClick={() => {
+                                const next = new Set(selectedPages);
+                                if (allIn) { batch.pages.forEach(id => next.delete(id)); }
+                                else { batch.pages.forEach(id => next.add(id)); }
+                                setSelectedPages(next);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left"
+                              style={{ backgroundColor: allIn ? "var(--primary-muted)" : "transparent" }}
+                              onMouseEnter={e => { if (!allIn) e.currentTarget.style.backgroundColor = "var(--surface-hover)"; }}
+                              onMouseLeave={e => { if (!allIn) e.currentTarget.style.backgroundColor = "transparent"; }}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={allIn ? "var(--primary)" : "var(--text-muted)"} strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                              <span className="text-[12px] flex-1 truncate" style={{ color: allIn ? "var(--primary)" : "var(--text)" }}>{batch.name}</span>
+                              <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{batch.pages.length}p</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div style={{ height: 1, backgroundColor: "var(--border)", margin: "4px 0" }} />
+                    </>
+                  )}
+                  {/* Pages */}
+                  <div className="px-3 pt-1 pb-3">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>Pages</div>
+                    <div className="max-h-[220px] overflow-y-auto">
+                      {PAGE_DEFS.filter(p => p.name.toLowerCase().includes(pageSearch.toLowerCase())).map(page => {
+                        const checked = selectedPages.has(page.id);
+                        return (
+                          <button
+                            key={page.id}
+                            onClick={() => {
+                              const next = new Set(selectedPages);
+                              checked ? next.delete(page.id) : next.add(page.id);
+                              setSelectedPages(next);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left"
+                            style={{ backgroundColor: checked ? "var(--primary-muted)" : "transparent" }}
+                            onMouseEnter={e => { if (!checked) e.currentTarget.style.backgroundColor = "var(--surface-hover)"; }}
+                            onMouseLeave={e => { if (!checked) e.currentTarget.style.backgroundColor = "transparent"; }}
+                          >
+                            <input type="checkbox" checked={checked} readOnly style={{ accentColor: "var(--primary)", flexShrink: 0 }} />
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] font-bold flex-shrink-0" style={{ backgroundColor: page.color }}>{page.avatar}</div>
+                            <span className="text-[12px] flex-1 truncate" style={{ color: checked ? "var(--primary)" : "var(--text)" }}>{page.name}</span>
+                            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{page.followers}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -801,7 +972,7 @@ export default function QueuePage() {
                         return (
                           <td key={date} style={{ padding: 3 }}>
                             <button
-                              onClick={() => { setViewMode("list"); setActiveDate(date); setSelectedPage(page.avatar.toLowerCase() === "kh" ? "khn" : page.avatar.toLowerCase()); }}
+                              onClick={() => { setViewMode("list"); setActiveDate(date); const pid = page.avatar.toLowerCase() === "kh" ? "khn" : page.avatar.toLowerCase(); setSelectedPages(new Set([pid])); }}
                               style={{
                                 width: 110, height: 70, borderRadius: 10,
                                 backgroundColor: bg, border: "1px solid transparent",
@@ -895,6 +1066,131 @@ export default function QueuePage() {
               Add Posts
             </button>
           </div>
+        ) : groupBy === "page" ? (
+          // ── GROUP BY PAGE: collapsible accordions ──
+          <>
+            {(() => {
+              // Group displayPosts by page name
+              const pageGroups: Record<string, QueuePost[]> = {};
+              displayPosts.forEach(p => {
+                if (!pageGroups[p.page.name]) pageGroups[p.page.name] = [];
+                pageGroups[p.page.name].push(p);
+              });
+              return Object.entries(pageGroups).map(([pageName, posts]) => {
+                const isExpanded = expandedPages.has(pageName);
+                const pageInfo = posts[0].page;
+                return (
+                  <div key={pageName}>
+                    {/* Accordion header */}
+                    <button
+                      className="w-full flex items-center gap-3 px-4 py-3 border-b transition-all"
+                      style={{
+                        backgroundColor: isExpanded ? "rgba(255,107,43,0.06)" : "var(--bg)",
+                        borderColor: "var(--border)",
+                        borderLeft: isExpanded ? "3px solid var(--primary)" : "3px solid transparent",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => togglePageAccordion(pageName)}
+                    >
+                      {/* Chevron */}
+                      <svg
+                        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                        style={{ color: "var(--text-muted)", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.15s ease", flexShrink: 0 }}
+                      >
+                        <polyline points="9 18 15 12 9 6"/>
+                      </svg>
+                      {/* Page avatar */}
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ backgroundColor: pageInfo.color }}>
+                        {pageInfo.avatar}
+                      </div>
+                      {/* Page name */}
+                      <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{pageName}</span>
+                      {/* Post count badge */}
+                      <span className="ml-2 text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: isExpanded ? "var(--primary-muted)" : "var(--surface-hover)", color: isExpanded ? "var(--primary)" : "var(--text-muted)" }}>
+                        {posts.length} post{posts.length !== 1 ? "s" : ""}
+                      </span>
+                      {/* Earliest time */}
+                      <span className="ml-auto text-[11px]" style={{ color: "var(--text-muted)" }}>
+                        First: {posts[0].scheduledAt.replace("Today, ", "").replace("Tomorrow, ", "")}
+                      </span>
+                      {/* Thread missing indicator */}
+                      {posts.some(p => p.comments.length === 0) && (
+                        <span className="ml-3 text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(251,191,36,0.15)", color: "#FBBF24" }}>
+                          {posts.filter(p => p.comments.length === 0).length} missing threads
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Accordion body — posts list */}
+                    {isExpanded && posts.map((post) => (
+                      <div key={post.id}>
+                        <div
+                          className="grid items-center px-4 py-3 border-b transition-all cursor-pointer"
+                          style={{
+                            backgroundColor: selectedPosts.has(post.id) ? "var(--primary-muted)" : dragOverId === post.id ? "rgba(255,107,43,0.08)" : dragId === post.id ? "var(--surface-hover)" : "var(--surface)",
+                            borderColor: "var(--border)",
+                            borderLeft: dragOverId === post.id ? "2px solid var(--primary)" : "2px solid transparent",
+                            opacity: dragId === post.id ? 0.5 : 1,
+                            gridTemplateColumns: "36px 3fr 60px 90px 140px 60px 32px",
+                            paddingLeft: 48,
+                          }}
+                          onDragOver={(e) => { e.preventDefault(); setDragOverId(post.id); }}
+                          onDragLeave={() => setDragOverId(null)}
+                          onDrop={() => handleDrop(post.id)}
+                          onClick={() => openPreview(post, "preview")}
+                        >
+                          <div onClick={e => e.stopPropagation()}>
+                            <input type="checkbox" checked={selectedPosts.has(post.id)} onChange={() => toggleSelect(post.id)} style={{ accentColor: "var(--primary)" }} />
+                          </div>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-[16px] shrink-0">{post.type === "photo" ? "📷" : post.type === "reel" ? "🎬" : "📝"}</span>
+                            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--surface-hover)" }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--text-muted)" }}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            </div>
+                            <p className="text-[12px] font-medium truncate" style={{ color: "var(--text)" }}>{post.caption}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {post.platforms.map(p => (
+                              <span key={p} title={p.toUpperCase()}>
+                                {p === "fb" && <svg width="16" height="16" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>}
+                                {p === "ig" && <svg width="16" height="16" viewBox="0 0 24 24" fill="#E1306C"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>}
+                                {p === "th" && <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.181 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-5.602.04-8.196 3.2-8.257 8.358v.457c.504 5.07 3.278 7.957 8.254 7.957h.023c2.627-.02 4.643-.64 6.163-1.898.93-.77 1.614-1.742 2.033-2.89l1.98.676c-.56 1.54-1.46 2.82-2.674 3.803C18.14 23.02 15.478 23.978 12.186 24z"/><path d="M12.167 17.053c-3.091 0-5.15-2.514-5.15-5.053 0-2.54 2.059-5.054 5.15-5.054 3.092 0 5.15 2.514 5.15 5.054 0 2.539-2.058 5.053-5.15 5.053zm0-8.14c-1.843 0-3.183 1.394-3.183 3.087 0 1.693 1.34 3.087 3.183 3.087 1.844 0 3.184-1.394 3.184-3.087 0-1.693-1.34-3.087-3.184-3.087z"/></svg>}
+                              </span>
+                            ))}
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-semibold px-2 py-1 rounded-full flex items-center gap-1 w-fit" style={{ backgroundColor: "var(--success-bg)", color: "var(--success)" }}>
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--success)" }} />scheduled
+                            </span>
+                          </div>
+                          <div>
+                            <button onClick={e => { e.stopPropagation(); openReschedule(post); }} className="text-[12px] font-medium hover:underline" style={{ color: "var(--text-secondary)", cursor: "pointer", background: "none", border: "none" }} title="Click to reschedule">
+                              {post.scheduledAt}
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {post.comments.length > 0 ? (
+                              <button onClick={e => { e.stopPropagation(); openPreview(post, "comments"); }} className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md" style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                {post.comments.length}
+                              </button>
+                            ) : (
+                              <button onClick={e => { e.stopPropagation(); openPreview(post, "comments"); }} className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md" style={{ color: "var(--text-muted)" }}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>+
+                              </button>
+                            )}
+                          </div>
+                          <div draggable className="cursor-grab active:cursor-grabbing flex items-center justify-center" onClick={e => e.stopPropagation()} onDragStart={e => { e.stopPropagation(); setDragId(post.id); }} onDragEnd={() => { setDragId(null); setDragOverId(null); }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              });
+            })()}
+          </>
         ) : (
           <>
             {displayPosts.map((post) => (
@@ -1224,6 +1520,16 @@ export default function QueuePage() {
                 Reschedule
               </button>
 
+              {/* Add Thread */}
+              <button
+                onClick={() => { setBulkThreadText(""); setBulkThreadOverwrite(false); setShowBulkThreadModal(true); }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                style={{ backgroundColor: "var(--surface-hover)", color: "var(--text)" }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Add Thread
+              </button>
+
               {/* Move to Drafts */}
               <button
                 onClick={() => setBulkAction("draft")}
@@ -1278,6 +1584,84 @@ export default function QueuePage() {
           </div>
         </div>
       </div>
+
+      {/* ── Bulk Add Thread Modal ── */}
+      {showBulkThreadModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}
+          onClick={() => setShowBulkThreadModal(false)}>
+          <div style={{ width: 480, backgroundColor: "var(--surface)", borderRadius: 16, padding: 24, border: "1px solid var(--border)", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}
+            onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[15px] font-bold" style={{ color: "var(--text)" }}>Bulk Add Thread Comment</span>
+              <button onClick={() => setShowBulkThreadModal(false)} style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            {/* Info bar */}
+            <div className="flex items-center gap-2 mb-4 px-4 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(255,107,43,0.08)", borderRadius: 10 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span className="text-[12px] font-medium" style={{ color: "var(--primary)" }}>Applying to {selectedPosts.size} selected post{selectedPosts.size !== 1 ? "s" : ""}</span>
+            </div>
+            {/* Textarea */}
+            <div className="mb-4">
+              <label className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: "var(--text-muted)" }}>Thread Comment</label>
+              <textarea
+                value={bulkThreadText}
+                onChange={e => setBulkThreadText(e.target.value)}
+                placeholder="Type your thread comment here..."
+                rows={4}
+                className="w-full px-3 py-2.5 rounded-xl text-[13px] resize-none outline-none"
+                style={{ backgroundColor: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}
+              />
+              <p className="mt-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>This comment will be added as the first reply on each selected post when it publishes.</p>
+            </div>
+            {/* Overwrite checkbox */}
+            <label className="flex items-start gap-2 mb-5 cursor-pointer">
+              <input type="checkbox" checked={bulkThreadOverwrite} onChange={e => setBulkThreadOverwrite(e.target.checked)} style={{ accentColor: "var(--primary)", marginTop: 2 }} />
+              <div>
+                <span className="text-[12px] font-medium block" style={{ color: "var(--text)" }}>Apply to posts that already have threads</span>
+                <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>This will add as an additional comment to posts that already have thread replies</span>
+              </div>
+            </label>
+            {/* Footer */}
+            <div className="flex items-center gap-3">
+              <button onClick={() => setShowBulkThreadModal(false)} className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)" }}>Cancel</button>
+              <button
+                onClick={() => {
+                  if (!bulkThreadText.trim()) return;
+                  const n = selectedPosts.size;
+                  setQueue(prev => prev.map(p => {
+                    if (!selectedPosts.has(p.id)) return p;
+                    if (!bulkThreadOverwrite && p.comments.length > 0) return { ...p, comments: [...p.comments, bulkThreadText.trim()] };
+                    return { ...p, comments: [...p.comments, bulkThreadText.trim()] };
+                  }));
+                  const msg = `Thread comment added to ${n} post${n !== 1 ? "s" : ""}`;
+                  setThreadSuccessToast(msg);
+                  setTimeout(() => setThreadSuccessToast(null), 2500);
+                  setShowBulkThreadModal(false);
+                  setSelectedPosts(new Set());
+                }}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2"
+                style={{ backgroundColor: bulkThreadText.trim() ? "var(--primary)" : "var(--border)", cursor: bulkThreadText.trim() ? "pointer" : "not-allowed" }}
+              >
+                Apply to {selectedPosts.size} post{selectedPosts.size !== 1 ? "s" : ""} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Thread success toast */}
+      {threadSuccessToast && (
+        <div className="fixed top-6 right-8 z-50">
+          <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border"
+            style={{ backgroundColor: "var(--surface)", borderColor: "var(--success)", boxShadow: "0 8px 30px rgba(74,222,128,0.15)" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span className="text-sm font-medium" style={{ color: "var(--text)" }}>{threadSuccessToast}</span>
+          </div>
+        </div>
+      )}
 
       {/* ── Action feedback toast ── */}
       {bulkAction && bulkAction !== "delete" && (
