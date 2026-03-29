@@ -318,6 +318,40 @@ export default function QueuePage() {
   const [filterThread, setFilterThread] = useState<"all" | "has" | "missing">("all");
   const hasAdvancedFilters = filterType !== "all" || filterPlatform !== "all" || filterThread !== "all";
 
+  // Undo delete
+  const [undoToast, setUndoToast] = useState<{ deletedPosts: QueuePost[]; count: number; timer: ReturnType<typeof setTimeout> | null } | null>(null);
+  const [undoCountdown, setUndoCountdown] = useState(5);
+
+  const handleBulkDelete = () => {
+    const deletedPosts = queue.filter(p => selectedPosts.has(p.id));
+    const count = deletedPosts.length;
+    // Optimistically remove from queue
+    setQueue(prev => prev.filter(p => !selectedPosts.has(p.id)));
+    setSelectedPosts(new Set());
+    setBulkAction(null);
+    // Start countdown
+    setUndoCountdown(5);
+    let seconds = 5;
+    const interval = setInterval(() => {
+      seconds -= 1;
+      setUndoCountdown(seconds);
+      if (seconds <= 0) clearInterval(interval);
+    }, 1000);
+    const timer = setTimeout(() => {
+      clearInterval(interval);
+      setUndoToast(null);
+    }, 5500);
+    setUndoToast({ deletedPosts, count, timer });
+  };
+
+  const handleUndo = () => {
+    if (!undoToast) return;
+    if (undoToast.timer) clearTimeout(undoToast.timer);
+    // Restore deleted posts back into queue
+    setQueue(prev => [...prev, ...undoToast.deletedPosts]);
+    setUndoToast(null);
+  };
+
   // Feature 4: Group By
   const [groupBy, setGroupBy] = useState<"time" | "page">("time");
   const [showGroupByDropdown, setShowGroupByDropdown] = useState(false);
@@ -1558,15 +1592,15 @@ export default function QueuePage() {
               {/* Divider */}
               <div className="w-px h-6 mx-1" style={{ backgroundColor: "var(--border)" }} />
 
-              {/* Delete — destructive */}
+              {/* Delete — optimistic with undo toast */}
               {bulkAction === "delete" ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Delete {selectedPosts.size} posts?</span>
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>This cannot be undone immediately —</span>
                   <button
-                    onClick={() => { setSelectedPosts(new Set()); setBulkAction(null); }}
+                    onClick={handleBulkDelete}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-500"
                   >
-                    Confirm Delete
+                    Delete {selectedPosts.size} posts
                   </button>
                   <button
                     onClick={() => setBulkAction(null)}
@@ -1682,6 +1716,67 @@ export default function QueuePage() {
             <button onClick={() => { setBulkAction(null); setSelectedPosts(new Set()); }} style={{ color: "var(--text-muted)" }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Undo Delete Toast ── */}
+      {undoToast && (
+        <div className="fixed bottom-8 left-1/2 z-50" style={{ transform: "translateX(-50%)" }}>
+          <div
+            className="flex items-center gap-4 px-5 py-3.5 rounded-2xl shadow-2xl border"
+            style={{
+              backgroundColor: "var(--surface)",
+              borderColor: "var(--border)",
+              boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
+              minWidth: 360,
+            }}
+          >
+            {/* Icon */}
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(239,68,68,0.12)" }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+            </div>
+
+            {/* Message */}
+            <div className="flex-1">
+              <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
+                {undoToast.count} post{undoToast.count !== 1 ? "s" : ""} deleted
+              </span>
+              <span className="text-[12px] ml-2" style={{ color: "var(--text-muted)" }}>
+                · undoable for {undoCountdown}s
+              </span>
+            </div>
+
+            {/* Countdown ring + Undo button */}
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Visual countdown bar */}
+              <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--surface-hover)" }}>
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${(undoCountdown / 5) * 100}%`,
+                    backgroundColor: undoCountdown <= 2 ? "#EF4444" : "#FF6B2B",
+                    transition: "width 1s linear",
+                  }}
+                />
+              </div>
+              <button
+                onClick={handleUndo}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold transition-all"
+                style={{
+                  backgroundColor: "var(--primary)",
+                  color: "white",
+                  boxShadow: "0 4px 14px var(--primary-glow)",
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 7v6h6"/><path d="M3 13C5.5 7 12 5 17 8s6 10 3 15"/>
+                </svg>
+                Undo
+              </button>
+            </div>
           </div>
         </div>
       )}
