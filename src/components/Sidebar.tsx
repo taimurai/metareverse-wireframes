@@ -31,6 +31,7 @@ const navItems = [
         { label: "Overview", href: "/reports" },
         { label: "Results", href: "/reports/results" },
         { label: "Earnings", href: "/reports/earnings" },
+        { label: "Batches", href: "/reports/batches" },
       ]},
     ],
   },

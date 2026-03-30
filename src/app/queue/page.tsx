@@ -39,6 +39,10 @@ const MOCK_QUEUE: QueuePost[] = [
   { id: "q105c", thumbnail: "", caption: "How the Aztec Empire built one of the world's most sophisticated water systems in 1400 AD", page: HU, platforms: ["fb"], scheduledAt: "Today, 8:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q105d", thumbnail: "", caption: "The Black Death accidentally created the middle class — the economics of the plague explained", page: HU, platforms: ["fb","ig","th"], scheduledAt: "Today, 9:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
 
+  // ── CONFLICT: Two LC posts at same time ──
+  { id: "q_conflict1", thumbnail: "", caption: "POV: You stay up until 2am watching 'just one more episode'", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 3:30 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [] },
+  { id: "q_conflict2", thumbnail: "", caption: "The face you make when someone says 'can I ask you something' and then takes 10 minutes to ask it", page: LC, platforms: ["fb","ig"], scheduledAt: "Today, 3:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
+
   // Laugh Central
   { id: "q106", thumbnail: "", caption: "Monday morning energy hits different when you've had 3 coffees and no sleep", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 6:30 AM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [] },
   { id: "q107", thumbnail: "", caption: "When your code works on the first try and you genuinely don't trust it", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 9:30 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
@@ -247,6 +251,7 @@ export default function QueuePage() {
   const isMobile = useIsMobile();
   const isLoading = useFakeLoading();
   const [simulateEmpty, setSimulateEmpty] = useState(false);
+  const [reslotted, setReslotted] = useState(false);
   const [filter, setFilter] = useState<"all" | "scheduled">("all");
   const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set());
   const [showPageDropdown, setShowPageDropdown] = useState(false);
@@ -503,6 +508,19 @@ export default function QueuePage() {
   }, [displayFiltered.length, filter, selectedPages.size, simulateEmpty]);
 
   const displayPosts = displayFiltered.filter(p => p.scheduledDate === activeDate);
+
+  // Detect slot conflicts: same page + same scheduledAt on the same date
+  const conflictKeys = new Set<string>();
+  const slotMap: Record<string, string[]> = {};
+  displayPosts.forEach(p => {
+    const key = `${p.page.name}::${p.scheduledAt}`;
+    if (!slotMap[key]) slotMap[key] = [];
+    slotMap[key].push(p.id);
+  });
+  Object.values(slotMap).forEach(ids => {
+    if (ids.length > 1) ids.forEach(id => conflictKeys.add(id));
+  });
+  const conflictCount = Object.values(slotMap).filter(ids => ids.length > 1).length;
 
   const activeDateIdx = availableDates.indexOf(activeDate);
 
@@ -1100,6 +1118,53 @@ export default function QueuePage() {
       </div>
       )}
 
+      {/* Conflict warning banner */}
+        {conflictCount > 0 && !reslotted && (
+          <div className="rounded-xl mb-3 overflow-hidden" style={{ border: "1px solid rgba(251,191,36,0.3)" }}>
+            {/* Main banner row */}
+            <div className="flex items-center justify-between px-4 py-3"
+              style={{ backgroundColor: "rgba(251,191,36,0.07)" }}>
+              <div className="flex items-center gap-2.5">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <div>
+                  <span className="text-[13px] font-semibold" style={{ color: "#FBBF24" }}>
+                    {conflictCount} manually scheduled post{conflictCount !== 1 ? "s" : ""} conflict{conflictCount === 1 ? "s" : ""} with existing slots
+                  </span>
+                  <p className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                    This only happens when posts are scheduled manually. Auto-Schedule never creates conflicts.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setReslotted(true); }}
+                className="flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg flex-shrink-0 ml-4"
+                style={{ backgroundColor: "#22c55e", color: "white", boxShadow: "0 2px 8px rgba(34,197,94,0.3)" }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Re-slot Automatically
+              </button>
+            </div>
+            {/* Tip row */}
+            <div className="flex items-center gap-2 px-4 py-2 border-t" style={{ borderColor: "rgba(251,191,36,0.2)", backgroundColor: "rgba(251,191,36,0.03)" }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" strokeWidth="2" style={{ opacity: 0.6, flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                Tip: Use <span style={{ color: "var(--primary)", fontWeight: 600 }}>⚡ Slot it in</span> in the Schedule modal to always fill the next available slot without conflicts.
+              </span>
+            </div>
+          </div>
+        )}
+        {reslotted && (
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl mb-3"
+            style={{ backgroundColor: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.2)" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span className="text-[13px] font-semibold" style={{ color: "#4ADE80" }}>Conflicts resolved</span>
+            <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>— Posts re-slotted into next available times using page rhythms.</span>
+            <button onClick={() => setReslotted(false)} className="ml-auto text-[11px]" style={{ color: "var(--text-muted)" }}>Undo</button>
+          </div>
+        )}
+
       {/* Queue rows for active date */}
       <div className="rounded-b-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
         {displayFiltered.length === 0 ? (
@@ -1115,17 +1180,55 @@ export default function QueuePage() {
             </button>
           </div>
         ) : displayPosts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20" style={{ backgroundColor: "var(--surface)" }}>
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: "var(--primary-muted)" }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            </div>
-            <h3 className="text-[16px] font-semibold mb-1" style={{ color: "var(--text)" }}>No posts scheduled for {activeDate}</h3>
-            <p className="text-[13px] mb-4" style={{ color: "var(--text-secondary)" }}>Select another day or add posts via Bulk Upload</p>
-            <button className="px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white" style={{ backgroundColor: "var(--primary)", boxShadow: "0 4px 14px var(--primary-glow)" }}
-              onClick={() => window.location.href = "/upload"}>
-              Add Posts
-            </button>
-          </div>
+          (() => {
+            const singlePage = filterNames && filterNames.length === 1 ? filterNames[0] : null;
+            const PAGE_NEXT_SLOTS: Record<string, { nextSlot: string; interval: number; tz: string }> = {
+              "History Uncovered": { nextSlot: "Tomorrow, 6:00 AM",  interval: 2,   tz: "EST" },
+              "Laugh Central":     { nextSlot: "Tomorrow, 6:30 AM",  interval: 2.5, tz: "EST" },
+              "Fitness Factory":   { nextSlot: "Tomorrow, 8:00 AM",  interval: 3,   tz: "PST" },
+              "TechByte":          { nextSlot: "Tomorrow, 7:30 AM",  interval: 2,   tz: "EST" },
+              "Daily Health Tips": { nextSlot: "Tomorrow, 7:00 AM",  interval: 4,   tz: "EST" },
+              "Money Matters":     { nextSlot: "Tomorrow, 8:30 AM",  interval: 3,   tz: "EST" },
+              "Know Her Name":     { nextSlot: "Tomorrow, 9:00 AM",  interval: 6,   tz: "EST" },
+            };
+            const rhythm = singlePage ? PAGE_NEXT_SLOTS[singlePage] : null;
+            return (
+              <div className="flex flex-col items-center justify-center py-20" style={{ backgroundColor: "var(--surface)" }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: rhythm ? "rgba(34,197,94,0.1)" : "var(--primary-muted)" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={rhythm ? "#4ADE80" : "var(--primary)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <h3 className="text-[16px] font-semibold mb-1" style={{ color: "var(--text)" }}>
+                  {singlePage ? `${singlePage} queue is empty` : `No posts scheduled for ${activeDate}`}
+                </h3>
+                {rhythm ? (
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>Next slot opens</span>
+                      <span className="text-[13px] font-semibold px-3 py-1 rounded-lg" style={{ backgroundColor: "rgba(34,197,94,0.1)", color: "#4ADE80" }}>{rhythm.nextSlot}</span>
+                    </div>
+                    <p className="text-[12px] mb-5" style={{ color: "var(--text-muted)" }}>
+                      Every {rhythm.interval}h · {rhythm.tz} · Add content to fill this slot automatically
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[13px] mb-4" style={{ color: "var(--text-secondary)" }}>Select another day or add posts via Bulk Upload</p>
+                )}
+                <div className="flex items-center gap-3">
+                  <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white" style={{ backgroundColor: "var(--primary)", boxShadow: "0 4px 14px var(--primary-glow)" }}
+                    onClick={() => window.location.href = "/upload"}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Add Content
+                  </button>
+                  {rhythm && (
+                    <button className="px-5 py-2.5 rounded-xl text-[13px] font-medium border" style={{ backgroundColor: "transparent", color: "var(--text-secondary)", borderColor: "var(--border)" }}
+                      onClick={() => window.location.href = "/settings/pages"}>
+                      Edit Rhythm
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()
         ) : groupBy === "page" ? (
           // ── GROUP BY PAGE: collapsible accordions ──
           <>
@@ -1366,6 +1469,14 @@ export default function QueuePage() {
                             <button onClick={e => { e.stopPropagation(); openReschedule(post); }} className="text-[12px] font-medium hover:underline" style={{ color: "var(--text-secondary)", cursor: "pointer", background: "none", border: "none" }} title="Click to reschedule">
                               {post.scheduledAt}
                             </button>
+                            {conflictKeys.has(post.id) && !reslotted && (
+                              <span className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 mt-1"
+                                title="Manually scheduled — conflicts with another post at this time"
+                                style={{ backgroundColor: "rgba(251,191,36,0.12)", color: "#FBBF24", cursor: "help" }}>
+                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                Manual conflict
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-1">
                             {post.comments.length > 0 ? (
@@ -1567,6 +1678,14 @@ export default function QueuePage() {
                       >
                         {post.scheduledAt}
                       </button>
+                      {conflictKeys.has(post.id) && !reslotted && (
+                        <span className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 mt-1"
+                          title="Manually scheduled — conflicts with another post at this time"
+                          style={{ backgroundColor: "rgba(251,191,36,0.12)", color: "#FBBF24", cursor: "help" }}>
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                          Manual conflict
+                        </span>
+                      )}
                     </div>
 
                     {/* Thread comments count — click opens modal on Comments tab */}

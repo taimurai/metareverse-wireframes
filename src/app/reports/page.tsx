@@ -52,6 +52,8 @@ export default function ReportingOverview() {
           { label: "Overview", href: "/reports", active: true },
           { label: "Results", href: "/reports/results", active: false },
           { label: "Earnings", href: "/reports/earnings", active: false },
+          { label: "By Posting ID", href: "/reports/id-performance", active: false },
+          { label: "Batches", href: "/reports/batches", active: false },
         ].map((tab) => (
           <Link key={tab.label} href={tab.href} className="relative px-4 py-3 text-[13px] font-medium" style={{ color: tab.active ? "var(--primary)" : "var(--text-secondary)" }}>
             {tab.label}
