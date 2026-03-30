@@ -25,6 +25,9 @@ const navItems = [
       { label: "Failed Posts", href: "/failed-posts", icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       )},
+      { label: "Approvals", href: "/approvals", badge: 3, icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      )},
       { label: "Reports", href: "/reports", icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
       ), children: [
@@ -155,7 +158,13 @@ export default function Sidebar() {
                         />
                       )}
                       <span className="flex-shrink-0">{item.icon}</span>
-                      {!collapsed && <span>{item.label}</span>}
+                      {!collapsed && <span className="flex-1">{item.label}</span>}
+                      {!collapsed && item.badge > 0 && (
+                        <span className="flex-shrink-0 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                          style={{ backgroundColor: "var(--primary)" }}>
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                     {hasChildren && isOpen && (
                       <div className="ml-8 mt-0.5 space-y-0.5">

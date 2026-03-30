@@ -317,10 +317,14 @@ export default function DraftsPage() {
   const [filterThread, setFilterThread] = useState<"all"|"has"|"missing">("all");
   const [sort, setSort] = useState<SortOption>("newest");
 
+  // Pages that require approval (mirrors Settings/Pages config)
+  const APPROVAL_REQUIRED_PAGES = new Set(["Laugh Central", "History Uncovered"]);
+
   // Selection & actions
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [scheduling, setScheduling] = useState<Draft | null>(null);
   const [scheduledIds, setScheduledIds] = useState<Set<string>>(new Set());
+  const [pendingApprovalIds, setPendingApprovalIds] = useState<Set<string>>(new Set());
   const [showBulkThread, setShowBulkThread] = useState(false);
   const [showAutoSchedule, setShowAutoSchedule] = useState(false);
 
@@ -371,6 +375,12 @@ export default function DraftsPage() {
     const dh = h % 12 === 0 ? 12 : h % 12;
     const label = date === "today" ? "Today" : date === "tomorrow" ? "Tomorrow" : date;
     showToast(`Added to Queue — ${label}, ${dh}:${m.toString().padStart(2,"0")} ${p}`);
+  };
+
+  const handleSubmitForApproval = (id: string) => {
+    setPendingApprovalIds(prev => new Set([...prev, id]));
+    setSelected(prev => { const n = new Set(prev); n.delete(id); return n; });
+    showToast("Submitted for approval — awaiting review");
   };
 
   const handleBulkSchedule = () => {
@@ -791,6 +801,9 @@ export default function DraftsPage() {
                             onEditStart={(id, text) => { setEditingId(id); setEditingText(text); }}
                             onEditSave={() => setEditingId(null)}
                             onEditChange={setEditingText}
+                            requiresApproval={APPROVAL_REQUIRED_PAGES.has(draft.page.name)}
+                            isPendingApproval={pendingApprovalIds.has(draft.id)}
+                            onSubmitForApproval={() => handleSubmitForApproval(draft.id)}
                           />
                         ))}
                       </div>
@@ -871,12 +884,27 @@ export default function DraftsPage() {
                       <td className="px-3 py-3 whitespace-nowrap text-[12px]" style={{ color: "var(--text-muted)" }}>{draft.createdAt}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2 justify-end">
-                          <button onClick={() => setScheduling(draft)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white whitespace-nowrap"
-                            style={{ backgroundColor: "var(--primary)" }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                            Schedule
-                          </button>
+                          {pendingApprovalIds.has(draft.id) ? (
+                            <span className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
+                              style={{ backgroundColor: "rgba(251,191,36,0.12)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.25)" }}>
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                              Awaiting Approval
+                            </span>
+                          ) : APPROVAL_REQUIRED_PAGES.has(draft.page.name) ? (
+                            <button onClick={() => handleSubmitForApproval(draft.id)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap"
+                              style={{ backgroundColor: "rgba(251,191,36,0.1)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.3)" }}>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+                              Submit for Approval
+                            </button>
+                          ) : (
+                            <button onClick={() => setScheduling(draft)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white whitespace-nowrap"
+                              style={{ backgroundColor: "var(--primary)" }}>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                              Schedule
+                            </button>
+                          )}
                           <button className="p-1.5 rounded-lg hover:opacity-70" style={{ color: "var(--text-muted)" }}
                             onClick={() => startUndoDelete(new Set([draft.id]))}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -906,6 +934,9 @@ export default function DraftsPage() {
                   onToggle={() => toggleSelect(draft.id)}
                   onSchedule={() => setScheduling(draft)}
                   onDelete={() => startUndoDelete(new Set([draft.id]))}
+                  requiresApproval={APPROVAL_REQUIRED_PAGES.has(draft.page.name)}
+                  isPendingApproval={pendingApprovalIds.has(draft.id)}
+                  onSubmitForApproval={() => handleSubmitForApproval(draft.id)}
                   editingId={editingId}
                   editingText={editingText}
                   onEditStart={(id, text) => { setEditingId(id); setEditingText(text); }}
@@ -983,6 +1014,7 @@ export default function DraftsPage() {
 function DraftRow({
   draft, viewMode, selected, onToggle, onSchedule, onDelete,
   editingId, editingText, onEditStart, onEditSave, onEditChange,
+  requiresApproval, isPendingApproval, onSubmitForApproval,
 }: {
   draft: Draft;
   viewMode: ViewMode;
@@ -995,6 +1027,9 @@ function DraftRow({
   onEditStart: (id: string, text: string) => void;
   onEditSave: () => void;
   onEditChange: (text: string) => void;
+  requiresApproval?: boolean;
+  isPendingApproval?: boolean;
+  onSubmitForApproval?: () => void;
 }) {
   const isEditing = editingId === draft.id;
 
@@ -1070,11 +1105,26 @@ function DraftRow({
         <div className="flex flex-col items-end justify-between flex-shrink-0">
           <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{draft.createdAt}</span>
           <div className="flex gap-2">
-            <button onClick={onSchedule}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white"
-              style={{ backgroundColor: "var(--primary)" }}>
-              Schedule
-            </button>
+            {isPendingApproval ? (
+              <span className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap"
+                style={{ backgroundColor: "rgba(251,191,36,0.12)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.25)" }}>
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Awaiting Approval
+              </span>
+            ) : requiresApproval ? (
+              <button onClick={onSubmitForApproval}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap"
+                style={{ backgroundColor: "rgba(251,191,36,0.1)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.3)" }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+                Submit for Approval
+              </button>
+            ) : (
+              <button onClick={onSchedule}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white"
+                style={{ backgroundColor: "var(--primary)" }}>
+                Schedule
+              </button>
+            )}
             <button onClick={onDelete} className="p-1.5 rounded-lg hover:opacity-70" style={{ color: "var(--text-muted)" }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
             </button>

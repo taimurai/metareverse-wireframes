@@ -39,6 +39,10 @@ interface PageData {
   postingIds: PostingId[];
   rotateIds: boolean;
   rotationMode: "round-robin" | "performance";
+  approvalRequired: boolean;
+  approvalMode: "single" | "multi";
+  autoPublishOnApproval: boolean;
+  approvers: string[];
 }
 
 const PAGES_DATA: PageData[] = [
@@ -46,42 +50,42 @@ const PAGES_DATA: PageData[] = [
     postingIds: [
       { connId: "c1", name: "Taimur Asghar",  email: "taimur@metareverse.com", fbUserId: "100089...", status: "active",    postsThisWeek: 34, avgReach: "22.1K", avgReachRaw: 22100, reachTrend: "up",     lastUsed: "2h ago",   isPrimary: true,  slot: 1 },
       { connId: "c2", name: "Sarah Khan",      email: "sarah@partner-a.com",   fbUserId: "100092...", status: "active",    postsThisWeek: 28, avgReach: "17.4K", avgReachRaw: 17400, reachTrend: "stable", lastUsed: "5h ago",   isPrimary: false, slot: 2 },
-    ], rotateIds: true, rotationMode: "round-robin",
+    ], rotateIds: true, rotationMode: "round-robin", approvalRequired: true, approvalMode: "single", autoPublishOnApproval: true, approvers: ["Taimur Asghar"],
   },
   { id: "hu",  name: "History Uncovered", avatar: "HU", color: "#FF6B2B", followers: "2.4M",  category: "Education",       platforms: ["facebook","instagram","threads"], tokenStatus: "active",   tokenExpiry: "May 28, 2026", autoPost: true,  autoPostIG: true,  autoPostTH: true,  postInterval: 3,   timezone: "EST", quietHours: true,  quietStart: "22:00", quietEnd: "07:00", monetized: true,
     postingIds: [
       { connId: "c1", name: "Taimur Asghar",  email: "taimur@metareverse.com", fbUserId: "100089...", status: "active",    postsThisWeek: 40, avgReach: "31.2K", avgReachRaw: 31200, reachTrend: "up",     lastUsed: "1h ago",   isPrimary: true,  slot: 1 },
       { connId: "c2", name: "Sarah Khan",      email: "sarah@partner-a.com",   fbUserId: "100092...", status: "active",    postsThisWeek: 25, avgReach: "19.8K", avgReachRaw: 19800, reachTrend: "stable", lastUsed: "4h ago",   isPrimary: false, slot: 2 },
       { connId: "c3", name: "Ahmed Raza",      email: "ahmed@partner-b.com",   fbUserId: "100095...", status: "throttled", postsThisWeek: 8,  avgReach: "3.9K",  avgReachRaw: 3900,  reachTrend: "down",   lastUsed: "2d ago",   isPrimary: false, slot: 3 },
-    ], rotateIds: true, rotationMode: "performance",
+    ], rotateIds: true, rotationMode: "performance", approvalRequired: true, approvalMode: "multi", autoPublishOnApproval: false, approvers: ["Taimur Asghar", "Sarah Khan"],
   },
   { id: "tb",  name: "TechByte",          avatar: "TB", color: "#14B8A6", followers: "1.1M",  category: "Technology",      platforms: ["facebook","instagram","threads"], tokenStatus: "expiring", tokenExpiry: "Apr 2, 2026",  autoPost: true,  autoPostIG: false, autoPostTH: false, postInterval: 2,   timezone: "PST", quietHours: false, quietStart: "23:00", quietEnd: "07:00", monetized: true,
     postingIds: [
       { connId: "c1", name: "Taimur Asghar",  email: "taimur@metareverse.com", fbUserId: "100089...", status: "active",    postsThisWeek: 22, avgReach: "14.5K", avgReachRaw: 14500, reachTrend: "stable", lastUsed: "3h ago",   isPrimary: true,  slot: 1 },
       { connId: "c3", name: "Ahmed Raza",      email: "ahmed@partner-b.com",   fbUserId: "100095...", status: "expired",   postsThisWeek: 0,  avgReach: "—",     avgReachRaw: 0,     reachTrend: "down",   lastUsed: "5d ago",   isPrimary: false, slot: 2 },
-    ], rotateIds: false, rotationMode: "round-robin",
+    ], rotateIds: false, rotationMode: "round-robin", approvalRequired: false, approvalMode: "single", autoPublishOnApproval: true, approvers: ["Taimur Asghar"],
   },
   { id: "mm",  name: "Money Matters",     avatar: "MM", color: "#F59E0B", followers: "680K",  category: "Finance",         platforms: ["facebook","instagram"],           tokenStatus: "active",   tokenExpiry: "Jul 10, 2026", autoPost: false, autoPostIG: false, autoPostTH: false, postInterval: 4,   timezone: "EST", quietHours: false, quietStart: "23:00", quietEnd: "07:00", monetized: false,
     postingIds: [
       { connId: "c1", name: "Taimur Asghar",  email: "taimur@metareverse.com", fbUserId: "100089...", status: "active",    postsThisWeek: 0,  avgReach: "8.2K",  avgReachRaw: 8200,  reachTrend: "down",   lastUsed: "7d ago",   isPrimary: true,  slot: 1 },
-    ], rotateIds: false, rotationMode: "round-robin",
+    ], rotateIds: false, rotationMode: "round-robin", approvalRequired: false, approvalMode: "single", autoPublishOnApproval: true, approvers: [],
   },
   { id: "dh",  name: "Daily Health Tips", avatar: "DH", color: "#6366F1", followers: "420K",  category: "Health",          platforms: ["facebook"],                       tokenStatus: "active",   tokenExpiry: "Aug 1, 2026",  autoPost: true,  autoPostIG: false, autoPostTH: false, postInterval: 4,   timezone: "CST", quietHours: true,  quietStart: "21:00", quietEnd: "07:00", monetized: true,
     postingIds: [
       { connId: "c1", name: "Taimur Asghar",  email: "taimur@metareverse.com", fbUserId: "100089...", status: "active",    postsThisWeek: 18, avgReach: "11.3K", avgReachRaw: 11300, reachTrend: "up",     lastUsed: "6h ago",   isPrimary: true,  slot: 1 },
       { connId: "c2", name: "Sarah Khan",      email: "sarah@partner-a.com",   fbUserId: "100092...", status: "active",    postsThisWeek: 14, avgReach: "9.7K",  avgReachRaw: 9700,  reachTrend: "stable", lastUsed: "8h ago",   isPrimary: false, slot: 2 },
-    ], rotateIds: true, rotationMode: "round-robin",
+    ], rotateIds: true, rotationMode: "round-robin", approvalRequired: false, approvalMode: "single", autoPublishOnApproval: true, approvers: ["Taimur Asghar"],
   },
   { id: "ff",  name: "Fitness Factory",   avatar: "FF", color: "#EC4899", followers: "310K",  category: "Fitness",         platforms: ["facebook"],                       tokenStatus: "expired",  tokenExpiry: "Mar 15, 2026", autoPost: false, autoPostIG: false, autoPostTH: false, postInterval: 3,   timezone: "EST", quietHours: false, quietStart: "23:00", quietEnd: "07:00", monetized: true,
     postingIds: [
       { connId: "c1", name: "Taimur Asghar",  email: "taimur@metareverse.com", fbUserId: "100089...", status: "active",    postsThisWeek: 0,  avgReach: "6.8K",  avgReachRaw: 6800,  reachTrend: "down",   lastUsed: "12d ago",  isPrimary: true,  slot: 1 },
       { connId: "c2", name: "Sarah Khan",      email: "sarah@partner-a.com",   fbUserId: "100092...", status: "expired",   postsThisWeek: 0,  avgReach: "5.1K",  avgReachRaw: 5100,  reachTrend: "down",   lastUsed: "12d ago",  isPrimary: false, slot: 2 },
-    ], rotateIds: false, rotationMode: "round-robin",
+    ], rotateIds: false, rotationMode: "round-robin", approvalRequired: false, approvalMode: "single", autoPublishOnApproval: true, approvers: [],
   },
   { id: "khn", name: "Know Her Name",     avatar: "KH", color: "#0EA5E9", followers: "136K",  category: "Women's History", platforms: ["facebook","instagram","threads"], tokenStatus: "active",   tokenExpiry: "Sep 20, 2026", autoPost: true,  autoPostIG: true,  autoPostTH: false, postInterval: 2.5, timezone: "EST", quietHours: false, quietStart: "23:00", quietEnd: "07:00", monetized: false,
     postingIds: [
       { connId: "c1", name: "Taimur Asghar",  email: "taimur@metareverse.com", fbUserId: "100089...", status: "active",    postsThisWeek: 12, avgReach: "7.4K",  avgReachRaw: 7400,  reachTrend: "up",     lastUsed: "4h ago",   isPrimary: true,  slot: 1 },
-    ], rotateIds: false, rotationMode: "round-robin",
+    ], rotateIds: false, rotationMode: "round-robin", approvalRequired: false, approvalMode: "single", autoPublishOnApproval: true, approvers: [],
   },
 ];
 
@@ -828,6 +832,92 @@ export default function PageSettings() {
                         </p>
                       </div>
                     )}
+                  </div>
+
+                  {/* ── Approval Workflow ── */}
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: "var(--text-muted)" }}>Approval Workflow</div>
+                    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+                      {/* Master toggle */}
+                      <div className="flex items-center justify-between px-3 py-3" style={{ backgroundColor: "var(--bg)" }}>
+                        <div>
+                          <span className="text-[12px] font-medium" style={{ color: "var(--text)" }}>Require Approval</span>
+                          <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                            {selected.approvalRequired
+                              ? `Posts need approval before publishing · ${selected.approvers.length} approver${selected.approvers.length !== 1 ? "s" : ""}`
+                              : "Posts go directly to queue without review"}
+                          </p>
+                        </div>
+                        <Toggle on={selected.approvalRequired} onChange={v => update("approvalRequired", v)} />
+                      </div>
+
+                      {selected.approvalRequired && (
+                        <>
+                          {/* Approvers */}
+                          <div className="px-3 py-3 border-t" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Approvers</p>
+                            <div className="flex flex-col gap-1.5">
+                              {["Taimur Asghar", "Sarah Khan", "Ahmed Raza"].map(person => {
+                                const isApprover = selected.approvers.includes(person);
+                                return (
+                                  <button
+                                    key={person}
+                                    onClick={() => {
+                                      const next = isApprover
+                                        ? selected.approvers.filter(a => a !== person)
+                                        : [...selected.approvers, person];
+                                      update("approvers", next);
+                                    }}
+                                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-left"
+                                    style={{
+                                      backgroundColor: isApprover ? "rgba(255,107,43,0.08)" : "var(--surface-hover)",
+                                      border: `1px solid ${isApprover ? "rgba(255,107,43,0.25)" : "transparent"}`,
+                                    }}>
+                                    <div className="w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0"
+                                      style={{ backgroundColor: isApprover ? "var(--primary)" : "transparent", borderColor: isApprover ? "var(--primary)" : "var(--border)" }}>
+                                      {isApprover && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                                    </div>
+                                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0"
+                                      style={{ backgroundColor: person === "Taimur Asghar" ? "#FF6B2B" : person === "Sarah Khan" ? "#8B5CF6" : "#14B8A6" }}>
+                                      {person.split(" ").map(n => n[0]).join("")}
+                                    </div>
+                                    <span className="text-[12px]" style={{ color: isApprover ? "var(--text)" : "var(--text-secondary)" }}>{person}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Approval mode */}
+                          <div className="flex items-center gap-2 px-3 py-2.5 border-t" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}>
+                            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Type</span>
+                            <div className="flex gap-1.5 ml-auto">
+                              {(["single", "multi"] as const).map(mode => (
+                                <button key={mode} onClick={() => update("approvalMode", mode)}
+                                  className="text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-all"
+                                  style={{
+                                    backgroundColor: selected.approvalMode === mode ? "var(--primary)" : "var(--surface-hover)",
+                                    color: selected.approvalMode === mode ? "white" : "var(--text-muted)",
+                                  }}>
+                                  {mode === "single" ? "Any approver" : "All must approve"}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Auto-publish toggle */}
+                          <div className="flex items-center justify-between px-3 py-2.5 border-t" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}>
+                            <div>
+                              <span className="text-[12px] font-medium" style={{ color: "var(--text)" }}>Auto-publish on approval</span>
+                              <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                                {selected.autoPublishOnApproval ? "Post goes live at scheduled time once approved" : "Approver must manually publish after approving"}
+                              </p>
+                            </div>
+                            <Toggle on={selected.autoPublishOnApproval} onChange={v => update("autoPublishOnApproval", v)} />
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   {/* ── Posting Schedule ── */}

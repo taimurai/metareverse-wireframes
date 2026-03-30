@@ -17,6 +17,7 @@ interface QueuePost {
   type: "photo" | "reel" | "text";
   status: "scheduled" | "publishing" | "failed" | "draft";
   comments: string[];
+  approvalStatus?: "awaiting" | "approved";
 }
 
 const HU = { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" };
@@ -30,8 +31,8 @@ const KH = { name: "Know Her Name",     avatar: "KH", color: "#0EA5E9" };
 const MOCK_QUEUE: QueuePost[] = [
   // ─────────────── MAR 27 — TODAY (5 per page = 35 posts) ───────────────
   // History Uncovered
-  { id: "q101", thumbnail: "", caption: "The forgotten queen who ruled an empire for 40 years — yet history barely remembers her name", page: HU, platforms: ["fb","ig"], scheduledAt: "Today, 6:00 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["Born in 1402 in a small village in Anatolia...", "By age 20 she had already commanded three armies", "Her name was erased from official records after her death"] },
-  { id: "q102", thumbnail: "", caption: "The Roman Empire didn't fall — it transformed. Here's the real story historians argue about", page: HU, platforms: ["fb"], scheduledAt: "Today, 9:00 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
+  { id: "q101", thumbnail: "", caption: "The forgotten queen who ruled an empire for 40 years — yet history barely remembers her name", page: HU, platforms: ["fb","ig"], scheduledAt: "Today, 6:00 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["Born in 1402 in a small village in Anatolia...", "By age 20 she had already commanded three armies", "Her name was erased from official records after her death"], approvalStatus: "approved" },
+  { id: "q102", thumbnail: "", caption: "The Roman Empire didn't fall — it transformed. Here's the real story historians argue about", page: HU, platforms: ["fb"], scheduledAt: "Today, 9:00 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [], approvalStatus: "awaiting" },
   { id: "q103", thumbnail: "", caption: "This 3,000-year-old map was accurate to within 50 miles. Ancient cartography was extraordinary", page: HU, platforms: ["fb","ig"], scheduledAt: "Today, 12:30 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: ["The Babylonian World Map (700 BC) shows Babylon at the center...", "It correctly identifies the Euphrates, major cities, and surrounding oceans"] },
   { id: "q104", thumbnail: "", caption: "Why the Library of Alexandria wasn't destroyed in a single fire — the real collapse took 600 years", page: HU, platforms: ["fb","ig"], scheduledAt: "Today, 4:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q105", thumbnail: "", caption: "Genghis Khan's postal system connected 25% of the world's land. It worked faster than email", page: HU, platforms: ["fb"], scheduledAt: "Today, 7:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["The Yam system had relay stations every 25 miles across the Mongol Empire", "Riders could cover 200 miles per day — messages reached from China to Poland in weeks"] },
@@ -40,8 +41,8 @@ const MOCK_QUEUE: QueuePost[] = [
   { id: "q105d", thumbnail: "", caption: "The Black Death accidentally created the middle class — the economics of the plague explained", page: HU, platforms: ["fb","ig","th"], scheduledAt: "Today, 9:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
 
   // ── CONFLICT: Two LC posts at same time ──
-  { id: "q_conflict1", thumbnail: "", caption: "POV: You stay up until 2am watching 'just one more episode'", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 3:30 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [] },
-  { id: "q_conflict2", thumbnail: "", caption: "The face you make when someone says 'can I ask you something' and then takes 10 minutes to ask it", page: LC, platforms: ["fb","ig"], scheduledAt: "Today, 3:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
+  { id: "q_conflict1", thumbnail: "", caption: "POV: You stay up until 2am watching 'just one more episode'", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 3:30 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [], approvalStatus: "awaiting" },
+  { id: "q_conflict2", thumbnail: "", caption: "The face you make when someone says 'can I ask you something' and then takes 10 minutes to ask it", page: LC, platforms: ["fb","ig"], scheduledAt: "Today, 3:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [], approvalStatus: "approved" },
 
   // Laugh Central
   { id: "q106", thumbnail: "", caption: "Monday morning energy hits different when you've had 3 coffees and no sleep", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 6:30 AM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [] },
@@ -1460,10 +1461,24 @@ export default function QueuePage() {
                               </span>
                             ))}
                           </div>
-                          <div>
+                          <div className="flex flex-col gap-1">
                             <span className="text-[10px] font-semibold px-2 py-1 rounded-full flex items-center gap-1 w-fit" style={{ backgroundColor: "var(--success-bg)", color: "var(--success)" }}>
                               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--success)" }} />scheduled
                             </span>
+                            {post.approvalStatus === "awaiting" && (
+                              <span className="text-[10px] font-semibold px-2 py-1 rounded-full flex items-center gap-1 w-fit whitespace-nowrap"
+                                style={{ backgroundColor: "rgba(251,191,36,0.12)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.2)" }}>
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                Awaiting Approval
+                              </span>
+                            )}
+                            {post.approvalStatus === "approved" && (
+                              <span className="text-[10px] font-semibold px-2 py-1 rounded-full flex items-center gap-1 w-fit whitespace-nowrap"
+                                style={{ backgroundColor: "rgba(74,222,128,0.1)", color: "#4ADE80", border: "1px solid rgba(74,222,128,0.2)" }}>
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                Approved
+                              </span>
+                            )}
                           </div>
                           <div>
                             <button onClick={e => { e.stopPropagation(); openReschedule(post); }} className="text-[12px] font-medium hover:underline" style={{ color: "var(--text-secondary)", cursor: "pointer", background: "none", border: "none" }} title="Click to reschedule">
@@ -1666,6 +1681,20 @@ export default function QueuePage() {
                         }} />
                         {post.status}
                       </span>
+                      {post.approvalStatus === "awaiting" && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 w-fit mt-1 whitespace-nowrap"
+                          style={{ backgroundColor: "rgba(251,191,36,0.12)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.2)" }}>
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                          Awaiting Approval
+                        </span>
+                      )}
+                      {post.approvalStatus === "approved" && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 w-fit mt-1 whitespace-nowrap"
+                          style={{ backgroundColor: "rgba(74,222,128,0.1)", color: "#4ADE80", border: "1px solid rgba(74,222,128,0.2)" }}>
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                          Approved
+                        </span>
+                      )}
                     </div>
 
                     {/* Schedule time — click to reschedule */}
