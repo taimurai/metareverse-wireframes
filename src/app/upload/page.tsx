@@ -32,6 +32,16 @@ const INITIAL_FILES: UploadedFile[] = [
   { id: "f6", name: "tech-leak.jpg", size: "2.9 MB", type: "photo", caption: "", thread: "", showThread: false, platforms: ["FB"] },
 ];
 
+type CopyrightStatus = "scanning" | "clear" | "possible_match" | "flagged";
+const COPYRIGHT_SCAN: Record<string, { status: CopyrightStatus; match?: string }> = {
+  f1: { status: "clear" },
+  f2: { status: "possible_match", match: "Upbeat Pop Track (Unidentified)" },
+  f3: { status: "clear" },
+  f4: { status: "clear" },
+  f5: { status: "flagged", match: 'Calvin Harris — "Summer"' },
+  f6: { status: "clear" },
+};
+
 const AUTO_SLOTS = [
   { time: "Today, 3:00 PM",    tz: "EST" },
   { time: "Today, 4:30 PM",    tz: "EST" },
@@ -391,6 +401,35 @@ export default function BulkUploadPage() {
                         lineHeight: 1.5,
                       }}
                     />
+
+                    {/* Copyright scan result */}
+                    {(() => {
+                      const scan = COPYRIGHT_SCAN[file.id];
+                      if (!scan || scan.status === "scanning") return (
+                        <div className="flex items-center gap-2 text-[11px] px-3 py-2 rounded-lg" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>
+                          <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: "var(--text-muted)" }} />
+                          Scanning for copyright issues...
+                        </div>
+                      );
+                      if (scan.status === "clear") return (
+                        <div className="flex items-center gap-2 text-[11px] px-3 py-2 rounded-lg" style={{ backgroundColor: "rgba(74,222,128,0.08)", color: "#4ADE80" }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          No copyright issues detected
+                        </div>
+                      );
+                      if (scan.status === "possible_match") return (
+                        <div className="flex items-center gap-2 text-[11px] px-3 py-2 rounded-lg" style={{ backgroundColor: "rgba(251,191,36,0.08)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.2)" }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                          Possible match: {scan.match} — may affect distribution
+                        </div>
+                      );
+                      return (
+                        <div className="flex items-center gap-2 text-[11px] px-3 py-2 rounded-lg" style={{ backgroundColor: "rgba(239,68,68,0.08)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.2)" }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                          Copyright detected: {scan.match} — post may be muted or removed
+                        </div>
+                      );
+                    })()}
 
                     {/* Thread toggle + input */}
                     <div>

@@ -15,6 +15,13 @@ interface PageStat {
   isRotating: boolean;
 }
 
+interface CheckpointInfo {
+  reason: string;
+  detail: string;
+  action: string;
+  actionUrl: string;
+}
+
 interface Connection {
   id: string;
   fbUserId: string;
@@ -28,6 +35,7 @@ interface Connection {
   totalPostsThisWeek: number;
   totalReachThisWeek: string;
   pageStats: PageStat[];
+  checkpoint?: CheckpointInfo;
 }
 
 const CONNECTIONS: Connection[] = [
@@ -83,6 +91,12 @@ const CONNECTIONS: Connection[] = [
       { pageId: "hu", pageName: "History Uncovered", avatar: "HU", color: "#FF6B2B", postsThisWeek: 8,  avgReach: "3.9K",  avgReachRaw: 3900,  reachTrend: "down",   rotationSlot: 3, isRotating: true  },
       { pageId: "tb", pageName: "TechByte",          avatar: "TB", color: "#14B8A6", postsThisWeek: 0,  avgReach: "—",     avgReachRaw: 0,     reachTrend: "down",   rotationSlot: 2, isRotating: false },
     ],
+    checkpoint: {
+      reason: "Unusual posting activity detected",
+      detail: "Facebook flagged this account for posting at high frequency across multiple pages in a short window. The account was temporarily checkpointed to verify human activity.",
+      action: "Verify identity on Facebook",
+      actionUrl: "https://www.facebook.com/help/",
+    },
   },
 ];
 
@@ -318,9 +332,41 @@ export default function ConnectedIDs() {
                       })}
                     </div>
                     {conn.status === "expired" && (
-                      <div className="flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: "var(--border)", backgroundColor: "rgba(239,68,68,0.04)" }}>
-                        <span className="text-[12px]" style={{ color: "#EF4444" }}>Token expired — this ID is no longer posting</span>
-                        <button className="text-[12px] font-semibold px-4 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#EF4444" }}>Reconnect</button>
+                      <div className="border-t" style={{ borderColor: "var(--border)" }}>
+                        {/* Token expired row */}
+                        <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--border)", backgroundColor: "rgba(239,68,68,0.04)" }}>
+                          <span className="text-[12px]" style={{ color: "#EF4444" }}>Token expired — this ID is no longer posting</span>
+                          <button className="text-[12px] font-semibold px-4 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#EF4444" }}>Reconnect</button>
+                        </div>
+                        {/* Checkpoint Diagnosis */}
+                        {conn.checkpoint && (
+                          <div className="px-5 py-4" style={{ backgroundColor: "rgba(239,68,68,0.03)" }}>
+                            <div className="flex items-start gap-3">
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "rgba(239,68,68,0.12)" }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-[12px] font-semibold" style={{ color: "#EF4444" }}>Checkpoint Diagnosis</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ backgroundColor: "rgba(239,68,68,0.12)", color: "#EF4444" }}>
+                                    {conn.checkpoint.reason}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] mb-2" style={{ color: "var(--text-secondary)" }}>{conn.checkpoint.detail}</p>
+                                <a href={conn.checkpoint.actionUrl} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[11px] font-semibold"
+                                  style={{ color: "var(--primary)" }}>
+                                  {conn.checkpoint.action}
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/>
+                                  </svg>
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

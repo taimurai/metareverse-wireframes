@@ -27,6 +27,16 @@ const FAILED_POSTS = [
   { id: "f4", page: "TechByte", avatar: "TB", color: "#14B8A6", caption: "AI Revolution: What's Next...", time: "1d ago", error: "Rate limited", platforms: "FB" },
 ];
 
+const PAGE_HEALTH_DATA: Record<string, { monetization: "eligible" | "restricted" | "suspended"; flags: number; copyrightStrikes: number; distributionRestricted: boolean }> = {
+  lc:  { monetization: "eligible",   flags: 0, copyrightStrikes: 0, distributionRestricted: false },
+  hu:  { monetization: "eligible",   flags: 1, copyrightStrikes: 0, distributionRestricted: false },
+  tb:  { monetization: "restricted", flags: 0, copyrightStrikes: 1, distributionRestricted: true  },
+  dh:  { monetization: "eligible",   flags: 0, copyrightStrikes: 0, distributionRestricted: false },
+  ff:  { monetization: "eligible",   flags: 2, copyrightStrikes: 0, distributionRestricted: false },
+  mm:  { monetization: "suspended",  flags: 3, copyrightStrikes: 1, distributionRestricted: true  },
+  khn: { monetization: "eligible",   flags: 0, copyrightStrikes: 0, distributionRestricted: false },
+};
+
 const VIRAL_POSTS = [
   { id: "v1", page: "Laugh Central", avatar: "LC", color: "#8B5CF6", caption: "Monday morning energy hits different when you've had 3 coffees...", views: "2.4M", baseline: "180K", multiplier: "13x", platform: "FB", hoursAgo: 3 },
   { id: "v2", page: "History Uncovered", avatar: "HU", color: "#FF6B2B", caption: "The forgotten queen who ruled an empire for 40 years...", views: "890K", baseline: "95K", multiplier: "9x", platform: "FB+IG", hoursAgo: 6 },
@@ -452,6 +462,66 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* === SECTION 3.5: PAGE HEALTH & MONETIZATION === */}
+      {(() => {
+        const healthPages = ALL_PAGES.map(p => ({ ...p, health: PAGE_HEALTH_DATA[p.id] }));
+        const monetizedCount = healthPages.filter(p => p.health.monetization === "eligible").length;
+        const flaggedCount = healthPages.filter(p => p.health.flags > 0 || p.health.copyrightStrikes > 0).length;
+        const restrictedCount = healthPages.filter(p => p.health.distributionRestricted).length;
+        return (
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>🛡 Page Health & Monetization</span>
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(74,222,128,0.12)", color: "#4ADE80" }}>{monetizedCount}/{ALL_PAGES.length} Monetized</span>
+                {flaggedCount > 0 && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(251,191,36,0.12)", color: "#FBBF24" }}>{flaggedCount} Flagged</span>}
+                {restrictedCount > 0 && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(239,68,68,0.12)", color: "#EF4444" }}>{restrictedCount} Restricted</span>}
+              </div>
+              <a href="/settings/pages" className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>Manage Pages →</a>
+            </div>
+            <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
+              {healthPages.map(page => {
+                const h = page.health;
+                const hasIssue = h.flags > 0 || h.copyrightStrikes > 0 || h.distributionRestricted || h.monetization !== "eligible";
+                const moColor = h.monetization === "eligible" ? "#4ADE80" : h.monetization === "restricted" ? "#FBBF24" : "#EF4444";
+                const moLabel = h.monetization === "eligible" ? "Monetized" : h.monetization === "restricted" ? "Restricted" : "Suspended";
+                return (
+                  <div key={page.id} className="rounded-xl border p-3 flex flex-col gap-2"
+                    style={{ backgroundColor: "var(--surface)", borderColor: hasIssue ? `${moColor}30` : "var(--border)" }}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0" style={{ backgroundColor: page.color }}>
+                        {page.avatar}
+                      </div>
+                      <span className="text-[11px] font-semibold truncate" style={{ color: "var(--text)" }}>{page.name}</span>
+                    </div>
+                    {/* Monetization */}
+                    <div className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded w-fit" style={{ backgroundColor: `${moColor}15`, color: moColor }}>
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: moColor }} />
+                      {moLabel}
+                    </div>
+                    {/* Flags row */}
+                    <div className="flex items-center gap-2">
+                      {h.flags > 0 && (
+                        <span className="text-[10px] font-medium" style={{ color: "#FBBF24" }} title="Content policy flags">⚑ {h.flags} flag{h.flags !== 1 ? "s" : ""}</span>
+                      )}
+                      {h.copyrightStrikes > 0 && (
+                        <span className="text-[10px] font-medium" style={{ color: "#EF4444" }} title="Copyright strikes">© {h.copyrightStrikes} strike{h.copyrightStrikes !== 1 ? "s" : ""}</span>
+                      )}
+                      {h.distributionRestricted && (
+                        <span className="text-[10px] font-medium" style={{ color: "#EF4444" }}>⊘ Dist.</span>
+                      )}
+                      {!hasIssue && (
+                        <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>No issues</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* === SECTION 4: ALL PAGES TABLE === */}
       <div className="mb-3 flex items-center justify-between">
