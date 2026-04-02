@@ -380,7 +380,7 @@ function SchedulePreview({ interval, quietHours, quietStart, quietEnd, timezone 
             <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>· {timezone}</span>
           </div>
           <p className="text-[10px] mt-1.5" style={{ color: "var(--text-muted)" }}>
-            Every {interval}h · Quiet hours {quietHours ? "on" : "off"} · Gaps = no posts scheduled
+            Every {interval}h · Active hours {quietHours ? "on" : "off"} · Gaps = no posts scheduled
           </p>
         </div>
       )}
@@ -974,12 +974,12 @@ export default function PageSettings() {
                         </div>
                       </div>
 
-                      {/* Quiet Hours */}
+                      {/* Active Hours */}
                       <div className="p-3 rounded-xl" style={{ backgroundColor: "var(--bg)" }}>
                         <div className="flex items-center justify-between mb-3">
                           <div>
-                            <div className="text-[13px] font-medium" style={{ color: "var(--text)" }}>Quiet hours</div>
-                            <div className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>No posts during this window</div>
+                            <div className="text-[13px] font-medium" style={{ color: "var(--text)" }}>Active hours</div>
+                            <div className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>Posts only sent during this window</div>
                           </div>
                           <Toggle on={selected.quietHours} onChange={v => update("quietHours", v)} />
                         </div>
