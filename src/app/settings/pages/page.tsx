@@ -460,26 +460,26 @@ function BatchDefaultsPanel({
           </select>
         </div>
 
-        {/* Quiet hours */}
+        {/* Active hours */}
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
           <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: "var(--bg)" }}>
             <div>
-              <span className="text-[13px] font-medium" style={{ color: "var(--text)" }}>Quiet Hours</span>
-              <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>No posts during this window</p>
+              <span className="text-[13px] font-medium" style={{ color: "var(--text)" }}>Active Hours</span>
+              <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>Posts only sent during this window</p>
             </div>
             <Toggle on={quietHours} onChange={setQuietHours} />
           </div>
           {quietHours && (
             <div className="flex items-center gap-3 px-4 py-3 border-t" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}>
               <div className="flex-1">
-                <label className="text-[10px] font-semibold uppercase tracking-wider block mb-1" style={{ color: "var(--text-muted)" }}>Start</label>
+                <label className="text-[10px] font-semibold uppercase tracking-wider block mb-1" style={{ color: "var(--text-muted)" }}>From</label>
                 <input type="time" value={quietStart} onChange={e => setQuietStart(e.target.value)}
                   className="w-full px-3 py-1.5 rounded-lg text-[12px]"
                   style={{ backgroundColor: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", outline: "none" }} />
               </div>
-              <span className="text-[12px] mt-4" style={{ color: "var(--text-muted)" }}>to</span>
+              <span className="text-[12px] mt-4" style={{ color: "var(--text-muted)" }}>until</span>
               <div className="flex-1">
-                <label className="text-[10px] font-semibold uppercase tracking-wider block mb-1" style={{ color: "var(--text-muted)" }}>End</label>
+                <label className="text-[10px] font-semibold uppercase tracking-wider block mb-1" style={{ color: "var(--text-muted)" }}>Until</label>
                 <input type="time" value={quietEnd} onChange={e => setQuietEnd(e.target.value)}
                   className="w-full px-3 py-1.5 rounded-lg text-[12px]"
                   style={{ backgroundColor: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", outline: "none" }} />

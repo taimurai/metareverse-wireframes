@@ -32,6 +32,9 @@ const INITIAL_FILES: UploadedFile[] = [
   { id: "f6", name: "tech-leak.jpg", size: "2.9 MB", type: "photo", caption: "", thread: "", showThread: false, platforms: ["FB"] },
 ];
 
+const CAPTION_LIMITS: Record<string, number> = { FB: 63206, IG: 2200, TH: 500 };
+const DUPLICATE_FILES = new Set(["f2", "f5"]);
+
 type CopyrightStatus = "scanning" | "clear" | "possible_match" | "flagged";
 const COPYRIGHT_SCAN: Record<string, { status: CopyrightStatus; match?: string }> = {
   f1: { status: "clear" },
@@ -335,7 +338,7 @@ export default function BulkUploadPage() {
                 className="rounded-xl border overflow-hidden"
                 style={{
                   backgroundColor: "var(--surface)",
-                  borderColor: file.caption.trim() ? "rgba(74,222,128,0.2)" : "var(--border)",
+                  borderColor: DUPLICATE_FILES.has(file.id) ? "rgba(251,191,36,0.35)" : file.caption.trim() ? "rgba(74,222,128,0.2)" : "var(--border)",
                 }}
               >
                 <div className="flex gap-4 p-4">
@@ -365,6 +368,13 @@ export default function BulkUploadPage() {
 
                   {/* Caption + controls */}
                   <div className="flex-1 min-w-0 flex flex-col gap-2.5">
+                    {/* Duplicate warning */}
+                    {DUPLICATE_FILES.has(file.id) && (
+                      <div className="flex items-center gap-2 text-[11px] px-3 py-2 rounded-lg" style={{ backgroundColor: "rgba(251,191,36,0.08)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.2)" }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Already in Drafts for this page — uploading again will create a duplicate
+                      </div>
+                    )}
                     {/* Filename */}
                     <div className="flex items-center justify-between">
                       <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{file.name} · {file.size}</span>
@@ -401,6 +411,26 @@ export default function BulkUploadPage() {
                         lineHeight: 1.5,
                       }}
                     />
+
+                    {/* Caption length validator */}
+                    {file.caption.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {file.platforms.map(p => {
+                          const limit = CAPTION_LIMITS[p];
+                          if (!limit) return null;
+                          const len = file.caption.length;
+                          const pct = len / limit;
+                          const color = pct >= 1 ? "#EF4444" : pct >= 0.8 ? "#FBBF24" : "#4ADE80";
+                          const icon = pct >= 1 ? "✕" : pct >= 0.8 ? "⚠" : "✓";
+                          const label = pct >= 1 ? "Too long" : pct >= 0.8 ? "Getting long" : "Fine";
+                          return (
+                            <span key={p} className="text-[10px] font-medium px-2 py-0.5 rounded" style={{ backgroundColor: `${color}15`, color }}>
+                              {p}: {len.toLocaleString()} / {limit.toLocaleString()} {icon} {label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     {/* Copyright scan result */}
                     {(() => {

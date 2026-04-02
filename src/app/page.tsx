@@ -27,15 +27,24 @@ const FAILED_POSTS = [
   { id: "f4", page: "TechByte", avatar: "TB", color: "#14B8A6", caption: "AI Revolution: What's Next...", time: "1d ago", error: "Rate limited", platforms: "FB" },
 ];
 
-const PAGE_HEALTH_DATA: Record<string, { monetization: "eligible" | "restricted" | "suspended"; flags: number; copyrightStrikes: number; distributionRestricted: boolean }> = {
-  lc:  { monetization: "eligible",   flags: 0, copyrightStrikes: 0, distributionRestricted: false },
-  hu:  { monetization: "eligible",   flags: 1, copyrightStrikes: 0, distributionRestricted: false },
-  tb:  { monetization: "restricted", flags: 0, copyrightStrikes: 1, distributionRestricted: true  },
-  dh:  { monetization: "eligible",   flags: 0, copyrightStrikes: 0, distributionRestricted: false },
-  ff:  { monetization: "eligible",   flags: 2, copyrightStrikes: 0, distributionRestricted: false },
-  mm:  { monetization: "suspended",  flags: 3, copyrightStrikes: 1, distributionRestricted: true  },
-  khn: { monetization: "eligible",   flags: 0, copyrightStrikes: 0, distributionRestricted: false },
+const PAGE_HEALTH_DATA: Record<string, { monetization: "eligible" | "restricted" | "suspended"; flags: number; copyrightStrikes: number; distributionRestricted: boolean; payoutStatus: "on_time" | "pending" | "on_hold" }> = {
+  lc:  { monetization: "eligible",   flags: 0, copyrightStrikes: 0, distributionRestricted: false, payoutStatus: "on_time" },
+  hu:  { monetization: "eligible",   flags: 1, copyrightStrikes: 0, distributionRestricted: false, payoutStatus: "on_time" },
+  tb:  { monetization: "restricted", flags: 0, copyrightStrikes: 1, distributionRestricted: true,  payoutStatus: "pending" },
+  dh:  { monetization: "eligible",   flags: 0, copyrightStrikes: 0, distributionRestricted: false, payoutStatus: "on_time" },
+  ff:  { monetization: "eligible",   flags: 2, copyrightStrikes: 0, distributionRestricted: false, payoutStatus: "on_time" },
+  mm:  { monetization: "suspended",  flags: 3, copyrightStrikes: 1, distributionRestricted: true,  payoutStatus: "on_hold" },
+  khn: { monetization: "eligible",   flags: 0, copyrightStrikes: 0, distributionRestricted: false, payoutStatus: "on_time" },
 };
+
+type KpiPeriod = "today" | "yesterday" | "7d" | "28d";
+const KPI_PERIOD_DATA: Record<KpiPeriod, { revenue: number; revenueChange: string; rpm: number; rpmChange: string; views: number; viewsChange: string }> = {
+  today:     { revenue: 1842,    revenueChange: "+$312 vs yesterday", rpm: 8.94, rpmChange: "+$0.12 vs yesterday", views: 8700000,   viewsChange: "+3%"  },
+  yesterday: { revenue: 1530,    revenueChange: "+$214 vs prior day", rpm: 8.82, rpmChange: "+$0.05 vs prior day", views: 8200000,   viewsChange: "+1%"  },
+  "7d":      { revenue: 12851,   revenueChange: "↑ 14%",             rpm: 9.05, rpmChange: "↑ $0.38",             rpm_sub: "5 of 7 pages monetized", views: 62100000,  viewsChange: "↑ 8%"  },
+  "28d":     { revenue: 48392,   revenueChange: "↑ 9%",              rpm: 9.21, rpmChange: "↑ $0.82",             views: 224000000, viewsChange: "↑ 12%" },
+} as any;
+const PERIOD_LABEL: Record<KpiPeriod, string> = { today: "Today so far", yesterday: "Yesterday", "7d": "Last 7 Days", "28d": "Last 28 Days" };
 
 const VIRAL_POSTS = [
   { id: "v1", page: "Laugh Central", avatar: "LC", color: "#8B5CF6", caption: "Monday morning energy hits different when you've had 3 coffees...", views: "2.4M", baseline: "180K", multiplier: "13x", platform: "FB", hoursAgo: 3 },
@@ -61,6 +70,7 @@ export default function Dashboard() {
   const [selectedTablePages, setSelectedTablePages] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<string | null>(null);
   const [bulkTagInput, setBulkTagInput] = useState("");
+  const [kpiPeriod, setKpiPeriod] = useState<KpiPeriod>("7d");
 
   const totalRevenue = ALL_PAGES.reduce((s, p) => s + p.revenue, 0);
   const avgRpm = ALL_PAGES.filter(p => p.rpm > 0).reduce((s, p, _, a) => s + p.rpm / a.length, 0);
@@ -218,30 +228,41 @@ export default function Dashboard() {
       />
 
       {/* === SECTION 1: HERO CARDS === */}
+      {/* Period toggle */}
+      <div className="flex items-center gap-1 mb-3 p-1 rounded-xl w-fit" style={{ backgroundColor: "var(--surface)" }}>
+        {(["today", "yesterday", "7d", "28d"] as KpiPeriod[]).map(p => (
+          <button key={p} onClick={() => setKpiPeriod(p)}
+            className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+            style={{ backgroundColor: kpiPeriod === p ? "var(--primary)" : "transparent", color: kpiPeriod === p ? "white" : "var(--text-muted)" }}>
+            {p === "today" ? "Today" : p === "yesterday" ? "Yesterday" : p === "7d" ? "7 Days" : "28 Days"}
+          </button>
+        ))}
+      </div>
+
       <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr" }}>
-        {/* Revenue This Week */}
+        {/* Revenue */}
         <div className="rounded-xl border p-5 relative overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           <div className="absolute top-0 right-0 w-32 h-full opacity-[0.08]" style={{ background: "radial-gradient(circle at top right, var(--success), transparent 70%)" }} />
-          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Revenue This Week</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Revenue — {PERIOD_LABEL[kpiPeriod]}</span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-[28px] font-bold tracking-tight" style={{ color: "var(--text)" }}>${totalRevenue.toLocaleString()}</span>
-            <span className="text-[12px] font-semibold" style={{ color: "var(--success)" }}>↑ 14%</span>
+            <span className="text-[28px] font-bold tracking-tight" style={{ color: "var(--text)" }}>${KPI_PERIOD_DATA[kpiPeriod].revenue.toLocaleString()}</span>
+            <span className="text-[12px] font-semibold" style={{ color: "var(--success)" }}>{KPI_PERIOD_DATA[kpiPeriod].revenueChange}</span>
           </div>
-          <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>$48,392 this month</div>
+          <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>{kpiPeriod === "28d" ? "28-day total" : kpiPeriod === "7d" ? "$48,392 this month" : "across 7 pages"}</div>
         </div>
 
         {/* Portfolio RPM */}
         <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           <span className="text-[11px] font-semibold uppercase tracking-wider group/rpm relative cursor-help" style={{ color: "var(--text-muted)" }}>
-            Portfolio RPM
+            Portfolio RPM — {PERIOD_LABEL[kpiPeriod]}
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline ml-1 -mt-0.5" style={{ color: "var(--text-muted)" }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             <span className="absolute left-0 top-full mt-2 w-[240px] p-3 rounded-lg text-[11px] font-normal normal-case tracking-normal leading-relaxed hidden group-hover/rpm:block z-50 shadow-xl" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
               Revenue Per Mille — calculated as (Earnings ÷ Monetized Views) × 1,000. Sourced from Meta Content Monetization API.
             </span>
           </span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-[28px] font-bold tracking-tight" style={{ color: "var(--text)" }}>${avgRpm.toFixed(2)}</span>
-            <span className="text-[12px] font-semibold" style={{ color: "var(--success)" }}>↑ $0.38</span>
+            <span className="text-[28px] font-bold tracking-tight" style={{ color: "var(--text)" }}>${KPI_PERIOD_DATA[kpiPeriod].rpm.toFixed(2)}</span>
+            <span className="text-[12px] font-semibold" style={{ color: "var(--success)" }}>{KPI_PERIOD_DATA[kpiPeriod].rpmChange}</span>
           </div>
           <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>5 of 7 pages monetized</div>
         </div>
@@ -249,12 +270,12 @@ export default function Dashboard() {
         {/* Total Network Views */}
         <div className="rounded-xl border p-5 relative overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           <div className="absolute top-0 right-0 w-32 h-full opacity-[0.08]" style={{ background: "radial-gradient(circle at top right, #3B82F6, transparent 70%)" }} />
-          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Total Network Views (7D)</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Network Views — {PERIOD_LABEL[kpiPeriod]}</span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-[28px] font-bold tracking-tight" style={{ color: "var(--text)" }}>{formatNum(totalViews7d)}</span>
-            <span className="text-[12px] font-semibold" style={{ color: "var(--success)" }}>↑ 8%</span>
+            <span className="text-[28px] font-bold tracking-tight" style={{ color: "var(--text)" }}>{formatNum(KPI_PERIOD_DATA[kpiPeriod].views)}</span>
+            <span className="text-[12px] font-semibold" style={{ color: "var(--success)" }}>{KPI_PERIOD_DATA[kpiPeriod].viewsChange}</span>
           </div>
-          <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>{formatNum(monetizedViews)} monetized views</div>
+          <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>{formatNum(Math.round(KPI_PERIOD_DATA[kpiPeriod].views * 0.504))} monetized views</div>
         </div>
 
         {/* Operations Pulse */}
@@ -500,6 +521,14 @@ export default function Dashboard() {
                       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: moColor }} />
                       {moLabel}
                     </div>
+                    {/* Payout status */}
+                    {(() => {
+                      const pc = h.payoutStatus === "on_time" ? "#4ADE80" : h.payoutStatus === "pending" ? "#FBBF24" : "#EF4444";
+                      const pl = h.payoutStatus === "on_time" ? "✓ Paid" : h.payoutStatus === "pending" ? "⏳ Pending" : "⊘ On Hold";
+                      return (
+                        <div className="text-[10px] font-medium px-1.5 py-0.5 rounded w-fit" style={{ backgroundColor: `${pc}15`, color: pc }}>{pl}</div>
+                      );
+                    })()}
                     {/* Flags row */}
                     <div className="flex items-center gap-2">
                       {h.flags > 0 && (
