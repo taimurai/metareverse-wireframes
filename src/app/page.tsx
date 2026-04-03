@@ -255,7 +255,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: config.canViewRevenue ? "1fr 1fr 1fr 1fr" : "1fr 1fr 1fr" }}>
+      <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: `repeat(${[config.canViewRevenue, config.canViewRpm, true, true].filter(Boolean).length}, 1fr)` }}>
         {/* Revenue — Owner only */}
         {config.canViewRevenue && (
         <div className="rounded-xl border p-5 relative overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
@@ -269,8 +269,8 @@ export default function Dashboard() {
         </div>
         )}
 
-        {/* Portfolio RPM */}
-        <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+        {/* Portfolio RPM — Owner + Manager only */}
+        {config.canViewRpm && <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           <span className="text-[11px] font-semibold uppercase tracking-wider group/rpm relative cursor-help" style={{ color: "var(--text-muted)" }}>
             Portfolio RPM — {PERIOD_LABEL[kpiPeriod]}
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline ml-1 -mt-0.5" style={{ color: "var(--text-muted)" }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
@@ -283,7 +283,7 @@ export default function Dashboard() {
             <span className="text-[12px] font-semibold" style={{ color: "var(--success)" }}>{KPI_PERIOD_DATA[kpiPeriod].rpmChange}</span>
           </div>
           <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>5 of 7 pages monetized</div>
-        </div>
+        </div>}
 
         {/* Total Network Views */}
         <div className="rounded-xl border p-5 relative overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
@@ -513,7 +513,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>🛡 Page Health & Monetization</span>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(74,222,128,0.12)", color: "#4ADE80" }}>{monetizedCount}/{ALL_PAGES.length} Monetized</span>
+                {config.canViewRpm && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(74,222,128,0.12)", color: "#4ADE80" }}>{monetizedCount}/{ALL_PAGES.length} Monetized</span>}
                 {flaggedCount > 0 && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(251,191,36,0.12)", color: "#FBBF24" }}>{flaggedCount} Flagged</span>}
                 {restrictedCount > 0 && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(239,68,68,0.12)", color: "#EF4444" }}>{restrictedCount} Restricted</span>}
               </div>
@@ -534,13 +534,15 @@ export default function Dashboard() {
                       </div>
                       <span className="text-[11px] font-semibold truncate" style={{ color: "var(--text)" }}>{page.name}</span>
                     </div>
-                    {/* Monetization */}
+                    {/* Monetization — Owner + Manager only */}
+                    {config.canViewRpm && (
                     <div className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded w-fit" style={{ backgroundColor: `${moColor}15`, color: moColor }}>
                       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: moColor }} />
                       {moLabel}
                     </div>
-                    {/* Payout status */}
-                    {(() => {
+                    )}
+                    {/* Payout status — Owner + Manager only */}
+                    {config.canViewRpm && (() => {
                       const pc = h.payoutStatus === "on_time" ? "#4ADE80" : h.payoutStatus === "pending" ? "#FBBF24" : "#EF4444";
                       const pl = h.payoutStatus === "on_time" ? "✓ Paid" : h.payoutStatus === "pending" ? "⏳ Pending" : "⊘ On Hold";
                       return (
