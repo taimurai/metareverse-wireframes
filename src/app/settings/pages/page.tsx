@@ -899,23 +899,6 @@ export default function PageSettings() {
                             })()}
                           </div>
 
-                          {/* Approval mode */}
-                          <div className="flex items-center gap-2 px-3 py-2.5 border-t" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}>
-                            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Type</span>
-                            <div className="flex gap-1.5 ml-auto">
-                              {(["single", "multi"] as const).map(mode => (
-                                <button key={mode} onClick={() => update("approvalMode", mode)}
-                                  className="text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-all"
-                                  style={{
-                                    backgroundColor: selected.approvalMode === mode ? "var(--primary)" : "var(--surface-hover)",
-                                    color: selected.approvalMode === mode ? "white" : "var(--text-muted)",
-                                  }}>
-                                  {mode === "single" ? "Any approver" : "All must approve"}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
                           {/* Auto-publish toggle */}
                           <div className="flex items-center justify-between px-3 py-2.5 border-t" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}>
                             <div>
