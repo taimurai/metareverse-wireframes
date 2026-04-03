@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Header from "@/components/Header";
+import { BATCH_CONFIG } from "@/contexts/RoleContext";
 
 interface PostingId {
   connId: string;
@@ -548,6 +549,12 @@ export default function PageSettings() {
   // Local editable state for the selected page
   const [editState, setEditState] = useState<Partial<PageData>>({});
 
+  // Per-page direct assignments (page id → array of member names)
+  const [directAssignments, setDirectAssignments] = useState<Record<string, string[]>>({
+    lc: ["Fatima Ali"],
+  });
+  const [showAddMember, setShowAddMember] = useState(false);
+
   const basePage = PAGES_DATA.find(p => p.id === selectedPageId);
   const selected = basePage ? { ...basePage, ...editState } : null;
 
@@ -919,6 +926,127 @@ export default function PageSettings() {
                       )}
                     </div>
                   </div>
+
+                  {/* ── Page Team ── */}
+                  {(() => {
+                    const ALL_TEAM = [
+                      { name: "Taimur Asghar", initials: "TA", color: "#FF6B2B", roles: ["owner"],               batches: ["all"] },
+                      { name: "Sarah Khan",     initials: "SK", color: "#8B5CF6", roles: ["publisher","approver"], batches: ["batch-a"] },
+                      { name: "Ahmed Raza",     initials: "AR", color: "#14B8A6", roles: ["publisher"],            batches: ["batch-b"] },
+                      { name: "Nida Jafri",     initials: "NJ", color: "#6366F1", roles: ["analyst"],              batches: ["batch-b"] },
+                      { name: "Aisha Siddiqui", initials: "AS", color: "#0EA5E9", roles: ["manager","publisher"],  batches: ["batch-c"] },
+                      { name: "Fatima Ali",     initials: "FA", color: "#EC4899", roles: ["publisher"],            batches: ["batch-a","batch-b"] },
+                    ];
+                    // Find which batch this page belongs to
+                    const pageBatch = Object.entries(BATCH_CONFIG).find(([id, cfg]) => id !== "all" && cfg.pages.includes(selected.id));
+                    const batchId = pageBatch?.[0];
+                    const batchLabel = pageBatch?.[1].label ?? "All Batches";
+                    const batchColor = pageBatch?.[1].color ?? "#FF6B2B";
+                    // Members inherited from batch
+                    const inheritedMembers = ALL_TEAM.filter(m => m.batches.includes("all") || (batchId && m.batches.includes(batchId)));
+                    // Directly assigned members
+                    const directNames = directAssignments[selected.id] ?? [];
+                    const directMembers = ALL_TEAM.filter(m => directNames.includes(m.name));
+                    // Members available to add (not already inherited or direct)
+                    const available = ALL_TEAM.filter(m => !inheritedMembers.includes(m) && !directMembers.includes(m));
+
+                    return (
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: "var(--text-muted)" }}>Page Team</div>
+                        <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+                          {/* Inherited from batch */}
+                          <div className="px-3 py-2.5" style={{ backgroundColor: "var(--bg)" }}>
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>From Batch</span>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${batchColor}20`, color: batchColor }}>{batchLabel}</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              {inheritedMembers.map(m => (
+                                <div key={m.name} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg" style={{ backgroundColor: "var(--surface-hover)" }}>
+                                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ backgroundColor: m.color }}>{m.initials}</div>
+                                  <span className="text-[12px] flex-1" style={{ color: "var(--text)" }}>{m.name}</span>
+                                  <div className="flex gap-1">
+                                    {m.roles.map(r => (
+                                      <span key={r} className="text-[9px] font-semibold px-1.5 py-0.5 rounded capitalize" style={{ backgroundColor: "var(--surface)", color: "var(--text-muted)" }}>{r}</span>
+                                    ))}
+                                  </div>
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--surface)", color: "var(--text-muted)" }}>inherited</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Directly assigned */}
+                          {directMembers.length > 0 && (
+                            <div className="px-3 py-2.5 border-t" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}>
+                              <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Direct Access</div>
+                              <div className="flex flex-col gap-1">
+                                {directMembers.map(m => (
+                                  <div key={m.name} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg" style={{ backgroundColor: "rgba(255,107,43,0.06)", border: "1px solid rgba(255,107,43,0.15)" }}>
+                                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ backgroundColor: m.color }}>{m.initials}</div>
+                                    <span className="text-[12px] flex-1" style={{ color: "var(--text)" }}>{m.name}</span>
+                                    <div className="flex gap-1">
+                                      {m.roles.map(r => (
+                                        <span key={r} className="text-[9px] font-semibold px-1.5 py-0.5 rounded capitalize" style={{ backgroundColor: "var(--surface)", color: "var(--text-muted)" }}>{r}</span>
+                                      ))}
+                                    </div>
+                                    <button
+                                      onClick={() => setDirectAssignments(prev => ({ ...prev, [selected.id]: (prev[selected.id] ?? []).filter(n => n !== m.name) }))}
+                                      className="text-[10px] px-1.5 py-0.5 rounded transition-all hover:opacity-80"
+                                      style={{ color: "var(--error)", backgroundColor: "rgba(239,68,68,0.1)" }}>
+                                      Remove
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Add directly */}
+                          <div className="px-3 py-2.5 border-t" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}>
+                            {!showAddMember ? (
+                              <button
+                                onClick={() => setShowAddMember(true)}
+                                className="flex items-center gap-1.5 text-[11px] font-semibold transition-all hover:opacity-80"
+                                style={{ color: "var(--primary)" }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add directly to this page
+                              </button>
+                            ) : (
+                              <div>
+                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Add Member</div>
+                                {available.length === 0 ? (
+                                  <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>All team members already have access to this page.</p>
+                                ) : (
+                                  <div className="flex flex-col gap-1">
+                                    {available.map(m => (
+                                      <button
+                                        key={m.name}
+                                        onClick={() => {
+                                          setDirectAssignments(prev => ({ ...prev, [selected.id]: [...(prev[selected.id] ?? []), m.name] }));
+                                          setShowAddMember(false);
+                                        }}
+                                        className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-all hover:opacity-80"
+                                        style={{ backgroundColor: "var(--surface-hover)" }}>
+                                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ backgroundColor: m.color }}>{m.initials}</div>
+                                        <span className="text-[12px] flex-1" style={{ color: "var(--text)" }}>{m.name}</span>
+                                        <div className="flex gap-1">
+                                          {m.roles.map(r => (
+                                            <span key={r} className="text-[9px] font-semibold px-1.5 py-0.5 rounded capitalize" style={{ backgroundColor: "var(--surface)", color: "var(--text-muted)" }}>{r}</span>
+                                          ))}
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                                <button onClick={() => setShowAddMember(false)} className="mt-2 text-[11px]" style={{ color: "var(--text-muted)" }}>Cancel</button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* ── Posting Schedule ── */}
                   <div>
