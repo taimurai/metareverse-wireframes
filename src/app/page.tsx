@@ -614,7 +614,7 @@ export default function Dashboard() {
 
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
         {/* Header */}
-        <div className="grid items-center px-4 py-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", backgroundColor: "var(--surface)", gridTemplateColumns: "36px 200px 1fr 90px 90px 90px 80px 60px" }}>
+        <div className="grid items-center px-4 py-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", backgroundColor: "var(--surface)", gridTemplateColumns: config.canViewRpm ? "36px 200px 1fr 90px 90px 90px 80px 60px" : "36px 200px 1fr 90px 90px 80px 60px" }}>
           <div>
             <input
               type="checkbox"
@@ -629,13 +629,13 @@ export default function Dashboard() {
           </div>
           <div>Page</div>
           <div>Revenue</div>
-          <div className="group/rpmcol relative cursor-help">
+          {config.canViewRpm && <div className="group/rpmcol relative cursor-help">
             RPM
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline ml-0.5 -mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             <span className="absolute left-0 top-full mt-1 w-[220px] p-2.5 rounded-lg text-[10px] font-normal normal-case tracking-normal leading-relaxed hidden group-hover/rpmcol:block z-50 shadow-xl" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
               (Earnings ÷ Monetized Views) × 1,000. From Meta Content Monetization API.
             </span>
-          </div>
+          </div>}
           <div>Views (7d)</div>
           <div>Queue (24h)</div>
           <div>Token</div>
@@ -650,7 +650,7 @@ export default function Dashboard() {
               key={page.id}
               className="grid items-center px-4 py-3 border-t cursor-pointer transition-all"
               style={{
-                gridTemplateColumns: "36px 200px 1fr 90px 90px 90px 80px 60px",
+                gridTemplateColumns: config.canViewRpm ? "36px 200px 1fr 90px 90px 90px 80px 60px" : "36px 200px 1fr 90px 90px 80px 60px",
                 borderColor: "var(--border)",
                 backgroundColor: isSelected ? "rgba(255,107,43,0.06)" : page.status === "critical" ? "var(--error-bg)" : "var(--surface)",
               }}
@@ -702,15 +702,15 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* RPM */}
-              <div>
+              {/* RPM — Owner + Manager only */}
+              {config.canViewRpm && <div>
                 <span className="text-[12px] font-medium" style={{ color: "var(--text)" }}>{page.rpm > 0 ? `$${page.rpm.toFixed(2)}` : "—"}</span>
                 {page.rpmChange !== 0 && page.rpm > 0 && (
                   <div className="text-[10px]" style={{ color: page.rpmChange > 0 ? "var(--success)" : "var(--error)" }}>
                     {page.rpmChange > 0 ? "↑" : "↓"}{Math.abs(page.rpmChange)}%
                   </div>
                 )}
-              </div>
+              </div>}
 
               {/* Views */}
               <div>
