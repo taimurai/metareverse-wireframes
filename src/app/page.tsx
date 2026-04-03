@@ -614,7 +614,13 @@ export default function Dashboard() {
 
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
         {/* Header */}
-        <div className="grid items-center px-4 py-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", backgroundColor: "var(--surface)", gridTemplateColumns: config.canViewRpm ? "36px 200px 1fr 90px 90px 90px 80px 60px" : "36px 200px 1fr 90px 90px 80px 60px" }}>
+        <div className="grid items-center px-4 py-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)", backgroundColor: "var(--surface)", gridTemplateColumns: (() => {
+                const cols = ["36px", "200px"];
+                if (config.canViewRevenue) cols.push("1fr");
+                if (config.canViewRpm) cols.push("90px");
+                cols.push("90px", "90px", "80px", "60px");
+                return cols.join(" ");
+              })() }}>
           <div>
             <input
               type="checkbox"
@@ -628,7 +634,7 @@ export default function Dashboard() {
             />
           </div>
           <div>Page</div>
-          <div>Revenue</div>
+          {config.canViewRevenue && <div>Revenue</div>}
           {config.canViewRpm && <div className="group/rpmcol relative cursor-help">
             RPM
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline ml-0.5 -mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
@@ -650,7 +656,13 @@ export default function Dashboard() {
               key={page.id}
               className="grid items-center px-4 py-3 border-t cursor-pointer transition-all"
               style={{
-                gridTemplateColumns: config.canViewRpm ? "36px 200px 1fr 90px 90px 90px 80px 60px" : "36px 200px 1fr 90px 90px 80px 60px",
+                gridTemplateColumns: (() => {
+                const cols = ["36px", "200px"];
+                if (config.canViewRevenue) cols.push("1fr");
+                if (config.canViewRpm) cols.push("90px");
+                cols.push("90px", "90px", "80px", "60px");
+                return cols.join(" ");
+              })(),
                 borderColor: "var(--border)",
                 backgroundColor: isSelected ? "rgba(255,107,43,0.06)" : page.status === "critical" ? "var(--error-bg)" : "var(--surface)",
               }}
@@ -684,8 +696,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Revenue bar */}
-              <div className="flex items-center gap-3 pr-4">
+              {/* Revenue bar — Owner only */}
+              {config.canViewRevenue && <div className="flex items-center gap-3 pr-4">
                 <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: "var(--bg)" }}>
                   <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((page.revenue / 5000) * 100, 100)}%`, backgroundColor: page.revenue > 0 ? page.color : "transparent" }} />
                 </div>
@@ -700,7 +712,7 @@ export default function Dashboard() {
                     <div className="text-[9px]" style={{ color: "var(--warning)" }}>Not enrolled</div>
                   )}
                 </div>
-              </div>
+              </div>}
 
               {/* RPM — Owner + Manager only */}
               {config.canViewRpm && <div>
@@ -810,18 +822,23 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* === SECTION 5: TOP & BOTTOM EARNERS === */}
+      {/* === SECTION 5: TOP PERFORMERS + DECLINING === */}
       <div className="grid grid-cols-2 gap-3 mt-5" style={{ marginBottom: selectedTablePages.size > 0 ? "60px" : undefined }}>
-        {/* Top earners */}
+        {/* Top performers */}
         <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Top Earners This Week</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Top Performers This Week</span>
           <div className="space-y-3 mt-3">
-            {[...ALL_PAGES].filter(p => p.revenue > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 5).map((page, i) => (
+            {[...ALL_PAGES].sort((a, b) => b.views7d - a.views7d).slice(0, 5).map((page, i) => (
               <div key={page.id} className="flex items-center gap-3">
                 <span className="text-[14px] font-bold w-5" style={{ color: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "var(--text-muted)" }}>{i + 1}</span>
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: page.color }}>{page.avatar}</div>
                 <span className="text-[12px] font-medium flex-1" style={{ color: "var(--text)" }}>{page.name}</span>
-                <span className="text-[13px] font-bold" style={{ color: "var(--success)" }}>${page.revenue.toLocaleString()}</span>
+                <div className="text-right">
+                  <div className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{formatNum(page.views7d)} views</div>
+                  {config.canViewRevenue && page.revenue > 0 && (
+                    <div className="text-[11px] font-medium" style={{ color: "var(--success)" }}>${page.revenue.toLocaleString()}</div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -838,10 +855,14 @@ export default function Dashboard() {
               <div key={page.id} className="flex items-center gap-3">
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: page.color }}>{page.avatar}</div>
                 <span className="text-[12px] font-medium flex-1" style={{ color: "var(--text)" }}>{page.name}</span>
-                <span className="text-[12px] font-semibold" style={{ color: "var(--error)" }}>↓ {Math.abs(page.viewsChange)}% views</span>
-                <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                  RPM {page.rpmChange >= 0 ? <span style={{ color: "var(--success)" }}>↑{page.rpmChange}%</span> : <span style={{ color: "var(--error)" }}>↓{Math.abs(page.rpmChange)}%</span>}
-                </span>
+                <div className="text-right">
+                  <div className="text-[12px] font-semibold" style={{ color: "var(--error)" }}>↓ {Math.abs(page.viewsChange)}% views</div>
+                  {config.canViewRpm && (
+                    <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                      RPM {page.rpmChange >= 0 ? <span style={{ color: "var(--success)" }}>↑{page.rpmChange}%</span> : <span style={{ color: "var(--error)" }}>↓{Math.abs(page.rpmChange)}%</span>}
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
             {ALL_PAGES.filter(p => p.viewsChange < 0).length === 0 && (
