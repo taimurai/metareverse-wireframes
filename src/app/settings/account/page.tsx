@@ -3,8 +3,25 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import { ROLE_CONFIG, BATCH_CONFIG, type Role, type BatchId } from "@/contexts/RoleContext";
 
+type Member = { name: string; email: string; roles: Role[]; batches: BatchId[]; status: "active"|"pending"; lastActive: string };
+
+const INITIAL_MEMBERS: Member[] = [
+  { name: "Taimur Asghar",  email: "taimur@metareverse.com", roles: ["owner"],               batches: ["all"],               status: "active",  lastActive: "Now" },
+  { name: "Sarah Khan",     email: "sarah@partner-a.com",    roles: ["publisher","approver"], batches: ["batch-a"],           status: "active",  lastActive: "3 hours ago" },
+  { name: "Ahmed Raza",     email: "ahmed@partner-b.com",    roles: ["publisher"],            batches: ["batch-b"],           status: "active",  lastActive: "1 day ago" },
+  { name: "Nida Jafri",    email: "nida@partner-b.com",      roles: ["analyst"],              batches: ["batch-b"],           status: "active",  lastActive: "5 hours ago" },
+  { name: "Aisha Siddiqui",email: "aisha@partner-c.com",    roles: ["manager","publisher"],  batches: ["batch-c"],           status: "active",  lastActive: "2 days ago" },
+  { name: "Fatima Ali",    email: "fatima@team.com",          roles: ["publisher"],            batches: ["batch-a","batch-b"], status: "pending", lastActive: "Invited" },
+];
+
 export default function AccountSettings() {
   const [activeTab, setActiveTab] = useState<"profile" | "team" | "billing">("profile");
+  const [teamMembers, setTeamMembers] = useState<Member[]>(INITIAL_MEMBERS);
+  const [expandedMember, setExpandedMember] = useState<string | null>(null);
+  const [draftEdits, setDraftEdits] = useState<Record<string, { roles: Role[]; batches: BatchId[] }>>({});
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ name: "", email: "", roles: [] as Role[], batches: [] as BatchId[] });
+  const [savedToast, setSavedToast] = useState<string | null>(null);
 
   const tabs = [
     { id: "profile" as const, label: "Profile" },
@@ -12,16 +29,45 @@ export default function AccountSettings() {
     { id: "billing" as const, label: "Billing & Plan" },
   ];
 
-  const [expandedMember, setExpandedMember] = useState<string | null>(null);
+  const showToast = (msg: string) => { setSavedToast(msg); setTimeout(() => setSavedToast(null), 2500); };
 
-  const teamMembers: { name: string; email: string; roles: Role[]; batches: BatchId[]; status: "active"|"pending"; lastActive: string }[] = [
-    { name: "Taimur Asghar", email: "taimur@metareverse.com", roles: ["owner"],                    batches: ["all"],                            status: "active",  lastActive: "Now" },
-    { name: "Sarah Khan",    email: "sarah@partner-a.com",    roles: ["publisher","approver"],      batches: ["batch-a"],                        status: "active",  lastActive: "3 hours ago" },
-    { name: "Ahmed Raza",    email: "ahmed@partner-b.com",    roles: ["publisher"],                 batches: ["batch-b"],                        status: "active",  lastActive: "1 day ago" },
-    { name: "Nida Jafri",   email: "nida@partner-b.com",     roles: ["analyst"],                   batches: ["batch-b"],                        status: "active",  lastActive: "5 hours ago" },
-    { name: "Aisha Siddiqui",email: "aisha@partner-c.com",   roles: ["manager","publisher"],       batches: ["batch-c"],                        status: "active",  lastActive: "2 days ago" },
-    { name: "Fatima Ali",   email: "fatima@team.com",         roles: ["publisher"],                 batches: ["batch-a","batch-b"],              status: "pending", lastActive: "Invited" },
-  ];
+  const getDraft = (email: string, member: Member) =>
+    draftEdits[email] ?? { roles: member.roles, batches: member.batches };
+
+  const updateDraft = (email: string, member: Member, field: "roles" | "batches", value: Role[] | BatchId[]) => {
+    const current = getDraft(email, member);
+    setDraftEdits(prev => ({ ...prev, [email]: { ...current, [field]: value } }));
+  };
+
+  const saveMember = (email: string) => {
+    const draft = draftEdits[email];
+    if (!draft) return;
+    setTeamMembers(prev => prev.map(m => m.email === email ? { ...m, ...draft } : m));
+    setDraftEdits(prev => { const n = { ...prev }; delete n[email]; return n; });
+    setExpandedMember(null);
+    showToast("Changes saved");
+  };
+
+  const removeMember = (email: string) => {
+    setTeamMembers(prev => prev.filter(m => m.email !== email));
+    setExpandedMember(null);
+    showToast("Member removed");
+  };
+
+  const resendInvite = (email: string) => showToast(`Invite resent to ${email}`);
+
+  const cancelInvite = (email: string) => {
+    setTeamMembers(prev => prev.filter(m => m.email !== email));
+    showToast("Invite cancelled");
+  };
+
+  const sendInvite = () => {
+    if (!inviteForm.name || !inviteForm.email || inviteForm.roles.length === 0 || inviteForm.batches.length === 0) return;
+    setTeamMembers(prev => [...prev, { ...inviteForm, status: "pending", lastActive: "Invited" }]);
+    setInviteForm({ name: "", email: "", roles: [], batches: [] });
+    setShowInviteModal(false);
+    showToast(`Invite sent to ${inviteForm.email}`);
+  };
 
   return (
     <div className="flex flex-col">
@@ -122,20 +168,30 @@ export default function AccountSettings() {
           {/* Team Tab */}
           {activeTab === "team" && (
             <div className="space-y-6">
+              {/* Toast */}
+              {savedToast && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl text-sm font-medium text-white shadow-xl" style={{ backgroundColor: "#1A1A2E", border: "1px solid var(--border)" }}>
+                  ✓ {savedToast}
+                </div>
+              )}
+
               {/* Members list */}
               <div className="rounded-xl border" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
                 <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--border)" }}>
                   <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Team Members ({teamMembers.length})</div>
-                  <button className="px-3 py-2 rounded-lg text-sm font-semibold text-white" style={{ backgroundColor: "var(--primary)" }}>
+                  <button onClick={() => setShowInviteModal(true)} className="px-3 py-2 rounded-lg text-sm font-semibold text-white" style={{ backgroundColor: "var(--primary)" }}>
                     + Invite Member
                   </button>
                 </div>
                 <div className="divide-y" style={{ borderColor: "var(--border)" }}>
                   {teamMembers.map(m => {
                     const isExpanded = expandedMember === m.email;
+                    const isOwner = m.roles[0] === "owner";
+                    const isYou = m.email === "taimur@metareverse.com";
                     const initials = m.name.split(" ").map(n => n[0]).join("");
-                    const primaryRole = m.roles[0];
-                    const primaryColor = ROLE_CONFIG[primaryRole].color;
+                    const primaryColor = ROLE_CONFIG[m.roles[0]].color;
+                    const draft = getDraft(m.email, m);
+                    const hasDraft = !!draftEdits[m.email];
                     return (
                       <div key={m.email}>
                         <div className="flex items-center gap-4 px-6 py-4">
@@ -145,8 +201,8 @@ export default function AccountSettings() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-medium" style={{ color: "var(--text)" }}>{m.name}</span>
+                              {isYou && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: "rgba(255,107,43,0.15)", color: "var(--primary)" }}>You</span>}
                               {m.status === "pending" && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "rgba(251,191,36,0.15)", color: "#FBBF24" }}>Pending</span>}
-                              {/* Role pills */}
                               {m.roles.map(r => (
                                 <span key={r} className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${ROLE_CONFIG[r].color}18`, color: ROLE_CONFIG[r].color }}>
                                   {ROLE_CONFIG[r].label}
@@ -163,56 +219,76 @@ export default function AccountSettings() {
                             </div>
                           </div>
                           <span className="text-[11px] flex-shrink-0" style={{ color: "var(--text-muted)" }}>{m.lastActive}</span>
-                          {m.roles[0] !== "owner" && (
+                          {m.status === "pending" ? (
+                            <div className="flex gap-1.5">
+                              <button onClick={() => resendInvite(m.email)} className="text-[11px] px-2.5 py-1.5 rounded-lg font-medium" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>Resend</button>
+                              <button onClick={() => cancelInvite(m.email)} className="text-[11px] px-2.5 py-1.5 rounded-lg font-medium" style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "#EF4444" }}>Cancel</button>
+                            </div>
+                          ) : !isOwner && !isYou && (
                             <button onClick={() => setExpandedMember(isExpanded ? null : m.email)}
                               className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                              style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>
+                              style={{ backgroundColor: hasDraft ? "rgba(255,107,43,0.12)" : "var(--surface-hover)", color: hasDraft ? "var(--primary)" : "var(--text-muted)" }}>
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}><polyline points="6 9 12 15 18 9"/></svg>
                             </button>
                           )}
                         </div>
-                        {/* Expanded: edit roles + batch */}
+                        {/* Expanded edit panel */}
                         {isExpanded && (
-                          <div className="px-6 pb-4 border-t" style={{ borderColor: "var(--border)", backgroundColor: "rgba(0,0,0,0.15)" }}>
+                          <div className="px-6 pb-5 border-t" style={{ borderColor: "var(--border)", backgroundColor: "rgba(0,0,0,0.15)" }}>
                             <div className="grid grid-cols-2 gap-6 pt-4">
+                              {/* Roles */}
                               <div>
                                 <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Roles (select all that apply)</div>
                                 <div className="space-y-1.5">
                                   {(["manager","publisher","approver","analyst"] as Role[]).map(r => {
-                                    const active = m.roles.includes(r);
+                                    const active = draft.roles.includes(r);
+                                    const toggle = () => {
+                                      const next = active ? draft.roles.filter(x => x !== r) : [...draft.roles, r];
+                                      if (next.length > 0) updateDraft(m.email, m, "roles", next);
+                                    };
                                     return (
-                                      <div key={r} className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer" style={{ backgroundColor: active ? `${ROLE_CONFIG[r].color}15` : "var(--surface-hover)" }}>
+                                      <button key={r} onClick={toggle} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left" style={{ backgroundColor: active ? `${ROLE_CONFIG[r].color}15` : "var(--surface-hover)" }}>
                                         <div className="w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0" style={{ borderColor: active ? ROLE_CONFIG[r].color : "var(--border)", backgroundColor: active ? ROLE_CONFIG[r].color : "transparent" }}>
                                           {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
                                         </div>
                                         <span className="text-[12px] font-medium" style={{ color: active ? ROLE_CONFIG[r].color : "var(--text-secondary)" }}>{ROLE_CONFIG[r].label}</span>
                                         <span className="text-[10px] ml-auto" style={{ color: "var(--text-muted)" }}>
-                                          {r === "publisher" ? "Upload & schedule" : r === "approver" ? "Review posts" : r === "manager" ? "Manage pages" : "View reports"}
+                                          {r === "publisher" ? "Upload & schedule" : r === "approver" ? "Review posts" : r === "manager" ? "Manage pages & team" : "View reports"}
                                         </span>
-                                      </div>
+                                      </button>
                                     );
                                   })}
                                 </div>
                               </div>
+                              {/* Batch access */}
                               <div>
                                 <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Batch Access</div>
                                 <div className="space-y-1.5">
                                   {(["batch-a","batch-b","batch-c"] as BatchId[]).map(b => {
-                                    const active = m.batches.includes(b);
+                                    const active = draft.batches.includes(b);
+                                    const toggle = () => {
+                                      const next = active ? draft.batches.filter(x => x !== b) : [...draft.batches, b];
+                                      if (next.length > 0) updateDraft(m.email, m, "batches", next as BatchId[]);
+                                    };
                                     return (
-                                      <div key={b} className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer" style={{ backgroundColor: active ? `${BATCH_CONFIG[b].color}12` : "var(--surface-hover)" }}>
+                                      <button key={b} onClick={toggle} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left" style={{ backgroundColor: active ? `${BATCH_CONFIG[b].color}12` : "var(--surface-hover)" }}>
                                         <div className="w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0" style={{ borderColor: active ? BATCH_CONFIG[b].color : "var(--border)", backgroundColor: active ? BATCH_CONFIG[b].color : "transparent" }}>
                                           {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
                                         </div>
                                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: BATCH_CONFIG[b].color }} />
                                         <span className="text-[12px]" style={{ color: active ? BATCH_CONFIG[b].color : "var(--text-secondary)" }}>{BATCH_CONFIG[b].label}</span>
-                                      </div>
+                                      </button>
                                     );
                                   })}
                                 </div>
-                                <button className="mt-3 w-full py-2 rounded-lg text-[12px] font-semibold text-white" style={{ backgroundColor: "var(--primary)" }}>
-                                  Save Changes
-                                </button>
+                                <div className="flex gap-2 mt-3">
+                                  <button onClick={() => saveMember(m.email)} className="flex-1 py-2 rounded-lg text-[12px] font-semibold text-white" style={{ backgroundColor: "var(--primary)" }}>
+                                    Save Changes
+                                  </button>
+                                  <button onClick={() => { removeMember(m.email); }} className="px-3 py-2 rounded-lg text-[12px] font-semibold" style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "#EF4444" }}>
+                                    Remove
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -261,6 +337,78 @@ export default function AccountSettings() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Invite Modal */}
+          {showInviteModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+              <div className="w-[480px] rounded-2xl p-6 shadow-2xl" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-[16px] font-semibold" style={{ color: "var(--text)" }}>Invite Team Member</h2>
+                  <button onClick={() => setShowInviteModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-semibold uppercase tracking-wider block mb-1.5" style={{ color: "var(--text-muted)" }}>Full Name</label>
+                      <input value={inviteForm.name} onChange={e => setInviteForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Zara Ahmed" className="w-full px-3 py-2.5 rounded-lg text-sm outline-0 border-0" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text)" }} />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold uppercase tracking-wider block mb-1.5" style={{ color: "var(--text-muted)" }}>Email</label>
+                      <input value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} placeholder="zara@team.com" type="email" className="w-full px-3 py-2.5 rounded-lg text-sm outline-0 border-0" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text)" }} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider block mb-2" style={{ color: "var(--text-muted)" }}>Roles</label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {(["manager","publisher","approver","analyst"] as Role[]).map(r => {
+                        const active = inviteForm.roles.includes(r);
+                        return (
+                          <button key={r} onClick={() => setInviteForm(f => ({ ...f, roles: active ? f.roles.filter(x => x !== r) : [...f.roles, r] }))}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-left"
+                            style={{ backgroundColor: active ? `${ROLE_CONFIG[r].color}15` : "var(--surface-hover)", border: `1px solid ${active ? `${ROLE_CONFIG[r].color}40` : "transparent"}` }}>
+                            <div className="w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0" style={{ borderColor: active ? ROLE_CONFIG[r].color : "var(--border)", backgroundColor: active ? ROLE_CONFIG[r].color : "transparent" }}>
+                              {active && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                            </div>
+                            <span className="text-[12px] font-medium" style={{ color: active ? ROLE_CONFIG[r].color : "var(--text-secondary)" }}>{ROLE_CONFIG[r].label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider block mb-2" style={{ color: "var(--text-muted)" }}>Batch Access</label>
+                    <div className="space-y-1.5">
+                      {(["batch-a","batch-b","batch-c"] as BatchId[]).map(b => {
+                        const active = inviteForm.batches.includes(b);
+                        return (
+                          <button key={b} onClick={() => setInviteForm(f => ({ ...f, batches: active ? f.batches.filter(x => x !== b) : [...f.batches, b] as BatchId[] }))}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left"
+                            style={{ backgroundColor: active ? `${BATCH_CONFIG[b].color}12` : "var(--surface-hover)", border: `1px solid ${active ? `${BATCH_CONFIG[b].color}30` : "transparent"}` }}>
+                            <div className="w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0" style={{ borderColor: active ? BATCH_CONFIG[b].color : "var(--border)", backgroundColor: active ? BATCH_CONFIG[b].color : "transparent" }}>
+                              {active && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                            </div>
+                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: BATCH_CONFIG[b].color }} />
+                            <span className="text-[12px]" style={{ color: active ? BATCH_CONFIG[b].color : "var(--text-secondary)" }}>{BATCH_CONFIG[b].label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={() => setShowInviteModal(false)} className="flex-1 py-2.5 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>Cancel</button>
+                    <button onClick={sendInvite}
+                      disabled={!inviteForm.name || !inviteForm.email || inviteForm.roles.length === 0 || inviteForm.batches.length === 0}
+                      className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-40"
+                      style={{ backgroundColor: "var(--primary)" }}>
+                      Send Invite
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

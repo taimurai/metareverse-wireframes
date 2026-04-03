@@ -16,7 +16,7 @@ export const ROLE_CONFIG: Record<Role, {
   canViewSettings: boolean;
 }> = {
   owner:     { label: "Owner",     color: "#FF6B2B", canViewRevenue: true,  canViewRpm: true,  canManageTeam: true,  canManagePages: true,  canApprove: true,  canPublish: true,  canViewSettings: true  },
-  manager:   { label: "Manager",   color: "#4ADE80", canViewRevenue: false, canViewRpm: true,  canManageTeam: false, canManagePages: true,  canApprove: true,  canPublish: true,  canViewSettings: true  },
+  manager:   { label: "Manager",   color: "#4ADE80", canViewRevenue: false, canViewRpm: true,  canManageTeam: true, canManagePages: true,  canApprove: true,  canPublish: true,  canViewSettings: true  },
   publisher: { label: "Publisher", color: "#3B82F6", canViewRevenue: false, canViewRpm: false, canManageTeam: false, canManagePages: false, canApprove: false, canPublish: true,  canViewSettings: false },
   approver:  { label: "Approver",  color: "#FBBF24", canViewRevenue: false, canViewRpm: false, canManageTeam: false, canManagePages: false, canApprove: true,  canPublish: false, canViewSettings: false },
   analyst:   { label: "Analyst",   color: "#6366F1", canViewRevenue: false, canViewRpm: false, canManageTeam: false, canManagePages: false, canApprove: false, canPublish: false, canViewSettings: false },
