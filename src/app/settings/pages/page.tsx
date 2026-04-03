@@ -855,7 +855,7 @@ export default function PageSettings() {
                           <span className="text-[12px] font-medium" style={{ color: "var(--text)" }}>Require Approval</span>
                           <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
                             {selected.approvalRequired
-                              ? `Posts need approval before publishing · ${selected.approvers.length} approver${selected.approvers.length !== 1 ? "s" : ""}`
+                              ? "Posts need approval before publishing"
                               : "Posts go directly to queue without review"}
                           </p>
                         </div>
@@ -864,39 +864,39 @@ export default function PageSettings() {
 
                       {selected.approvalRequired && (
                         <>
-                          {/* Approvers */}
+                          {/* Approvers — read-only, inherited from Page Team */}
                           <div className="px-3 py-3 border-t" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Approvers</p>
-                            <div className="flex flex-col gap-1.5">
-                              {["Taimur Asghar", "Sarah Khan", "Ahmed Raza"].map(person => {
-                                const isApprover = selected.approvers.includes(person);
-                                return (
-                                  <button
-                                    key={person}
-                                    onClick={() => {
-                                      const next = isApprover
-                                        ? selected.approvers.filter(a => a !== person)
-                                        : [...selected.approvers, person];
-                                      update("approvers", next);
-                                    }}
-                                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-left"
-                                    style={{
-                                      backgroundColor: isApprover ? "rgba(255,107,43,0.08)" : "var(--surface-hover)",
-                                      border: `1px solid ${isApprover ? "rgba(255,107,43,0.25)" : "transparent"}`,
-                                    }}>
-                                    <div className="w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0"
-                                      style={{ backgroundColor: isApprover ? "var(--primary)" : "transparent", borderColor: isApprover ? "var(--primary)" : "var(--border)" }}>
-                                      {isApprover && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
-                                    </div>
-                                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0"
-                                      style={{ backgroundColor: person === "Taimur Asghar" ? "#FF6B2B" : person === "Sarah Khan" ? "#8B5CF6" : "#14B8A6" }}>
-                                      {person.split(" ").map(n => n[0]).join("")}
-                                    </div>
-                                    <span className="text-[12px]" style={{ color: isApprover ? "var(--text)" : "var(--text-secondary)" }}>{person}</span>
-                                  </button>
-                                );
-                              })}
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Approvers</p>
+                              <a href="/settings/account" className="text-[10px] font-medium" style={{ color: "var(--primary)" }}>Manage in Team Settings →</a>
                             </div>
+                            {(() => {
+                              const ALL_TEAM = [
+                                { name: "Taimur Asghar", initials: "TA", color: "#FF6B2B", roles: ["owner"] },
+                                { name: "Sarah Khan",    initials: "SK", color: "#8B5CF6", roles: ["publisher","approver"] },
+                                { name: "Ahmed Raza",    initials: "AR", color: "#14B8A6", roles: ["publisher"] },
+                                { name: "Aisha Siddiqui",initials: "AS", color: "#0EA5E9", roles: ["manager","publisher"] },
+                              ];
+                              const approvers = ALL_TEAM.filter(m => m.roles.includes("owner") || m.roles.includes("manager") || m.roles.includes("approver"));
+                              return approvers.length > 0 ? (
+                                <div className="flex flex-col gap-1">
+                                  {approvers.map(m => (
+                                    <div key={m.name} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg" style={{ backgroundColor: "var(--surface-hover)" }}>
+                                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ backgroundColor: m.color }}>{m.initials}</div>
+                                      <span className="text-[12px] flex-1" style={{ color: "var(--text)" }}>{m.name}</span>
+                                      <div className="flex gap-1">
+                                        {m.roles.filter(r => ["owner","manager","approver"].includes(r)).map(r => (
+                                          <span key={r} className="text-[9px] font-semibold px-1.5 py-0.5 rounded capitalize" style={{ backgroundColor: "var(--surface)", color: "var(--text-muted)" }}>{r}</span>
+                                        ))}
+                                      </div>
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--surface)", color: "var(--text-muted)" }}>inherited</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>No approvers assigned. Add an Approver in Team Settings.</p>
+                              );
+                            })()}
                           </div>
 
                           {/* Approval mode */}
