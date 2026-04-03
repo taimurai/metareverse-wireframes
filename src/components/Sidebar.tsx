@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRole, ROLE_CONFIG, BATCH_CONFIG, type Role, type BatchId } from "@/contexts/RoleContext";
 
 const navItems = [
   {
@@ -72,9 +73,20 @@ const navItems = [
   },
 ];
 
+// Which nav items are visible per role
+const NAV_VISIBILITY: Record<Role, string[]> = {
+  owner:     ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Failed Posts","Reports","Page Settings","Connected IDs","Account"],
+  manager:   ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Failed Posts","Reports","Page Settings","Connected IDs","Account"],
+  publisher: ["Dashboard","Bulk Upload","Single Post","Drafts","Queue"],
+  approver:  ["Dashboard","Approvals","Drafts","Queue"],
+  analyst:   ["Dashboard","Reports"],
+};
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
+  const { role, setRole, batch, setBatch, config, batchConfig } = useRole();
 
   return (
     <aside
@@ -126,7 +138,7 @@ export default function Sidebar() {
               <div className="mx-3 mb-2 border-t" style={{ borderColor: "var(--border-light)" }} />
             )}
             <div className="space-y-0.5">
-              {section.items.map((item: any) => {
+              {section.items.filter((item: any) => NAV_VISIBILITY[role].includes(item.label)).map((item: any) => {
                 const active = pathname === item.href;
                 const hasChildren = item.children && !collapsed;
                 const childActive = item.children?.some((c: any) => pathname === c.href);
@@ -215,6 +227,63 @@ export default function Sidebar() {
           {!collapsed && <span>Collapse</span>}
         </button>
       </div>
+
+      {/* Role Switcher */}
+      {!collapsed && (
+        <div className="px-3 pb-2 pt-1 relative">
+          <div className="text-[9px] font-semibold uppercase tracking-wider mb-1.5 px-1" style={{ color: "var(--text-muted)" }}>Viewing as</div>
+          <button
+            onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg"
+            style={{ backgroundColor: `${config.color}18`, border: `1px solid ${config.color}35` }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: config.color }} />
+              <span className="text-[12px] font-semibold" style={{ color: config.color }}>{config.label}</span>
+              {role !== "owner" && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium truncate max-w-[90px]" style={{ backgroundColor: `${batchConfig.color}20`, color: batchConfig.color }}>
+                  {batchConfig.label.split(" — ")[1] ?? batchConfig.label}
+                </span>
+              )}
+            </div>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: config.color, transform: roleSwitcherOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.15s" }}><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+
+          {roleSwitcherOpen && (
+            <div className="absolute bottom-full left-3 right-3 mb-1 rounded-xl overflow-hidden shadow-2xl z-50" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div className="px-3 py-2 border-b" style={{ borderColor: "var(--border)" }}>
+                <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Switch Role</div>
+              </div>
+              {(Object.entries(ROLE_CONFIG) as [Role, typeof ROLE_CONFIG[Role]][]).map(([r, rc]) => (
+                <button key={r} onClick={() => { setRole(r); setRoleSwitcherOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-all"
+                  style={{ backgroundColor: role === r ? `${rc.color}15` : "transparent" }}
+                  onMouseEnter={e => { if (role !== r) (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-hover)"; }}
+                  onMouseLeave={e => { if (role !== r) (e.currentTarget as HTMLElement).style.backgroundColor = "transparent"; }}>
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: rc.color }} />
+                  <span className="text-[12px] font-medium flex-1" style={{ color: role === r ? rc.color : "var(--text)" }}>{rc.label}</span>
+                  {role === r && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: rc.color }}><polyline points="20 6 9 17 4 12"/></svg>}
+                </button>
+              ))}
+              {role !== "owner" && (
+                <>
+                  <div className="px-3 py-2 border-t" style={{ borderColor: "var(--border)" }}>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>Batch Scope</div>
+                    {(["batch-a","batch-b","batch-c"] as BatchId[]).map(b => (
+                      <button key={b} onClick={() => setBatch(b)}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg mb-0.5 text-left"
+                        style={{ backgroundColor: batch === b ? `${BATCH_CONFIG[b].color}15` : "transparent" }}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: BATCH_CONFIG[b].color }} />
+                        <span className="text-[11px]" style={{ color: batch === b ? BATCH_CONFIG[b].color : "var(--text-secondary)" }}>{BATCH_CONFIG[b].label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* User */}
       <div className="px-3 pb-4 pt-2">

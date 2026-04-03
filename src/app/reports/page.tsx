@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Header from "@/components/Header";
+import { useRole } from "@/contexts/RoleContext";
 import SparklineChart from "@/components/SparklineChart";
 import PlatformSwitcher from "@/components/PlatformSwitcher";
 import PageBatchSelector from "@/components/PageBatchSelector";
@@ -10,6 +11,7 @@ import { useFakeLoading } from "@/hooks/useFakeLoading";
 import ReportsLoading from "./loading";
 
 export default function ReportingOverview() {
+  const { config } = useRole();
   const isLoading = useFakeLoading();
   const [period, setPeriod] = useState<Period>("28d");
   const [platform, setPlatform] = useState<Platform>("facebook");
@@ -51,7 +53,7 @@ export default function ReportingOverview() {
         {[
           { label: "Overview", href: "/reports", active: true },
           { label: "Results", href: "/reports/results", active: false },
-          { label: "Earnings", href: "/reports/earnings", active: false },
+          ...(config.canViewRevenue ? [{ label: "Earnings", href: "/reports/earnings", active: false }] : []),
           { label: "By Posting ID", href: "/reports/id-performance", active: false },
           { label: "Batches", href: "/reports/batches", active: false },
         ].map((tab) => (

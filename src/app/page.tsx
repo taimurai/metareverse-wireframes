@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import Header from "@/components/Header";
+import { useRole } from "@/contexts/RoleContext";
+import { BATCH_CONFIG } from "@/contexts/RoleContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import AlertBanner from "@/components/AlertBanner";
 import ConnectFacebookModal from "@/components/modals/ConnectFacebookModal";
@@ -59,6 +61,7 @@ function formatNum(n: number): string {
 }
 
 export default function Dashboard() {
+  const { role, batch, config } = useRole();
   const isMobile = useIsMobile();
   const isLoading = useFakeLoading();
   const [showTokenBanner, setShowTokenBanner] = useState(true);
@@ -227,6 +230,19 @@ export default function Dashboard() {
         }
       />
 
+      {/* Batch context banner for non-Owner roles */}
+      {role !== "owner" && (
+        <div className="flex items-center gap-3 mb-4 px-4 py-3 rounded-xl border" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: BATCH_CONFIG[batch].color }} />
+          <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
+            Viewing <span className="font-semibold" style={{ color: "var(--text)" }}>{BATCH_CONFIG[batch].label}</span> — {BATCH_CONFIG[batch].pages.length} pages
+          </span>
+          <span className="ml-auto text-[11px] px-2 py-0.5 rounded-md font-semibold" style={{ backgroundColor: "var(--surface-2)", color: "var(--text-muted)" }}>
+            {role.charAt(0).toUpperCase() + role.slice(1)} view
+          </span>
+        </div>
+      )}
+
       {/* === SECTION 1: HERO CARDS === */}
       {/* Period toggle */}
       <div className="flex items-center gap-1 mb-3 p-1 rounded-xl w-fit" style={{ backgroundColor: "var(--surface)" }}>
@@ -239,8 +255,9 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr" }}>
-        {/* Revenue */}
+      <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: config.canViewRevenue ? "1fr 1fr 1fr 1fr" : "1fr 1fr 1fr" }}>
+        {/* Revenue — Owner only */}
+        {config.canViewRevenue && (
         <div className="rounded-xl border p-5 relative overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           <div className="absolute top-0 right-0 w-32 h-full opacity-[0.08]" style={{ background: "radial-gradient(circle at top right, var(--success), transparent 70%)" }} />
           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Revenue — {PERIOD_LABEL[kpiPeriod]}</span>
@@ -250,6 +267,7 @@ export default function Dashboard() {
           </div>
           <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>{kpiPeriod === "28d" ? "28-day total" : kpiPeriod === "7d" ? "$48,392 this month" : "across 7 pages"}</div>
         </div>
+        )}
 
         {/* Portfolio RPM */}
         <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>

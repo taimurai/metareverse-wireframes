@@ -4,6 +4,7 @@ import Sidebar from "@/components/Sidebar";
 import MobileShell from "@/components/MobileShell";
 import DesktopOnlyBanner from "@/components/DesktopOnlyBanner";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { RoleProvider } from "@/contexts/RoleContext";
 
 const AUTH_ROUTES = ["/login", "/signup", "/forgot-password", "/onboarding"];
 
@@ -36,10 +37,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   // Desktop: existing sidebar layout
   if (!isMobile) {
     return (
-      <>
+      <RoleProvider>
         <Sidebar />
         <main className="ml-[250px] min-h-screen p-8 pt-6">{children}</main>
-      </>
+      </RoleProvider>
     );
   }
 
@@ -50,5 +51,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return <DesktopOnlyBanner />;
   }
 
-  return <MobileShell>{children}</MobileShell>;
+  return (
+    <RoleProvider>
+      <MobileShell>{children}</MobileShell>
+    </RoleProvider>
+  );
 }

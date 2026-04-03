@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Header from "@/components/Header";
+import { ROLE_CONFIG, BATCH_CONFIG, type Role, type BatchId } from "@/contexts/RoleContext";
 
 export default function AccountSettings() {
   const [activeTab, setActiveTab] = useState<"profile" | "team" | "billing">("profile");
@@ -11,11 +12,15 @@ export default function AccountSettings() {
     { id: "billing" as const, label: "Billing & Plan" },
   ];
 
-  const teamMembers = [
-    { name: "Taimur Asghar", email: "taimur@metareverse.com", role: "Owner", status: "active", lastActive: "Now" },
-    { name: "Sarah Khan", email: "sarah@partner-a.com", role: "Manager", status: "active", lastActive: "3 hours ago" },
-    { name: "Ahmed Raza", email: "ahmed@partner-b.com", role: "Publisher", status: "active", lastActive: "1 day ago" },
-    { name: "Fatima Ali", email: "fatima@team.com", role: "Viewer", status: "pending", lastActive: "Invited" },
+  const [expandedMember, setExpandedMember] = useState<string | null>(null);
+
+  const teamMembers: { name: string; email: string; roles: Role[]; batches: BatchId[]; status: "active"|"pending"; lastActive: string }[] = [
+    { name: "Taimur Asghar", email: "taimur@metareverse.com", roles: ["owner"],                    batches: ["all"],                            status: "active",  lastActive: "Now" },
+    { name: "Sarah Khan",    email: "sarah@partner-a.com",    roles: ["publisher","approver"],      batches: ["batch-a"],                        status: "active",  lastActive: "3 hours ago" },
+    { name: "Ahmed Raza",    email: "ahmed@partner-b.com",    roles: ["publisher"],                 batches: ["batch-b"],                        status: "active",  lastActive: "1 day ago" },
+    { name: "Nida Jafri",   email: "nida@partner-b.com",     roles: ["analyst"],                   batches: ["batch-b"],                        status: "active",  lastActive: "5 hours ago" },
+    { name: "Aisha Siddiqui",email: "aisha@partner-c.com",   roles: ["manager","publisher"],       batches: ["batch-c"],                        status: "active",  lastActive: "2 days ago" },
+    { name: "Fatima Ali",   email: "fatima@team.com",         roles: ["publisher"],                 batches: ["batch-a","batch-b"],              status: "pending", lastActive: "Invited" },
   ];
 
   return (
@@ -117,38 +122,108 @@ export default function AccountSettings() {
           {/* Team Tab */}
           {activeTab === "team" && (
             <div className="space-y-6">
-              <div className="rounded-xl border p-6" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-                <div className="flex items-center justify-between mb-4">
+              {/* Members list */}
+              <div className="rounded-xl border" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+                <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--border)" }}>
                   <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Team Members ({teamMembers.length})</div>
                   <button className="px-3 py-2 rounded-lg text-sm font-semibold text-white" style={{ backgroundColor: "var(--primary)" }}>
                     + Invite Member
                   </button>
                 </div>
-                <div className="space-y-2">
-                  {teamMembers.map(m => (
-                    <div key={m.email} className="flex items-center gap-4 p-3 rounded-lg" style={{ backgroundColor: "var(--surface-hover)" }}>
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: m.role === "Owner" ? "var(--primary)" : "#6366F1" }}>
-                        {m.name.split(" ").map(n => n[0]).join("")}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium" style={{ color: "var(--text)" }}>{m.name}</span>
-                          {m.status === "pending" && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300">Pending</span>}
+                <div className="divide-y" style={{ borderColor: "var(--border)" }}>
+                  {teamMembers.map(m => {
+                    const isExpanded = expandedMember === m.email;
+                    const initials = m.name.split(" ").map(n => n[0]).join("");
+                    const primaryRole = m.roles[0];
+                    const primaryColor = ROLE_CONFIG[primaryRole].color;
+                    return (
+                      <div key={m.email}>
+                        <div className="flex items-center gap-4 px-6 py-4">
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: primaryColor }}>
+                            {initials}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-medium" style={{ color: "var(--text)" }}>{m.name}</span>
+                              {m.status === "pending" && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "rgba(251,191,36,0.15)", color: "#FBBF24" }}>Pending</span>}
+                              {/* Role pills */}
+                              {m.roles.map(r => (
+                                <span key={r} className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${ROLE_CONFIG[r].color}18`, color: ROLE_CONFIG[r].color }}>
+                                  {ROLE_CONFIG[r].label}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              <span className="text-xs" style={{ color: "var(--text-muted)" }}>{m.email}</span>
+                              {m.batches.map(b => b !== "all" && (
+                                <span key={b} className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ backgroundColor: `${BATCH_CONFIG[b].color}12`, color: BATCH_CONFIG[b].color }}>
+                                  {BATCH_CONFIG[b].label.split(" — ")[1] ?? BATCH_CONFIG[b].label}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <span className="text-[11px] flex-shrink-0" style={{ color: "var(--text-muted)" }}>{m.lastActive}</span>
+                          {m.roles[0] !== "owner" && (
+                            <button onClick={() => setExpandedMember(isExpanded ? null : m.email)}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                          )}
                         </div>
-                        <span className="text-xs" style={{ color: "var(--text-muted)" }}>{m.email}</span>
+                        {/* Expanded: edit roles + batch */}
+                        {isExpanded && (
+                          <div className="px-6 pb-4 border-t" style={{ borderColor: "var(--border)", backgroundColor: "rgba(0,0,0,0.15)" }}>
+                            <div className="grid grid-cols-2 gap-6 pt-4">
+                              <div>
+                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Roles (select all that apply)</div>
+                                <div className="space-y-1.5">
+                                  {(["manager","publisher","approver","analyst"] as Role[]).map(r => {
+                                    const active = m.roles.includes(r);
+                                    return (
+                                      <div key={r} className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer" style={{ backgroundColor: active ? `${ROLE_CONFIG[r].color}15` : "var(--surface-hover)" }}>
+                                        <div className="w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0" style={{ borderColor: active ? ROLE_CONFIG[r].color : "var(--border)", backgroundColor: active ? ROLE_CONFIG[r].color : "transparent" }}>
+                                          {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                                        </div>
+                                        <span className="text-[12px] font-medium" style={{ color: active ? ROLE_CONFIG[r].color : "var(--text-secondary)" }}>{ROLE_CONFIG[r].label}</span>
+                                        <span className="text-[10px] ml-auto" style={{ color: "var(--text-muted)" }}>
+                                          {r === "publisher" ? "Upload & schedule" : r === "approver" ? "Review posts" : r === "manager" ? "Manage pages" : "View reports"}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Batch Access</div>
+                                <div className="space-y-1.5">
+                                  {(["batch-a","batch-b","batch-c"] as BatchId[]).map(b => {
+                                    const active = m.batches.includes(b);
+                                    return (
+                                      <div key={b} className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer" style={{ backgroundColor: active ? `${BATCH_CONFIG[b].color}12` : "var(--surface-hover)" }}>
+                                        <div className="w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0" style={{ borderColor: active ? BATCH_CONFIG[b].color : "var(--border)", backgroundColor: active ? BATCH_CONFIG[b].color : "transparent" }}>
+                                          {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                                        </div>
+                                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: BATCH_CONFIG[b].color }} />
+                                        <span className="text-[12px]" style={{ color: active ? BATCH_CONFIG[b].color : "var(--text-secondary)" }}>{BATCH_CONFIG[b].label}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <button className="mt-3 w-full py-2 rounded-lg text-[12px] font-semibold text-white" style={{ backgroundColor: "var(--primary)" }}>
+                                  Save Changes
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <select className="text-xs rounded-lg px-2 py-1.5 border-0 outline-0" style={{ backgroundColor: "var(--bg)", color: "var(--text-muted)" }}>
-                        <option selected={m.role === "Owner"}>Owner</option>
-                        <option selected={m.role === "Manager"}>Manager</option>
-                        <option selected={m.role === "Publisher"}>Publisher</option>
-                        <option selected={m.role === "Viewer"}>Viewer</option>
-                      </select>
-                      <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{m.lastActive}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
+              {/* Role Permissions table */}
               <div className="rounded-xl border p-6" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
                 <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>Role Permissions</div>
                 <div className="overflow-hidden rounded-lg" style={{ backgroundColor: "var(--surface-hover)" }}>
@@ -156,27 +231,32 @@ export default function AccountSettings() {
                     <thead>
                       <tr className="border-b" style={{ borderColor: "var(--border)" }}>
                         <th className="text-left p-3 font-medium" style={{ color: "var(--text-muted)" }}>Permission</th>
-                        <th className="text-center p-3 font-medium" style={{ color: "var(--text-muted)" }}>Owner</th>
-                        <th className="text-center p-3 font-medium" style={{ color: "var(--text-muted)" }}>Manager</th>
-                        <th className="text-center p-3 font-medium" style={{ color: "var(--text-muted)" }}>Publisher</th>
-                        <th className="text-center p-3 font-medium" style={{ color: "var(--text-muted)" }}>Viewer</th>
+                        {(["owner","manager","publisher","approver","analyst"] as Role[]).map(r => (
+                          <th key={r} className="text-center p-3 font-medium" style={{ color: ROLE_CONFIG[r].color }}>{ROLE_CONFIG[r].label}</th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
                       {[
-                        { perm: "View analytics", owner: true, manager: true, publisher: true, viewer: true },
-                        { perm: "View revenue", owner: true, manager: false, publisher: false, viewer: false },
-                        { perm: "Create & schedule posts", owner: true, manager: true, publisher: true, viewer: false },
-                        { perm: "Manage pages", owner: true, manager: true, publisher: false, viewer: false },
-                        { perm: "Manage team", owner: true, manager: false, publisher: false, viewer: false },
-                        { perm: "Billing & subscription", owner: true, manager: false, publisher: false, viewer: false },
-                      ].map(r => (
-                        <tr key={r.perm} className="border-b last:border-0" style={{ borderColor: "var(--border)" }}>
-                          <td className="p-3" style={{ color: "var(--text)" }}>{r.perm}</td>
-                          <td className="text-center p-3">{r.owner ? "✅" : "—"}</td>
-                          <td className="text-center p-3">{r.manager ? "✅" : "—"}</td>
-                          <td className="text-center p-3">{r.publisher ? "✅" : "—"}</td>
-                          <td className="text-center p-3">{r.viewer ? "✅" : "—"}</td>
+                        { perm: "View analytics",          owner: true,  manager: true,  publisher: true,  approver: true,  analyst: true  },
+                        { perm: "View revenue",            owner: true,  manager: false, publisher: false, approver: false, analyst: false },
+                        { perm: "Create & schedule posts", owner: true,  manager: true,  publisher: true,  approver: false, analyst: false },
+                        { perm: "Approve / reject posts",  owner: true,  manager: true,  publisher: false, approver: true,  analyst: false },
+                        { perm: "Manage pages",            owner: true,  manager: true,  publisher: false, approver: false, analyst: false },
+                        { perm: "Manage team",             owner: true,  manager: false, publisher: false, approver: false, analyst: false },
+                        { perm: "Billing & subscription",  owner: true,  manager: false, publisher: false, approver: false, analyst: false },
+                      ].map(row => (
+                        <tr key={row.perm} className="border-b last:border-0" style={{ borderColor: "var(--border)" }}>
+                          <td className="p-3" style={{ color: "var(--text)" }}>{row.perm}</td>
+                          {(["owner","manager","publisher","approver","analyst"] as Role[]).map(r => (
+                            <td key={r} className="text-center p-3">
+                              {row[r] ? (
+                                <span className="text-[13px]">✅</span>
+                              ) : (
+                                <span style={{ color: "var(--text-muted)" }}>—</span>
+                              )}
+                            </td>
+                          ))}
                         </tr>
                       ))}
                     </tbody>
