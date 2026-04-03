@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  /* GoDukaan Brand Colors */
+  --primary: #0C6AFF;
+  --primary-hover: #2A7FFF;
+  --primary-muted: rgba(12, 106, 255, 0.12);
+  --primary-glow: rgba(12, 106, 255, 0.25);
+
+  --accent: #BCED07;
+  --accent-hover: #D0F52A;
+  --accent-muted: rgba(188, 237, 7, 0.12);
+  --accent-on: #000000; /* text on accent bg */
+
+  --bg: #0A0E1A;
+  --bg-deep: #060910;
+  --surface: #121829;
+  --surface-hover: #1A2238;
+  --surface-active: #222C45;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-light: rgba(255, 255, 255, 0.1);
+
+  --text: #F0F0F5;
+  --text-secondary: #9494A8;
+  --text-muted: #5E6580;
+
+  --success: #4ADE80;
+  --success-bg: rgba(74, 222, 128, 0.1);
+  --warning: #FBBF24;
+  --warning-bg: rgba(251, 191, 36, 0.1);
+  --error: #EF4444;
+  --error-bg: rgba(239, 68, 68, 0.1);
+
+  --sidebar-width: 250px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-hover) transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, a, input, select {
+  transition: all 0.15s ease;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--primary-muted);
+  color: var(--text);
+}
