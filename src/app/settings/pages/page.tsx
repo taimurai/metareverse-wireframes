@@ -553,7 +553,9 @@ export default function PageSettings() {
   const [directAssignments, setDirectAssignments] = useState<Record<string, string[]>>({
     lc: ["Fatima Ali"],
   });
-  const [showAddMember, setShowAddMember] = useState(false);
+  const [showAddMember, setShowAddMember] = useState<"team" | "invite" | false>(false);
+  const [pageInviteForm, setPageInviteForm] = useState({ name: "", email: "", role: "" });
+  const [pageInviteToast, setPageInviteToast] = useState(false);
 
   const basePage = PAGES_DATA.find(p => p.id === selectedPageId);
   const selected = basePage ? { ...basePage, ...editState } : null;
@@ -562,6 +564,8 @@ export default function PageSettings() {
     setSelectedPageId(id);
     setEditState({});
     setSaved(false);
+    setShowAddMember(false);
+    setPageInviteToast(false);
   };
 
   const update = (field: keyof PageData, value: unknown) => {
@@ -1004,17 +1008,32 @@ export default function PageSettings() {
 
                           {/* Add directly */}
                           <div className="px-3 py-2.5 border-t" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}>
-                            {!showAddMember ? (
-                              <button
-                                onClick={() => setShowAddMember(true)}
-                                className="flex items-center gap-1.5 text-[11px] font-semibold transition-all hover:opacity-80"
-                                style={{ color: "var(--primary)" }}>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                Add directly to this page
-                              </button>
-                            ) : (
+                            {pageInviteToast && (
+                              <div className="mb-2 px-3 py-2 rounded-lg text-[11px] font-medium" style={{ backgroundColor: "rgba(74,222,128,0.1)", color: "#4ADE80" }}>✓ Invite sent</div>
+                            )}
+                            {showAddMember === false && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setShowAddMember("team")}
+                                  className="flex items-center gap-1.5 text-[11px] font-semibold transition-all hover:opacity-80"
+                                  style={{ color: "var(--primary)" }}>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                  Add from team
+                                </button>
+                                <span style={{ color: "var(--border)" }}>·</span>
+                                <button
+                                  onClick={() => { setShowAddMember("invite"); setPageInviteForm({ name: "", email: "", role: "" }); }}
+                                  className="flex items-center gap-1.5 text-[11px] font-semibold transition-all hover:opacity-80"
+                                  style={{ color: "var(--text-muted)" }}>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                  Invite by email
+                                </button>
+                              </div>
+                            )}
+
+                            {showAddMember === "team" && (
                               <div>
-                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Add Member</div>
+                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Add from Team</div>
                                 {available.length === 0 ? (
                                   <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>All team members already have access to this page.</p>
                                 ) : (
@@ -1040,6 +1059,53 @@ export default function PageSettings() {
                                   </div>
                                 )}
                                 <button onClick={() => setShowAddMember(false)} className="mt-2 text-[11px]" style={{ color: "var(--text-muted)" }}>Cancel</button>
+                              </div>
+                            )}
+
+                            {showAddMember === "invite" && (
+                              <div className="space-y-2">
+                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Invite by Email</div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <input
+                                    value={pageInviteForm.name}
+                                    onChange={e => setPageInviteForm(f => ({ ...f, name: e.target.value }))}
+                                    placeholder="Full name"
+                                    className="px-2.5 py-2 rounded-lg text-[12px] outline-0 border-0"
+                                    style={{ backgroundColor: "var(--surface-hover)", color: "var(--text)" }}
+                                  />
+                                  <input
+                                    value={pageInviteForm.email}
+                                    onChange={e => setPageInviteForm(f => ({ ...f, email: e.target.value }))}
+                                    placeholder="Email address"
+                                    type="email"
+                                    className="px-2.5 py-2 rounded-lg text-[12px] outline-0 border-0"
+                                    style={{ backgroundColor: "var(--surface-hover)", color: "var(--text)" }}
+                                  />
+                                </div>
+                                <select
+                                  value={pageInviteForm.role}
+                                  onChange={e => setPageInviteForm(f => ({ ...f, role: e.target.value }))}
+                                  className="w-full px-2.5 py-2 rounded-lg text-[12px] outline-0 border-0"
+                                  style={{ backgroundColor: "var(--surface-hover)", color: pageInviteForm.role ? "var(--text)" : "var(--text-muted)" }}>
+                                  <option value="">Select role…</option>
+                                  <option value="publisher">Publisher</option>
+                                  <option value="approver">Approver</option>
+                                  <option value="analyst">Analyst</option>
+                                </select>
+                                <div className="flex gap-2 pt-1">
+                                  <button onClick={() => setShowAddMember(false)} className="px-3 py-1.5 rounded-lg text-[11px]" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>Cancel</button>
+                                  <button
+                                    disabled={!pageInviteForm.name || !pageInviteForm.email || !pageInviteForm.role}
+                                    onClick={() => {
+                                      setShowAddMember(false);
+                                      setPageInviteToast(true);
+                                      setTimeout(() => setPageInviteToast(false), 2500);
+                                    }}
+                                    className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold text-white disabled:opacity-40"
+                                    style={{ backgroundColor: "var(--primary)" }}>
+                                    Send Invite
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>
