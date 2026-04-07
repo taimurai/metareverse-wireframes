@@ -55,6 +55,43 @@ const HEALTH_COLOR: Record<string, string> = {
   healthy: "#4ADE80", stable: "#60A5FA", declining: "#FBBF24", "at-risk": "#F87171",
 };
 
+// Platform split per period (% of views per platform)
+const PLATFORM_SPLIT: Record<string, { fb: number; ig: number; th: number }> = {
+  today:     { fb: 71, ig: 24, th: 5 },
+  yesterday: { fb: 69, ig: 26, th: 5 },
+  "7d":      { fb: 70, ig: 25, th: 5 },
+  "28d":     { fb: 68, ig: 27, th: 5 },
+};
+
+// Format contribution: volume split (posts) vs revenue split
+const FORMAT_SPLIT: Record<string, { reels: number; photos: number; reelsRev: number; photosRev: number; reelsFollowers: number }> = {
+  today:     { reels: 58, photos: 42, reelsRev: 38, photosRev: 62, reelsFollowers: 97 },
+  yesterday: { reels: 62, photos: 38, reelsRev: 34, photosRev: 66, reelsFollowers: 96 },
+  "7d":      { reels: 55, photos: 45, reelsRev: 41, photosRev: 59, reelsFollowers: 97 },
+  "28d":     { reels: 60, photos: 40, reelsRev: 39, photosRev: 61, reelsFollowers: 97 },
+};
+
+// Posting ID infrastructure
+const POSTING_IDS = [
+  { name: "Taimur", score: 88, trend: "stable"   as const, reachPct: 68 },
+  { name: "Sarah",  score: 72, trend: "declining" as const, reachPct: 22 },
+  { name: "Ahmed",  score: 91, trend: "stable"   as const, reachPct: 10 },
+];
+
+// Audience geography / quality
+const AUDIENCE_GEO = { usPercent: 62, usChange: -3, topCountries: ["US 62%", "CO 9%", "GT 7%"] };
+
+// Which platforms each page publishes to
+const PAGE_PLATFORMS: Record<string, string[]> = {
+  lc:  ["FB","IG"],
+  hu:  ["FB","IG"],
+  tb:  ["FB"],
+  dh:  ["FB","IG","TH"],
+  ff:  ["FB","IG"],
+  mm:  ["FB","IG","TH"],
+  khn: ["FB"],
+};
+
 type Period = "today" | "yesterday" | "7d" | "28d";
 const PERIOD_DATA: Record<Period, {
   revenue: string; revenueChange: string; revenueUp: boolean;
@@ -311,6 +348,94 @@ export default function DashboardV3() {
         ))}
       </div>
 
+      {/* ── Format Contribution Strip ── */}
+      {(() => {
+        const fmt = FORMAT_SPLIT[period];
+        const plt = PLATFORM_SPLIT[period];
+        const reelsSkew = fmt.reels > 65; // too many reels = follower growth but revenue risk
+        const photosSkew = fmt.photos > 60; // too many photos = revenue focused but growth risk
+        return (
+          <div className="rounded-xl px-5 py-3.5 mb-5 flex items-center gap-6"
+            style={{ background: "var(--surface)", border: `1px solid ${reelsSkew || photosSkew ? "rgba(251,191,36,0.4)" : "var(--border)"}` }}>
+
+            {/* Format split */}
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-semibold" style={{ color: "var(--text)" }}>Content Format Mix</span>
+                {(reelsSkew || photosSkew) && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: "rgba(251,191,36,0.1)", color: "#FBBF24" }}>
+                    ⚠ {reelsSkew ? "Reel-heavy — revenue at risk" : "Photo-heavy — growth at risk"}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1 mb-1.5">
+                <div className="h-2 rounded-l-full" style={{ width: `${fmt.reels}%`, backgroundColor: "#8B5CF6", transition: "width 0.3s" }} />
+                <div className="h-2 rounded-r-full" style={{ width: `${fmt.photos}%`, backgroundColor: "#F59E0B", transition: "width 0.3s" }} />
+              </div>
+              <div className="flex items-center gap-4 text-[10px]">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: "#8B5CF6" }} />
+                  <span style={{ color: "var(--text-muted)" }}>Reels <span className="font-bold" style={{ color: "var(--text)" }}>{fmt.reels}%</span></span>
+                  <span style={{ color: "var(--text-muted)" }}>·</span>
+                  <span style={{ color: "#F59E0B" }}>↑{fmt.reelsFollowers}% of new followers</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: "#F59E0B" }} />
+                  <span style={{ color: "var(--text-muted)" }}>Photos <span className="font-bold" style={{ color: "var(--text)" }}>{fmt.photos}%</span></span>
+                  <span style={{ color: "var(--text-muted)" }}>·</span>
+                  <span style={{ color: "#4ADE80" }}>↑{fmt.photosRev}% of revenue</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-px h-10 shrink-0" style={{ background: "var(--border)" }} />
+
+            {/* Platform split */}
+            <div className="shrink-0">
+              <div className="text-[11px] font-semibold mb-2" style={{ color: "var(--text)" }}>Platform Views Split</div>
+              <div className="flex items-center gap-3">
+                {[
+                  { id: "FB", pct: plt.fb, color: "#1877F2" },
+                  { id: "IG", pct: plt.ig, color: "#E1306C" },
+                  { id: "TH", pct: plt.th, color: "var(--text-muted)" },
+                ].map(pl => (
+                  <div key={pl.id} className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                      style={{ background: `${pl.color}22`, color: pl.color }}>{pl.id}</span>
+                    <span className="text-[11px] font-semibold tabular-nums" style={{ color: "var(--text)" }}>{pl.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="w-px h-10 shrink-0" style={{ background: "var(--border)" }} />
+
+            {/* Revenue platform split */}
+            <div className="shrink-0">
+              <div className="text-[11px] font-semibold mb-2" style={{ color: "var(--text)" }}>Revenue by Platform</div>
+              <div className="flex items-center gap-3">
+                {[
+                  { id: "FB", pct: fmt.photosRev, color: "#1877F2" },
+                  { id: "IG", pct: Math.round((100 - fmt.photosRev) * 0.85), color: "#E1306C" },
+                  { id: "TH", pct: Math.round((100 - fmt.photosRev) * 0.15), color: "var(--text-muted)" },
+                ].map(pl => (
+                  <div key={pl.id} className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                      style={{ background: `${pl.color}22`, color: pl.color }}>{pl.id}</span>
+                    <span className="text-[11px] font-semibold tabular-nums" style={{ color: "var(--text)" }}>{pl.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Link href="/reports/results" className="shrink-0 text-[11px] font-semibold ml-2" style={{ color: "var(--primary)" }}>
+              Deep dive →
+            </Link>
+          </div>
+        );
+      })()}
+
       {/* ── Zones 2 + 3: Two-column layout ── */}
       <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 320px" }}>
 
@@ -395,7 +520,7 @@ export default function DashboardV3() {
                       style={{ accentColor: "var(--primary)" }}
                     />
                   </th>
-                  {["Page","Status","Monetization","Views (7d)","Revenue","RPM","Eng %","Queue","Payout","Issues"].map(h => (
+                  {["Page","Platforms","Status","Monetization","Views (7d)","Revenue","RPM","Eng %","Queue","Payout","Issues"].map(h => (
                     <th key={h} className="px-3 py-2 text-left font-semibold text-[10px] uppercase tracking-wider whitespace-nowrap"
                       style={{ color: "var(--text-muted)" }}>{h}</th>
                   ))}
@@ -438,6 +563,19 @@ export default function DashboardV3() {
                             <div className="font-medium text-[12px] whitespace-nowrap" style={{ color: "var(--text)" }}>{p.name}</div>
                             <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>{p.followers} followers</div>
                           </div>
+                        </div>
+                      </td>
+
+                      {/* Platforms */}
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-1">
+                          {(PAGE_PLATFORMS[p.id] || []).map(pl => (
+                            <span key={pl} className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                              style={{
+                                background: pl === "FB" ? "rgba(24,119,242,0.12)" : pl === "IG" ? "rgba(225,48,108,0.12)" : "rgba(255,255,255,0.06)",
+                                color: pl === "FB" ? "#1877F2" : pl === "IG" ? "#E1306C" : "var(--text-muted)",
+                              }}>{pl}</span>
+                          ))}
                         </div>
                       </td>
 
@@ -602,6 +740,40 @@ export default function DashboardV3() {
                 </Link>
               ))}
             </div>
+
+            {/* ID Infrastructure mini-gauge */}
+            <div className="px-4 py-3" style={{ borderTop: "1px solid var(--border)" }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold" style={{ color: "var(--text)" }}>ID Infrastructure</span>
+                <Link href="/reports/id-performance" className="text-[10px]" style={{ color: "var(--primary)" }}>View →</Link>
+              </div>
+              <div className="space-y-1.5">
+                {POSTING_IDS.map(id => (
+                  <div key={id.name} className="flex items-center gap-2">
+                    <span className="text-[10px] w-11 shrink-0" style={{ color: "var(--text-muted)" }}>{id.name}</span>
+                    <div className="flex-1 h-1.5 rounded-full" style={{ background: "var(--border)" }}>
+                      <div className="h-1.5 rounded-full transition-all" style={{
+                        width: `${id.score}%`,
+                        backgroundColor: id.trend === "declining" ? "#FBBF24" : "#4ADE80",
+                      }} />
+                    </div>
+                    <span className="text-[10px] tabular-nums w-7 text-right font-semibold"
+                      style={{ color: id.trend === "declining" ? "#FBBF24" : "var(--text)" }}>{id.score}</span>
+                    {id.trend === "declining" && (
+                      <span className="text-[9px] font-bold px-1 py-0.5 rounded"
+                        style={{ background: "rgba(251,191,36,0.12)", color: "#FBBF24" }}>↓</span>
+                    )}
+                    <span className="text-[9px] tabular-nums w-8 text-right" style={{ color: "var(--text-muted)" }}>{id.reachPct}% R</span>
+                  </div>
+                ))}
+              </div>
+              {POSTING_IDS.some(id => id.trend === "declining") && (
+                <div className="mt-2 text-[10px] font-medium px-2 py-1 rounded-lg"
+                  style={{ background: "rgba(251,191,36,0.08)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.2)" }}>
+                  ⚠ Sarah declining at 72/100 — carries 22% of network reach
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Needs Attention */}
@@ -663,6 +835,43 @@ export default function DashboardV3() {
                   <span className="text-[10px] tabular-nums w-12 text-right font-medium" style={{ color: "var(--text)" }}>${p.rpm.toFixed(2)}</span>
                 </div>
               ))}
+            </div>
+
+            {/* Audience Quality / Geography Shift */}
+            <div className="px-4 pb-3" style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold" style={{ color: "var(--text)" }}>Audience Quality</span>
+                <Link href="/reports/audience" className="text-[10px]" style={{ color: "var(--primary)" }}>Details →</Link>
+              </div>
+              <div className="flex items-center gap-3 mb-1.5">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>US audience</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-bold tabular-nums" style={{ color: "var(--text)" }}>{AUDIENCE_GEO.usPercent}%</span>
+                      <span className="text-[10px] font-semibold"
+                        style={{ color: AUDIENCE_GEO.usChange < 0 ? "#FBBF24" : "#4ADE80" }}>
+                        {AUDIENCE_GEO.usChange > 0 ? "↑" : "↓"} {Math.abs(AUDIENCE_GEO.usChange)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 rounded-full" style={{ background: "var(--border)" }}>
+                    <div className="h-1.5 rounded-full" style={{ width: `${AUDIENCE_GEO.usPercent}%`, backgroundColor: "#4ADE80" }} />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {AUDIENCE_GEO.topCountries.map(c => (
+                  <span key={c} className="text-[10px] px-1.5 py-0.5 rounded"
+                    style={{ background: "var(--bg)", color: "var(--text-muted)" }}>{c}</span>
+                ))}
+              </div>
+              {AUDIENCE_GEO.usChange < -2 && (
+                <div className="mt-2 text-[10px] font-medium px-2 py-1 rounded-lg"
+                  style={{ background: "rgba(251,191,36,0.08)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.2)" }}>
+                  ⚠ US traffic down {Math.abs(AUDIENCE_GEO.usChange)}% — RPM may compress
+                </div>
+              )}
             </div>
           </div>
 
