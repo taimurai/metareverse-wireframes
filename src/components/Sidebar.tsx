@@ -10,7 +10,11 @@ const navItems = [
     items: [
       { label: "Dashboard", href: "/", icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      )},
+      ), children: [
+        { label: "v1 — Current", href: "/" },
+        { label: "v2 — Intelligence", href: "/dashboard-v2" },
+        { label: "v3 — Command Center", href: "/dashboard-v3" },
+      ]},
       { label: "Bulk Upload", href: "/upload", icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       )},
@@ -70,12 +74,6 @@ const navItems = [
       { label: "Onboarding", href: "/onboarding", icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
       )},
-      { label: "Dashboard v3", href: "/dashboard-v3", icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"/></svg>
-      )},
-      { label: "Dashboard v2", href: "/dashboard-v2", icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-      )},
       { label: "Page Report", href: "/reports/page", icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       )},
@@ -84,7 +82,7 @@ const navItems = [
 ];
 
 // Which nav items are visible per role
-const WIREFRAME_ITEMS = ["Login / Signup","Onboarding","Page Report","Dashboard v2","Dashboard v3"];
+const WIREFRAME_ITEMS = ["Login / Signup","Onboarding","Page Report"];
 const NAV_VISIBILITY: Record<Role, string[]> = {
   owner:      ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account",...WIREFRAME_ITEMS],
   "co-owner": ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account",...WIREFRAME_ITEMS],

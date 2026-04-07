@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { useRole } from "@/contexts/RoleContext";
@@ -56,35 +56,31 @@ const HEALTH_COLOR: Record<string, string> = {
 };
 
 // Platform split per period (% of views per platform)
-const PLATFORM_SPLIT: Record<string, { fb: number; ig: number; th: number }> = {
-  today:     { fb: 71, ig: 24, th: 5 },
+const PLATFORM_SPLIT: Record<Period, { fb: number; ig: number; th: number }> = {
   yesterday: { fb: 69, ig: 26, th: 5 },
   "7d":      { fb: 70, ig: 25, th: 5 },
   "28d":     { fb: 68, ig: 27, th: 5 },
 };
 
 // Format contribution: volume split (posts) vs revenue split + absolute $
-const FORMAT_SPLIT: Record<string, { reels: number; photos: number; reelsRev: number; photosRev: number; reelsFollowers: number; reelsRevAbs: string; photosRevAbs: string }> = {
-  today:     { reels: 58, photos: 42, reelsRev: 38, photosRev: 62, reelsFollowers: 97, reelsRevAbs: "$700",    photosRevAbs: "$1,142"  },
+const FORMAT_SPLIT: Record<Period, { reels: number; photos: number; reelsRev: number; photosRev: number; reelsFollowers: number; reelsRevAbs: string; photosRevAbs: string }> = {
   yesterday: { reels: 62, photos: 38, reelsRev: 34, photosRev: 66, reelsFollowers: 96, reelsRevAbs: "$520",    photosRevAbs: "$1,010"  },
   "7d":      { reels: 55, photos: 45, reelsRev: 41, photosRev: 59, reelsFollowers: 97, reelsRevAbs: "$5,269",  photosRevAbs: "$7,582"  },
   "28d":     { reels: 60, photos: 40, reelsRev: 39, photosRev: 61, reelsFollowers: 97, reelsRevAbs: "$18,873", photosRevAbs: "$29,519" },
 };
 
 // Per-post efficiency (from results page)
-const PER_POST: Record<string, { avgReach: string; linkClicks: string; engRate: string; postsPublished: number }> = {
-  today:     { avgReach: "3,247", linkClicks: "0.3",  engRate: "17.71%", postsPublished: 12  },
+const PER_POST: Record<Period, { avgReach: string; linkClicks: string; engRate: string; postsPublished: number }> = {
   yesterday: { avgReach: "3,108", linkClicks: "0.2",  engRate: "16.90%", postsPublished: 16  },
   "7d":      { avgReach: "3,182", linkClicks: "0.2",  engRate: "16.40%", postsPublished: 94  },
   "28d":     { avgReach: "3,341", linkClicks: "0.2",  engRate: "17.71%", postsPublished: 389 },
 };
 
 // Net follows by content type
-const NET_FOLLOWS_BY_TYPE: Record<string, { reels: number; photos: number; text: number }> = {
-  today:     { reels: 46,    photos: 1,    text: 0   },
-  yesterday: { reels: 59,    photos: 2,    text: 0   },
-  "7d":      { reels: 401,   photos: 10,   text: 1   },
-  "28d":     { reels: 1211,  photos: 35,   text: 2   },
+const NET_FOLLOWS_BY_TYPE: Record<Period, { reels: number; photos: number; text: number }> = {
+  yesterday: { reels: 59,   photos: 2,  text: 0 },
+  "7d":      { reels: 401,  photos: 10, text: 1 },
+  "28d":     { reels: 1211, photos: 35, text: 2 },
 };
 
 // Posting ID infrastructure
@@ -108,7 +104,116 @@ const PAGE_PLATFORMS: Record<string, string[]> = {
   khn: ["FB"],
 };
 
-type Period = "today" | "yesterday" | "7d" | "28d";
+type Period = "yesterday" | "7d" | "28d";
+
+// ─── Dashboard date picker ───────────────────────────────────────────────────
+interface DashPreset { label: string; period: Period; start: string; end: string; sm: number; sd: number; em: number; ed: number; default?: boolean }
+const DASH_PRESETS: DashPreset[] = [
+  { label: "Yesterday",     period: "yesterday", start: "Apr 7, 2026",  end: "Apr 7, 2026",  sm: 3, sd: 7,  em: 3, ed: 7  },
+  { label: "Last 7 days",   period: "7d",        start: "Apr 2, 2026",  end: "Apr 8, 2026",  sm: 3, sd: 2,  em: 3, ed: 8, default: true },
+  { label: "Last 28 days",  period: "28d",       start: "Mar 11, 2026", end: "Apr 8, 2026",  sm: 2, sd: 11, em: 3, ed: 8  },
+  { label: "Last 30 days",  period: "28d",       start: "Mar 9, 2026",  end: "Apr 8, 2026",  sm: 2, sd: 9,  em: 3, ed: 8  },
+  { label: "Last 3 months", period: "28d",       start: "Jan 8, 2026",  end: "Apr 8, 2026",  sm: 0, sd: 8,  em: 3, ed: 8  },
+];
+const MN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DN = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+function enc(y: number, m: number, d: number) { return y * 10000 + m * 100 + d; }
+function calWeeks(year: number, month: number) {
+  const fd = new Date(year, month, 1).getDay(), dim = new Date(year, month + 1, 0).getDate();
+  const weeks: (number|null)[][] = [];
+  let week: (number|null)[] = Array(fd).fill(null);
+  for (let d = 1; d <= dim; d++) { week.push(d); if (week.length === 7) { weeks.push(week); week = []; } }
+  if (week.length) { while (week.length < 7) week.push(null); weeks.push(week); }
+  return weeks;
+}
+function MiniMonth({ year, month, preset }: { year: number; month: number; preset: DashPreset }) {
+  const weeks = calWeeks(year, month);
+  const se = enc(2026, preset.sm, preset.sd), ee = enc(2026, preset.em, preset.ed);
+  return (
+    <div className="w-[188px]">
+      <div className="text-center text-[12px] font-semibold mb-2" style={{ color: "var(--text)" }}>{MN[month]} {year}</div>
+      <div className="grid grid-cols-7 mb-1">
+        {DN.map(d => <div key={d} className="text-center text-[10px] font-medium py-0.5" style={{ color: "var(--text-muted)" }}>{d}</div>)}
+      </div>
+      {weeks.map((week, wi) => (
+        <div key={wi} className="grid grid-cols-7">
+          {week.map((day, di) => {
+            if (!day) return <div key={di} />;
+            const de = enc(year, month, day);
+            const isS = de === se, isE = de === ee, inR = de >= se && de <= ee;
+            return (
+              <div key={di} className="text-center text-[11px] py-0.5 leading-6 select-none" style={{
+                backgroundColor: isS || isE ? "var(--primary)" : inR ? "rgba(99,102,241,0.15)" : "transparent",
+                color: isS || isE ? "#fff" : inR ? "var(--primary)" : "var(--text)",
+                borderRadius: isS ? "6px 0 0 6px" : isE ? "0 6px 6px 0" : "0",
+                fontWeight: isS || isE ? 700 : 400,
+              }}>{day}</div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+function DashPicker({ period, onChange }: { period: Period; onChange: (p: Period) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+  const active = DASH_PRESETS.find(p => p.period === period && p.label !== "Last 30 days" && p.label !== "Last 3 months")
+    || DASH_PRESETS.find(p => p.period === period)
+    || DASH_PRESETS[1];
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] font-medium"
+        style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}>
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        {active.start === active.end ? active.start : `${active.start} – ${active.end}`}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: "var(--text-muted)" }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-2 rounded-xl shadow-2xl z-50 flex overflow-hidden"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", minWidth: 520 }}>
+          <div className="p-4 flex gap-5" style={{ borderRight: "1px solid var(--border)" }}>
+            <MiniMonth year={2026} month={2} preset={active} />
+            <MiniMonth year={2026} month={3} preset={active} />
+          </div>
+          <div className="p-3 flex flex-col gap-0.5 min-w-[150px]">
+            <div className="text-[10px] font-semibold uppercase tracking-wider mb-2 px-2" style={{ color: "var(--text-muted)" }}>Quick select</div>
+            {DASH_PRESETS.map(p => (
+              <button key={p.label} onClick={() => { onChange(p.period); setOpen(false); }}
+                className="text-left px-3 py-1.5 rounded-lg text-[12px] font-medium"
+                style={{
+                  background: p.label === active.label ? "var(--primary-muted)" : "transparent",
+                  color: p.label === active.label ? "var(--primary)" : "var(--text-secondary)",
+                }}>
+                {p.label}
+                {p.default && <span className="ml-1.5 text-[9px] px-1 rounded" style={{ background: "var(--primary)", color: "#fff" }}>default</span>}
+              </button>
+            ))}
+            <div className="mt-auto pt-3" style={{ borderTop: "1px solid var(--border)" }}>
+              <div className="text-[10px] px-2 mb-1" style={{ color: "var(--text-muted)" }}>Selected range</div>
+              <div className="text-[11px] font-semibold px-2" style={{ color: "var(--text)" }}>{active.start}</div>
+              {active.start !== active.end && <>
+                <div className="text-[10px] px-2" style={{ color: "var(--text-muted)" }}>to</div>
+                <div className="text-[11px] font-semibold px-2" style={{ color: "var(--text)" }}>{active.end}</div>
+              </>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const PERIOD_DATA: Record<Period, {
   revenue: string; revenueChange: string; revenueUp: boolean;
   rpm: string; rpmChange: string; rpmUp: boolean;
@@ -118,7 +223,6 @@ const PERIOD_DATA: Record<Period, {
   engRate: string; engRateChange: string; engRateUp: boolean;
   published: number; publishedChange: string; publishedUp: boolean;
 }> = {
-  today:     { revenue: "$1,842",  revenueChange: "+$312 vs yesterday",  revenueUp: true,  rpm: "$8.94",  rpmChange: "+$0.12 vs yesterday",   rpmUp: true,  views: "8.7M",   viewsChange: "+3% vs yesterday",  viewsUp: true,  reach: "5.9M",   reachChange: "+2% vs yesterday",  reachUp: true,  followers: "24,232", followersChange: "+47 today",         followersUp: true, engRate: "17.71%", engRateChange: "+1.2% vs yesterday", engRateUp: true,  published: 12,  publishedChange: "posts today",      publishedUp: true  },
   yesterday: { revenue: "$1,530",  revenueChange: "+$214 vs prior day",  revenueUp: true,  rpm: "$8.82",  rpmChange: "+$0.05 vs prior day",    rpmUp: true,  views: "8.2M",   viewsChange: "+1% vs prior day",  viewsUp: true,  reach: "5.5M",   reachChange: "+1% vs prior day",  reachUp: true,  followers: "24,185", followersChange: "+61 yesterday",     followersUp: true, engRate: "16.9%",  engRateChange: "-0.3% vs prior",     engRateUp: false, published: 16,  publishedChange: "posts went live",  publishedUp: true  },
   "7d":      { revenue: "$12,851", revenueChange: "↑ 14% vs prev 7d",   revenueUp: true,  rpm: "$9.05",  rpmChange: "↑ $0.38 vs prev 7d",     rpmUp: true,  views: "62.1M",  viewsChange: "↑ 8% vs prev 7d",   viewsUp: true,  reach: "41.8M",  reachChange: "↑ 6% vs prev 7d",   reachUp: true,  followers: "24,232", followersChange: "+412 this week",    followersUp: true, engRate: "16.4%",  engRateChange: "↑ 0.9% vs prev 7d", engRateUp: true,  published: 94,  publishedChange: "posts this week",  publishedUp: true  },
   "28d":     { revenue: "$48,392", revenueChange: "↑ 9% vs prev 28d",   revenueUp: true,  rpm: "$9.21",  rpmChange: "↑ $0.82 vs prev 28d",    rpmUp: true,  views: "224M",   viewsChange: "↑ 12% vs prev 28d", viewsUp: true,  reach: "151M",   reachChange: "↑ 10% vs prev 28d", reachUp: true,  followers: "24,232", followersChange: "+1,248 this month", followersUp: true, engRate: "17.71%", engRateChange: "↑ 2.1% vs prev 28d",engRateUp: true,  published: 389, publishedChange: "posts this month", publishedUp: true  },
@@ -194,7 +298,7 @@ function NetworkChart() {
 export default function DashboardV3() {
   const { role, batchConfig } = useRole();
   const isMobile = useIsMobile();
-  const [period, setPeriod] = useState<Period>("7d");
+  const [period, setPeriod] = useState<Period>("7d"); // default: Last 7 days
   const [pageSearch, setPageSearch] = useState("");
   const [tableSort, setTableSort] = useState<"revenue" | "views" | "rpm" | "eng">("revenue");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -319,19 +423,7 @@ export default function DashboardV3() {
               style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>← v1</Link>
             <Link href="/dashboard-v2" className="text-[12px] px-3 py-1.5 rounded-lg font-medium"
               style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>v2</Link>
-            <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
-              {(["today","yesterday","7d","28d"] as Period[]).map(p => (
-                <button key={p} onClick={() => setPeriod(p)}
-                  className="px-3 py-1.5 rounded-lg text-[12px] font-medium"
-                  style={{
-                    backgroundColor: period === p ? "var(--bg)" : "transparent",
-                    color: period === p ? "var(--text)" : "var(--text-secondary)",
-                    boxShadow: period === p ? "0 1px 3px rgba(0,0,0,0.3)" : "none",
-                  }}>
-                  {p === "today" ? "Today" : p === "yesterday" ? "Yesterday" : p}
-                </button>
-              ))}
-            </div>
+            <DashPicker period={period} onChange={setPeriod} />
           </div>
         }
       />
