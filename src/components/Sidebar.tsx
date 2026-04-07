@@ -81,13 +81,14 @@ const navItems = [
 ];
 
 // Which nav items are visible per role
+const WIREFRAME_ITEMS = ["Login / Signup","Onboarding","Page Report","Dashboard v2"];
 const NAV_VISIBILITY: Record<Role, string[]> = {
-  owner:      ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account"],
-  "co-owner": ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account"],
-  manager:    ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account"],
-  publisher: ["Dashboard","Bulk Upload","Single Post","Drafts","Queue","Published"],
-  approver:  ["Dashboard","Approvals","Drafts","Queue","Published"],
-  analyst:   ["Dashboard","Analytics","Published"],
+  owner:      ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account",...WIREFRAME_ITEMS],
+  "co-owner": ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account",...WIREFRAME_ITEMS],
+  manager:    ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account",...WIREFRAME_ITEMS],
+  publisher: ["Dashboard","Bulk Upload","Single Post","Drafts","Queue","Published",...WIREFRAME_ITEMS],
+  approver:  ["Dashboard","Approvals","Drafts","Queue","Published",...WIREFRAME_ITEMS],
+  analyst:   ["Dashboard","Analytics","Published",...WIREFRAME_ITEMS],
 };
 
 export default function Sidebar() {
