@@ -63,12 +63,28 @@ const PLATFORM_SPLIT: Record<string, { fb: number; ig: number; th: number }> = {
   "28d":     { fb: 68, ig: 27, th: 5 },
 };
 
-// Format contribution: volume split (posts) vs revenue split
-const FORMAT_SPLIT: Record<string, { reels: number; photos: number; reelsRev: number; photosRev: number; reelsFollowers: number }> = {
-  today:     { reels: 58, photos: 42, reelsRev: 38, photosRev: 62, reelsFollowers: 97 },
-  yesterday: { reels: 62, photos: 38, reelsRev: 34, photosRev: 66, reelsFollowers: 96 },
-  "7d":      { reels: 55, photos: 45, reelsRev: 41, photosRev: 59, reelsFollowers: 97 },
-  "28d":     { reels: 60, photos: 40, reelsRev: 39, photosRev: 61, reelsFollowers: 97 },
+// Format contribution: volume split (posts) vs revenue split + absolute $
+const FORMAT_SPLIT: Record<string, { reels: number; photos: number; reelsRev: number; photosRev: number; reelsFollowers: number; reelsRevAbs: string; photosRevAbs: string }> = {
+  today:     { reels: 58, photos: 42, reelsRev: 38, photosRev: 62, reelsFollowers: 97, reelsRevAbs: "$700",    photosRevAbs: "$1,142"  },
+  yesterday: { reels: 62, photos: 38, reelsRev: 34, photosRev: 66, reelsFollowers: 96, reelsRevAbs: "$520",    photosRevAbs: "$1,010"  },
+  "7d":      { reels: 55, photos: 45, reelsRev: 41, photosRev: 59, reelsFollowers: 97, reelsRevAbs: "$5,269",  photosRevAbs: "$7,582"  },
+  "28d":     { reels: 60, photos: 40, reelsRev: 39, photosRev: 61, reelsFollowers: 97, reelsRevAbs: "$18,873", photosRevAbs: "$29,519" },
+};
+
+// Per-post efficiency (from results page)
+const PER_POST: Record<string, { avgReach: string; linkClicks: string; engRate: string; postsPublished: number }> = {
+  today:     { avgReach: "3,247", linkClicks: "0.3",  engRate: "17.71%", postsPublished: 12  },
+  yesterday: { avgReach: "3,108", linkClicks: "0.2",  engRate: "16.90%", postsPublished: 16  },
+  "7d":      { avgReach: "3,182", linkClicks: "0.2",  engRate: "16.40%", postsPublished: 94  },
+  "28d":     { avgReach: "3,341", linkClicks: "0.2",  engRate: "17.71%", postsPublished: 389 },
+};
+
+// Net follows by content type
+const NET_FOLLOWS_BY_TYPE: Record<string, { reels: number; photos: number; text: number }> = {
+  today:     { reels: 46,    photos: 1,    text: 0   },
+  yesterday: { reels: 59,    photos: 2,    text: 0   },
+  "7d":      { reels: 401,   photos: 10,   text: 1   },
+  "28d":     { reels: 1211,  photos: 35,   text: 2   },
 };
 
 // Posting ID infrastructure
@@ -377,12 +393,14 @@ export default function DashboardV3() {
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: "#8B5CF6" }} />
                   <span style={{ color: "var(--text-muted)" }}>Reels <span className="font-bold" style={{ color: "var(--text)" }}>{fmt.reels}%</span></span>
+                  <span className="font-semibold tabular-nums" style={{ color: "#8B5CF6" }}>{fmt.reelsRevAbs}</span>
                   <span style={{ color: "var(--text-muted)" }}>·</span>
                   <span style={{ color: "#F59E0B" }}>↑{fmt.reelsFollowers}% of new followers</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: "#F59E0B" }} />
                   <span style={{ color: "var(--text-muted)" }}>Photos <span className="font-bold" style={{ color: "var(--text)" }}>{fmt.photos}%</span></span>
+                  <span className="font-semibold tabular-nums" style={{ color: "#4ADE80" }}>{fmt.photosRevAbs}</span>
                   <span style={{ color: "var(--text-muted)" }}>·</span>
                   <span style={{ color: "#4ADE80" }}>↑{fmt.photosRev}% of revenue</span>
                 </div>
@@ -428,6 +446,32 @@ export default function DashboardV3() {
                 ))}
               </div>
             </div>
+
+            <div className="w-px h-10 shrink-0" style={{ background: "var(--border)" }} />
+
+            {/* Per-post efficiency */}
+            {(() => {
+              const pp = PER_POST[period];
+              return (
+                <div className="shrink-0">
+                  <div className="text-[11px] font-semibold mb-2" style={{ color: "var(--text)" }}>Per-Post Efficiency</div>
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <div className="text-[13px] font-bold tabular-nums" style={{ color: "var(--text)" }}>{pp.avgReach}</div>
+                      <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>Avg reach</div>
+                    </div>
+                    <div>
+                      <div className="text-[13px] font-bold tabular-nums" style={{ color: "var(--text)" }}>{pp.linkClicks}</div>
+                      <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>Link clicks</div>
+                    </div>
+                    <div>
+                      <div className="text-[13px] font-bold tabular-nums" style={{ color: "var(--text)" }}>{pp.engRate}</div>
+                      <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>Eng. rate</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             <Link href="/reports/results" className="shrink-0 text-[11px] font-semibold ml-2" style={{ color: "var(--primary)" }}>
               Deep dive →
@@ -860,18 +904,50 @@ export default function DashboardV3() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap mb-3">
                 {AUDIENCE_GEO.topCountries.map(c => (
                   <span key={c} className="text-[10px] px-1.5 py-0.5 rounded"
                     style={{ background: "var(--bg)", color: "var(--text-muted)" }}>{c}</span>
                 ))}
               </div>
               {AUDIENCE_GEO.usChange < -2 && (
-                <div className="mt-2 text-[10px] font-medium px-2 py-1 rounded-lg"
+                <div className="mb-3 text-[10px] font-medium px-2 py-1 rounded-lg"
                   style={{ background: "rgba(251,191,36,0.08)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.2)" }}>
                   ⚠ US traffic down {Math.abs(AUDIENCE_GEO.usChange)}% — RPM may compress
                 </div>
               )}
+
+              {/* Net Follows by Content Type */}
+              <div className="pt-3" style={{ borderTop: "1px solid var(--border)" }}>
+                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Net Follows by Format</div>
+                {(() => {
+                  const nf = NET_FOLLOWS_BY_TYPE[period];
+                  const total = nf.reels + nf.photos + nf.text || 1;
+                  return (
+                    <div className="space-y-1.5">
+                      {[
+                        { label: "Reels",  value: nf.reels,  color: "#8B5CF6" },
+                        { label: "Photos", value: nf.photos, color: "#F59E0B" },
+                        { label: "Text",   value: nf.text,   color: "#60A5FA" },
+                      ].map(row => (
+                        <div key={row.label} className="flex items-center gap-2">
+                          <span className="text-[10px] w-10 shrink-0" style={{ color: "var(--text-muted)" }}>{row.label}</span>
+                          <div className="flex-1 h-1.5 rounded-full" style={{ background: "var(--border)" }}>
+                            <div className="h-1.5 rounded-full transition-all" style={{
+                              width: `${Math.round((row.value / total) * 100)}%`,
+                              backgroundColor: row.color,
+                            }} />
+                          </div>
+                          <span className="text-[10px] font-semibold tabular-nums w-8 text-right"
+                            style={{ color: row.value > 0 ? "var(--text)" : "var(--text-muted)" }}>
+                            {row.value > 0 ? `+${row.value.toLocaleString()}` : "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           </div>
 
