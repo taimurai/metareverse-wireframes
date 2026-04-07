@@ -131,9 +131,90 @@ function calcHealthScore(conn: Connection): { score: number; label: string; colo
   return { score, label, color, reason };
 }
 
+// Pages available on the Facebook account (superset of what's connected)
+const ALL_FB_PAGES = [
+  { id: "lc",  name: "Laugh Central",     category: "Comedy",          followers: "3.2M", avatar: "LC", color: "#8B5CF6", ig: true  },
+  { id: "hu",  name: "History Uncovered", category: "Education",       followers: "2.4M", avatar: "HU", color: "#FF6B2B", ig: true  },
+  { id: "tb",  name: "TechByte",          category: "Technology",      followers: "1.1M", avatar: "TB", color: "#14B8A6", ig: true  },
+  { id: "mm",  name: "Money Matters",     category: "Finance",         followers: "680K", avatar: "MM", color: "#F59E0B", ig: false },
+  { id: "dh",  name: "Daily Health Tips", category: "Health",          followers: "420K", avatar: "DH", color: "#6366F1", ig: false },
+  { id: "ff",  name: "Fitness Factory",   category: "Fitness",         followers: "310K", avatar: "FF", color: "#EC4899", ig: true  },
+  { id: "khn", name: "Know Her Name",     category: "Women's History", followers: "136",  avatar: "KH", color: "#0EA5E9", ig: true  },
+  { id: "dm",  name: "Daily Memes HQ",    category: "Entertainment",   followers: "890K", avatar: "DM", color: "#F43F5E", ig: false },
+  { id: "su",  name: "Science Unlocked",  category: "Science",         followers: "220K", avatar: "SU", color: "#10B981", ig: true  },
+  { id: "ft",  name: "Food Therapy",      category: "Food",            followers: "155K", avatar: "FT", color: "#F97316", ig: true  },
+  { id: "mn",  name: "MindSpace",         category: "Mental Health",   followers: "98K",  avatar: "MS", color: "#A855F7", ig: false },
+  { id: "wn",  name: "World News Now",    category: "News",            followers: "1.7M", avatar: "WN", color: "#64748B", ig: true  },
+];
+
+const ALREADY_CONNECTED_IDS = new Set(["lc","hu","tb","mm","dh","ff","khn"]);
+
 export default function ConnectedIDs() {
   const [selected, setSelected] = useState<string | null>("c1");
   const [expandedStats, setExpandedStats] = useState<Set<string>>(new Set(["c1"]));
+
+  // Bulk connect modal state
+  type BulkStep = "idle" | "oauth-loading" | "select" | "importing" | "setup" | "done";
+  const [bulkStep, setBulkStep] = useState<BulkStep>("idle");
+  const [bulkPages, setBulkPages] = useState(
+    ALL_FB_PAGES.map(p => ({ ...p, checked: !ALREADY_CONNECTED_IDS.has(p.id) && ["dm","su","ft"].includes(p.id) }))
+  );
+  const [bulkProgress, setBulkProgress] = useState(0);
+  const [importedCount, setImportedCount] = useState(0);
+
+  // Per-page setup state: array of configs for each newly imported page
+  type PageSetupConfig = { batch: string; timezone: string; interval: string };
+  const [pageSetups, setPageSetups] = useState<PageSetupConfig[]>([]);
+  const [setupIndex, setSetupIndex] = useState(0);
+
+  const BATCH_OPTIONS = [
+    { id: "batch-a", label: "Partner A — Lifestyle",  color: "#8B5CF6" },
+    { id: "batch-b", label: "Partner B — Education",  color: "#FF6B2B" },
+    { id: "batch-c", label: "Partner C — Women's",    color: "#0EA5E9" },
+    { id: "new",     label: "Create new batch…",       color: "#6B7280" },
+  ];
+
+  const bulkSelectedCount = bulkPages.filter(p => !ALREADY_CONNECTED_IDS.has(p.id) && p.checked).length;
+  const newlyImportedPages = bulkPages.filter(p => !ALREADY_CONNECTED_IDS.has(p.id) && p.checked);
+  const currentSetupPage = newlyImportedPages[setupIndex] ?? null;
+  const currentSetup = pageSetups[setupIndex] ?? { batch: "batch-a", timezone: "Asia/Karachi (PKT)", interval: "1.5 hrs" };
+
+  const updateCurrentSetup = (field: keyof PageSetupConfig, value: string) => {
+    setPageSetups(prev => {
+      const next = [...prev];
+      next[setupIndex] = { ...currentSetup, [field]: value };
+      return next;
+    });
+  };
+
+  const openBulkModal = () => {
+    setBulkStep("oauth-loading");
+    setTimeout(() => setBulkStep("select"), 1800);
+  };
+
+  const startBulkImport = () => {
+    const count = bulkSelectedCount;
+    setImportedCount(count);
+    // Pre-fill setup configs
+    setPageSetups(bulkPages.filter(p => !ALREADY_CONNECTED_IDS.has(p.id) && p.checked).map(() => ({ batch: "batch-a", timezone: "Asia/Karachi (PKT)", interval: "1.5 hrs" })));
+    setSetupIndex(0);
+    setBulkStep("importing");
+    setBulkProgress(0);
+    let pct = 0;
+    const tick = () => {
+      pct += 12;
+      if (pct >= 100) { setBulkProgress(100); setBulkStep("setup"); }
+      else { setBulkProgress(pct); setTimeout(tick, 140); }
+    };
+    setTimeout(tick, 140);
+  };
+
+  const nextSetupPage = () => {
+    if (setupIndex < importedCount - 1) setSetupIndex(i => i + 1);
+    else setBulkStep("done");
+  };
+
+  const closeBulkModal = () => setBulkStep("idle");
 
   const toggleExpand = (id: string) => {
     setExpandedStats(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -163,7 +244,8 @@ export default function ConnectedIDs() {
               Facebook accounts connected to MetaReverse · Each ID posts on behalf of your pages · Track reach per ID to find your best performers
             </p>
           </div>
-          <button className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white" style={{ backgroundColor: "var(--primary)" }}>
+          <button onClick={openBulkModal} className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white flex items-center gap-2" style={{ backgroundColor: "var(--primary)" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
             + Connect Facebook Account
           </button>
         </div>
@@ -376,6 +458,223 @@ export default function ConnectedIDs() {
           })}
         </div>
       </main>
+
+      {/* ── BULK CONNECT MODAL ── */}
+      {bulkStep !== "idle" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}>
+          <div className="w-[540px] rounded-2xl shadow-2xl flex flex-col overflow-hidden" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", maxHeight: "88vh" }}>
+
+            {/* Header */}
+            <div className="px-6 py-5 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: "var(--border)" }}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#1877F2" }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                </div>
+                <div>
+                  <h2 className="text-[15px] font-semibold" style={{ color: "var(--text)" }}>
+                    {bulkStep === "oauth-loading" ? "Connecting to Facebook…"
+                      : bulkStep === "select" ? "Select pages to add"
+                      : bulkStep === "importing" ? "Importing pages…"
+                      : bulkStep === "setup" ? `Set up: ${currentSetupPage?.name ?? ""}`
+                      : "Pages added successfully"}
+                  </h2>
+                  {bulkStep === "select" && (
+                    <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>Found {ALL_FB_PAGES.length} pages on this account · {ALREADY_CONNECTED_IDS.size} already connected</p>
+                  )}
+                </div>
+              </div>
+              {(bulkStep === "select" || bulkStep === "setup" || bulkStep === "done") && (
+                <button onClick={closeBulkModal} className="p-1.5 rounded-lg hover:opacity-70" style={{ color: "var(--text-muted)" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              )}
+            </div>
+
+            {/* OAuth loading */}
+            {bulkStep === "oauth-loading" && (
+              <div className="flex flex-col items-center justify-center py-16 gap-4">
+                <svg className="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "#1877F2" }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                <p className="text-[14px]" style={{ color: "var(--text-muted)" }}>Fetching pages from your Facebook account…</p>
+              </div>
+            )}
+
+            {/* Select pages */}
+            {bulkStep === "select" && (
+              <>
+                <div className="flex items-center justify-between px-6 py-3 border-b flex-shrink-0" style={{ borderColor: "var(--border)" }}>
+                  <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+                    <strong style={{ color: "var(--text)" }}>{bulkSelectedCount}</strong> new page{bulkSelectedCount !== 1 ? "s" : ""} selected
+                  </span>
+                  <div className="flex gap-2">
+                    <button onClick={() => setBulkPages(p => p.map(x => ALREADY_CONNECTED_IDS.has(x.id) ? x : { ...x, checked: true }))}
+                      className="text-[11px] px-2.5 py-1 rounded-lg" style={{ backgroundColor: "var(--surface-hover)", color: "var(--primary)" }}>Select all new</button>
+                    <button onClick={() => setBulkPages(p => p.map(x => ALREADY_CONNECTED_IDS.has(x.id) ? x : { ...x, checked: false }))}
+                      className="text-[11px] px-2.5 py-1 rounded-lg" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>None</button>
+                  </div>
+                </div>
+                <div className="overflow-y-auto flex-1">
+                  {bulkPages.map(page => {
+                    const already = ALREADY_CONNECTED_IDS.has(page.id);
+                    return (
+                      <div key={page.id}
+                        onClick={() => !already && setBulkPages(prev => prev.map(p => p.id === page.id ? { ...p, checked: !p.checked } : p))}
+                        className="flex items-center gap-4 px-6 py-3.5 border-b last:border-0 transition-all"
+                        style={{
+                          borderColor: "var(--border)",
+                          backgroundColor: already ? "transparent" : page.checked ? "rgba(255,107,43,0.04)" : "transparent",
+                          cursor: already ? "default" : "pointer",
+                          opacity: already ? 0.5 : 1,
+                        }}>
+                        {/* Checkbox */}
+                        <div className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: already ? "var(--surface-hover)" : page.checked ? "var(--primary)" : "transparent", border: `1.5px solid ${already ? "var(--border)" : page.checked ? "var(--primary)" : "var(--border)"}` }}>
+                          {already
+                            ? <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                            : page.checked && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                        </div>
+                        {/* Avatar */}
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0" style={{ backgroundColor: page.color }}>{page.avatar}</div>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{page.name}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>{page.category}</span>
+                            {already && <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "rgba(74,222,128,0.12)", color: "#4ADE80" }}>Already connected</span>}
+                          </div>
+                          <div className="flex items-center gap-3 mt-0.5">
+                            <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{page.followers} followers</span>
+                            {page.ig && <span className="text-[10px]" style={{ color: "#E1306C" }}>+ Instagram</span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="px-6 py-4 border-t flex gap-2 flex-shrink-0" style={{ borderColor: "var(--border)" }}>
+                  <button onClick={closeBulkModal} className="px-4 py-2.5 rounded-xl text-[13px] font-medium" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>Cancel</button>
+                  <button onClick={startBulkImport} disabled={bulkSelectedCount === 0}
+                    className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-40"
+                    style={{ backgroundColor: "var(--primary)", boxShadow: bulkSelectedCount > 0 ? "0 2px 10px var(--primary-glow)" : "none" }}>
+                    Add {bulkSelectedCount > 0 ? bulkSelectedCount : ""} Page{bulkSelectedCount !== 1 ? "s" : ""} →
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Importing progress */}
+            {bulkStep === "importing" && (
+              <div className="flex flex-col items-center justify-center py-12 px-8 gap-5">
+                <svg className="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--primary)" }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                <div className="w-full">
+                  <div className="flex justify-between text-[12px] mb-2">
+                    <span style={{ color: "var(--text)" }}>Importing {importedCount} pages…</span>
+                    <span style={{ color: "var(--text-muted)" }}>{bulkProgress}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--surface-hover)" }}>
+                    <div className="h-full rounded-full transition-all duration-150" style={{ width: `${bulkProgress}%`, backgroundColor: "var(--primary)" }} />
+                  </div>
+                  <p className="text-[11px] mt-3 text-center" style={{ color: "var(--text-muted)" }}>Connecting pages, verifying permissions, and syncing metadata</p>
+                </div>
+              </div>
+            )}
+
+            {/* Setup step — per page */}
+            {bulkStep === "setup" && currentSetupPage && (
+              <>
+                {/* Progress bar */}
+                <div className="px-6 pt-4 pb-2 flex-shrink-0">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ backgroundColor: currentSetupPage.color }}>{currentSetupPage.avatar}</div>
+                      <div>
+                        <span className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{currentSetupPage.name}</span>
+                        <span className="text-[11px] ml-1.5" style={{ color: "var(--text-muted)" }}>{currentSetupPage.category} · {currentSetupPage.followers} followers</span>
+                      </div>
+                    </div>
+                    <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{setupIndex + 1} of {importedCount}</span>
+                  </div>
+                  <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: "var(--surface-hover)" }}>
+                    <div className="h-full rounded-full transition-all" style={{ width: `${((setupIndex + 1) / importedCount) * 100}%`, backgroundColor: "var(--primary)" }} />
+                  </div>
+                </div>
+
+                <div className="overflow-y-auto flex-1 px-6 py-4 flex flex-col gap-4">
+                  <p className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>Configure this page independently. You can change these in Page Settings anytime.</p>
+
+                  {/* Batch assignment */}
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Assign to Batch</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {BATCH_OPTIONS.map(b => (
+                        <button key={b.id} onClick={() => updateCurrentSetup("batch", b.id)}
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
+                          style={{ border: `2px solid ${currentSetup.batch === b.id ? b.color : "var(--border)"}`, backgroundColor: currentSetup.batch === b.id ? `${b.color}10` : "var(--surface-hover)" }}>
+                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: b.color }} />
+                          <span className="text-[12px] font-medium" style={{ color: currentSetup.batch === b.id ? b.color : "var(--text-secondary)" }}>{b.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Timezone */}
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Timezone</div>
+                    <select value={currentSetup.timezone} onChange={e => updateCurrentSetup("timezone", e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl text-[13px] outline-none"
+                      style={{ backgroundColor: "var(--surface-hover)", color: "var(--text)", border: "1px solid var(--border)" }}>
+                      {["Asia/Karachi (PKT)","America/New_York (EST)","America/Los_Angeles (PST)","Europe/London (GMT)","Asia/Dubai (GST)","Asia/Kolkata (IST)"].map(tz => (
+                        <option key={tz}>{tz}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Post interval */}
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Post Interval</div>
+                    <div className="flex gap-2 flex-wrap">
+                      {["30 min","1 hr","1.5 hrs","2 hrs","3 hrs","4 hrs"].map(opt => (
+                        <button key={opt} onClick={() => updateCurrentSetup("interval", opt)}
+                          className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                          style={{ backgroundColor: currentSetup.interval === opt ? "var(--primary)" : "var(--surface-hover)", color: currentSetup.interval === opt ? "white" : "var(--text-secondary)" }}>
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="px-6 py-4 border-t flex gap-2 flex-shrink-0" style={{ borderColor: "var(--border)" }}>
+                  <button onClick={() => setBulkStep("done")} className="px-4 py-2.5 rounded-xl text-[12px] font-medium" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                    Skip Remaining
+                  </button>
+                  <button onClick={nextSetupPage}
+                    className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white"
+                    style={{ backgroundColor: "var(--primary)", boxShadow: "0 2px 10px var(--primary-glow)" }}>
+                    {setupIndex < importedCount - 1 ? `Next Page →` : "Finish Setup ✓"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Done */}
+            {bulkStep === "done" && (
+              <div className="flex flex-col items-center justify-center py-10 px-8 gap-4">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.2)" }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: "#4ADE80" }}><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-[17px] font-semibold mb-1" style={{ color: "var(--text)" }}>{importedCount} page{importedCount !== 1 ? "s" : ""} added</p>
+                  <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>Each page configured and assigned to its batch. Analytics will sync within 24 hours.</p>
+                </div>
+                <button onClick={closeBulkModal} className="mt-2 px-8 py-2.5 rounded-xl text-[13px] font-semibold text-white" style={{ backgroundColor: "var(--primary)" }}>
+                  Done
+                </button>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

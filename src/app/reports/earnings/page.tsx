@@ -22,7 +22,7 @@ export default function EarningsPage() {
   return (
     <div>
       <Header
-        title="Insights"
+        title="Analytics"
         subtitle="Review performance results and more."
         actions={
           <div className="flex items-center gap-3">
@@ -49,12 +49,20 @@ export default function EarningsPage() {
           { label: "Earnings", href: "/reports/earnings", active: true },
           { label: "By Posting ID", href: "/reports/id-performance", active: false },
           { label: "Batches", href: "/reports/batches", active: false },
+          { label: "Audience", href: "/reports/audience", active: false },
         ].map((tab) => (
           <Link key={tab.label} href={tab.href} className="relative px-4 py-3 text-[13px] font-medium" style={{ color: tab.active ? "var(--primary)" : "var(--text-secondary)" }}>
             {tab.label}
             {tab.active && <div className="absolute bottom-0 left-4 right-4 h-[2px] rounded-full" style={{ backgroundColor: "var(--primary)" }} />}
           </Link>
         ))}
+      </div>
+
+      <div className="flex justify-end mb-4">
+        <button className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
       </div>
 
       {/* Earnings Content */}
@@ -132,28 +140,70 @@ export default function EarningsPage() {
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
           <div>
             <h3 className="text-[14px] font-semibold" style={{ color: "var(--text)" }}>Top content</h3>
-            <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>based on approximate content monetization earnings</div>
+            <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>Based on approximate content monetization earnings · {period} · sorted by earnings</div>
           </div>
           <Link href="/reports/page" className="text-[12px] font-medium px-3 py-1.5 rounded-lg" style={{ backgroundColor: "var(--bg)", color: "var(--text-secondary)" }}>
             See all content
           </Link>
         </div>
 
-        <div className="p-5">
-          <div className="grid grid-cols-6 gap-3">
+        <table className="w-full text-[12px]" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ borderBottom: "1px solid var(--border)" }}>
+              <th className="px-5 py-2.5 text-left font-semibold w-8" style={{ color: "var(--text-muted)" }}>#</th>
+              <th className="px-5 py-2.5 text-left font-semibold" style={{ color: "var(--text-muted)" }}>Post</th>
+              <th className="px-5 py-2.5 text-left font-semibold" style={{ color: "var(--text-muted)" }}>Page</th>
+              <th className="px-5 py-2.5 text-left font-semibold" style={{ color: "var(--text-muted)" }}>Type</th>
+              <th className="px-5 py-2.5 text-right font-semibold" style={{ color: "var(--text-muted)" }}>Views</th>
+              <th className="px-5 py-2.5 text-right font-semibold" style={{ color: "var(--text-muted)" }}>Reach</th>
+              <th className="px-5 py-2.5 text-right font-semibold" style={{ color: "var(--text-muted)" }}>Reactions</th>
+              <th className="px-5 py-2.5 text-right font-semibold" style={{ color: "var(--text-muted)" }}>Clicks</th>
+              <th className="px-5 py-2.5 text-right font-semibold" style={{ color: "var(--text-muted)" }}>RPM</th>
+              <th className="px-5 py-2.5 text-right font-semibold" style={{ color: "var(--text-muted)" }}>Earnings</th>
+              <th className="px-5 py-2.5 text-left font-semibold" style={{ color: "var(--text-muted)" }}>Date</th>
+            </tr>
+          </thead>
+          <tbody>
             {topContent.map((item, i) => (
-              <div key={i} className="group cursor-pointer">
-                <div className="aspect-square rounded-lg mb-2 flex items-center justify-center relative overflow-hidden" style={{ backgroundColor: "var(--surface-active)" }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--text-muted)" }}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ backgroundColor: i === 0 ? "var(--success)" : "var(--surface)", color: i === 0 ? "#000" : "var(--text-muted)" }}>{i + 1}</div>
-                </div>
-                <div className="text-[10px] font-medium line-clamp-2" style={{ color: "var(--text-secondary)" }}>{item.title}</div>
-                <div className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--success)" }}>{item.earnings}</div>
-                <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>{item.views} views</div>
-              </div>
+              <tr
+                key={i}
+                className="cursor-pointer"
+                style={{ borderBottom: i < topContent.length - 1 ? "1px solid var(--border)" : "none" }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--surface-hover)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+              >
+                <td className="px-5 py-3">
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold inline-flex"
+                    style={{ backgroundColor: i === 0 ? "var(--success)" : "var(--surface-active)", color: i === 0 ? "#000" : "var(--text-muted)" }}>
+                    {i + 1}
+                  </span>
+                </td>
+                <td className="px-5 py-3 max-w-[220px]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--surface-active)" }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--text-muted)" }}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </div>
+                    <span className="font-medium line-clamp-2 leading-snug" style={{ color: "var(--text)" }}>{item.title}</span>
+                  </div>
+                </td>
+                <td className="px-5 py-3 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>{item.page}</td>
+                <td className="px-5 py-3">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-medium" style={{
+                    backgroundColor: item.type === "Reel" ? "rgba(99,102,241,0.12)" : "var(--surface-active)",
+                    color: item.type === "Reel" ? "#818CF8" : "var(--text-muted)",
+                  }}>{item.type}</span>
+                </td>
+                <td className="px-5 py-3 text-right tabular-nums font-medium" style={{ color: "var(--text)" }}>{item.views}</td>
+                <td className="px-5 py-3 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{item.reach}</td>
+                <td className="px-5 py-3 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{item.reactions}</td>
+                <td className="px-5 py-3 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{item.clicks}</td>
+                <td className="px-5 py-3 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{item.rpm}</td>
+                <td className="px-5 py-3 text-right tabular-nums font-semibold" style={{ color: "var(--success)" }}>{item.earnings}</td>
+                <td className="px-5 py-3 whitespace-nowrap text-[11px]" style={{ color: "var(--text-muted)" }}>{item.date}</td>
+              </tr>
             ))}
-          </div>
-        </div>
+          </tbody>
+        </table>
       </div>
     </div>
   );

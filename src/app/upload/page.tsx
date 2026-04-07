@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Header from "@/components/Header";
+import { useRole } from "@/contexts/RoleContext";
 
 const PAGES = [
   { id: "lc", name: "Laugh Central", avatar: "LC", color: "#8B5CF6", followers: "3.2M", platforms: ["FB", "IG"], status: "connected" },
@@ -45,16 +46,55 @@ const COPYRIGHT_SCAN: Record<string, { status: CopyrightStatus; match?: string }
   f6: { status: "clear" },
 };
 
-const AUTO_SLOTS = [
-  { time: "Today, 3:00 PM",    tz: "EST" },
-  { time: "Today, 4:30 PM",    tz: "EST" },
-  { time: "Today, 6:00 PM",    tz: "EST" },
-  { time: "Tomorrow, 8:00 AM", tz: "EST" },
-  { time: "Tomorrow, 10:00 AM",tz: "EST" },
-  { time: "Tomorrow, 12:00 PM",tz: "EST" },
-];
+// Per-page timezone: page setting > account default > platform default
+// Precedence: page timezone (Page Settings) > account timezone (Account Settings) > platform default (UTC)
+const PAGE_TIMEZONE: Record<string, { tz: string; source: "page" | "account" | "default" }> = {
+  lc:  { tz: "EST", source: "page" },
+  hu:  { tz: "EST", source: "page" },
+  tb:  { tz: "PST", source: "page" },
+  mm:  { tz: "EST", source: "page" },
+  dh:  { tz: "CST", source: "page" },
+  ff:  { tz: "EST", source: "page" },
+  khn: { tz: "EST", source: "page" },
+};
+
+const AUTO_SLOTS_BY_TZ: Record<string, { time: string; tz: string }[]> = {
+  EST: [
+    { time: "Today, 3:00 PM",    tz: "EST" },
+    { time: "Today, 4:30 PM",    tz: "EST" },
+    { time: "Today, 6:00 PM",    tz: "EST" },
+    { time: "Tomorrow, 8:00 AM", tz: "EST" },
+    { time: "Tomorrow, 10:00 AM",tz: "EST" },
+    { time: "Tomorrow, 12:00 PM",tz: "EST" },
+  ],
+  PST: [
+    { time: "Today, 12:00 PM",   tz: "PST" },
+    { time: "Today, 1:30 PM",    tz: "PST" },
+    { time: "Today, 3:00 PM",    tz: "PST" },
+    { time: "Tomorrow, 5:00 AM", tz: "PST" },
+    { time: "Tomorrow, 7:00 AM", tz: "PST" },
+    { time: "Tomorrow, 9:00 AM", tz: "PST" },
+  ],
+  CST: [
+    { time: "Today, 2:00 PM",    tz: "CST" },
+    { time: "Today, 3:30 PM",    tz: "CST" },
+    { time: "Today, 5:00 PM",    tz: "CST" },
+    { time: "Tomorrow, 7:00 AM", tz: "CST" },
+    { time: "Tomorrow, 9:00 AM", tz: "CST" },
+    { time: "Tomorrow, 11:00 AM",tz: "CST" },
+  ],
+};
 
 type Stage = "select-page" | "upload" | "uploading" | "captioning" | "done" | "auto-preview";
+type UploadMode = "files" | "csv";
+
+interface CsvRow {
+  id: string;
+  imageUrl: string;
+  caption: string;
+  status: "pending" | "valid" | "error";
+  error?: string;
+}
 
 const STEPS = [
   { n: 1, label: "Select Page" },
@@ -72,6 +112,7 @@ const stageIndex = (s: Stage) => {
 };
 
 export default function BulkUploadPage() {
+  const { role, batchConfig } = useRole();
   const [stage, setStage] = useState<Stage>("select-page");
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -79,9 +120,14 @@ export default function BulkUploadPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [pageSearch, setPageSearch] = useState("");
   const [files, setFiles] = useState<UploadedFile[]>(INITIAL_FILES);
+  const [uploadMode, setUploadMode] = useState<UploadMode>("files");
+  const [csvRows, setCsvRows] = useState<CsvRow[]>([]);
+  const [csvParsed, setCsvParsed] = useState(false);
+  const [csvDragging, setCsvDragging] = useState(false);
 
   const selectedPageData = PAGES.find(p => p.id === selectedPage);
-  const filteredPages = PAGES.filter(p =>
+  const visiblePages = role === "owner" || role === "co-owner" ? PAGES : PAGES.filter(p => batchConfig.pages.includes(p.id));
+  const filteredPages = visiblePages.filter(p =>
     p.name.toLowerCase().includes(pageSearch.toLowerCase())
   );
   const captionedCount = files.filter(f => f.caption.trim().length > 0).length;
@@ -127,6 +173,59 @@ export default function BulkUploadPage() {
   };
 
   const activeStep = stageIndex(stage);
+
+  // CSV parse (mock) — in prod use PapaParse
+  const parseCsv = (text: string) => {
+    const lines = text.trim().split("\n").filter(Boolean);
+    // skip header row if first cell looks like a label
+    const dataLines = lines[0]?.toLowerCase().includes("caption") || lines[0]?.toLowerCase().includes("image")
+      ? lines.slice(1) : lines;
+    const rows: CsvRow[] = dataLines.map((line, i) => {
+      const cols = line.split(",").map(c => c.trim().replace(/^"|"$/g, ""));
+      const imageUrl = cols[0] ?? "";
+      const caption  = cols.slice(1).join(",").trim(); // rest is caption (may contain commas)
+      const isValidUrl = imageUrl.startsWith("http") || imageUrl.startsWith("https");
+      return {
+        id: `csv-${i}`,
+        imageUrl,
+        caption,
+        status: !isValidUrl ? "error" : caption.length === 0 ? "error" : "valid",
+        error: !isValidUrl ? "Invalid image URL" : caption.length === 0 ? "Caption is empty" : undefined,
+      };
+    });
+    setCsvRows(rows);
+    setCsvParsed(true);
+  };
+
+  const loadMockCsv = () => {
+    const mock = [
+      `image_url,caption`,
+      `https://images.unsplash.com/photo-1506905925346-21bda4d32df4,The mountains don't care how tired you are. They just stand there — waiting for you to decide.`,
+      `https://images.unsplash.com/photo-1558618666-fcd25c85cd64,She didn't wait for the storm to pass. She learned to dance in the rain. #resilience`,
+      `https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c,Coffee first. World domination second. Priorities. ☕`,
+      `https://images.unsplash.com/photo-1504674900247-0877df9cc836,What you eat in private you wear in public. Chose wisely today.`,
+      `not-a-url,This post has a broken image link`,
+      `https://images.unsplash.com/photo-1519681393784-d120267933ba,`,
+    ].join("\n");
+    parseCsv(mock);
+  };
+
+  const importCsvToDrafts = () => {
+    const valid = csvRows.filter(r => r.status === "valid");
+    // Convert to UploadedFile format and proceed to captioning
+    const newFiles: UploadedFile[] = valid.map((r, i) => ({
+      id: `csv-import-${i}`,
+      name: `post-${i + 1}.jpg`,
+      size: "—",
+      type: "photo",
+      caption: r.caption,
+      thread: "",
+      showThread: false,
+      platforms: selectedPageData?.platforms ?? ["FB"],
+    }));
+    setFiles(newFiles);
+    setStage("captioning");
+  };
 
   return (
     <div>
@@ -253,30 +352,166 @@ export default function BulkUploadPage() {
               Change
             </button>
           </div>
-          <div
-            onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={e => { e.preventDefault(); setIsDragging(false); startUpload(); }}
-            onClick={startUpload}
-            className="rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all"
-            style={{ minHeight: 300, borderColor: isDragging ? "var(--primary)" : "var(--border)", backgroundColor: isDragging ? "rgba(255,107,43,0.06)" : "var(--surface)" }}
-          >
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: isDragging ? "rgba(255,107,43,0.15)" : "var(--surface-hover)" }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: isDragging ? "var(--primary)" : "var(--text-muted)" }}>
-                <polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" />
-                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
-              </svg>
-            </div>
-            <p className="text-[15px] font-semibold mb-1" style={{ color: "var(--text)" }}>
-              {isDragging ? "Drop to upload" : "Drag & drop your images or videos"}
-            </p>
-            <p className="text-[12px] mb-5" style={{ color: "var(--text-muted)" }}>
-              or click to browse · JPG, PNG, MP4, MOV · Images max 10MB · Videos max 100MB
-            </p>
-            <div className="px-5 py-2.5 rounded-xl text-[13px] font-semibold" style={{ backgroundColor: "var(--primary)", color: "white" }}>
-              Browse Files
-            </div>
+          {/* Mode tabs */}
+          <div className="flex items-center gap-1 p-1 rounded-xl mb-5 w-fit" style={{ background: "var(--surface)" }}>
+            {(["files", "csv"] as UploadMode[]).map(m => (
+              <button key={m} onClick={() => { setUploadMode(m); setCsvParsed(false); setCsvRows([]); }}
+                className="px-4 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                style={{
+                  background: uploadMode === m ? "var(--primary)" : "transparent",
+                  color: uploadMode === m ? "white" : "var(--text-muted)",
+                }}>
+                {m === "files" ? "Upload Files" : "Import from CSV"}
+              </button>
+            ))}
           </div>
+
+          {/* ── FILE DROPZONE ── */}
+          {uploadMode === "files" && (
+            <div
+              onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={e => { e.preventDefault(); setIsDragging(false); startUpload(); }}
+              onClick={startUpload}
+              className="rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all"
+              style={{ minHeight: 300, borderColor: isDragging ? "var(--primary)" : "var(--border)", backgroundColor: isDragging ? "rgba(255,107,43,0.06)" : "var(--surface)" }}
+            >
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: isDragging ? "rgba(255,107,43,0.15)" : "var(--surface-hover)" }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: isDragging ? "var(--primary)" : "var(--text-muted)" }}>
+                  <polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" />
+                  <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                </svg>
+              </div>
+              <p className="text-[15px] font-semibold mb-1" style={{ color: "var(--text)" }}>
+                {isDragging ? "Drop to upload" : "Drag & drop your images or videos"}
+              </p>
+              <p className="text-[12px] mb-5" style={{ color: "var(--text-muted)" }}>
+                or click to browse · JPG, PNG, MP4, MOV · Images max 10MB · Videos max 100MB
+              </p>
+              <div className="px-5 py-2.5 rounded-xl text-[13px] font-semibold" style={{ backgroundColor: "var(--primary)", color: "white" }}>
+                Browse Files
+              </div>
+            </div>
+          )}
+
+          {/* ── CSV IMPORT ── */}
+          {uploadMode === "csv" && !csvParsed && (
+            <div>
+              {/* Format hint */}
+              <div className="rounded-xl p-4 mb-5 flex items-start gap-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5" style={{ color: "var(--primary)" }}>
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <div>
+                  <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--text)" }}>CSV format</p>
+                  <p className="text-[11px] mb-2" style={{ color: "var(--text-muted)" }}>
+                    Two columns — image URL first, caption second. Header row optional.
+                  </p>
+                  <code className="text-[11px] block px-3 py-2 rounded-lg" style={{ background: "var(--bg-deep)", color: "var(--text-secondary)" }}>
+                    image_url,caption<br/>
+                    https://…/photo.jpg,Your caption here<br/>
+                    https://…/photo2.jpg,"Caption with, comma inside"
+                  </code>
+                </div>
+              </div>
+
+              {/* Drop zone for CSV */}
+              <div
+                onDragOver={e => { e.preventDefault(); setCsvDragging(true); }}
+                onDragLeave={() => setCsvDragging(false)}
+                onDrop={e => {
+                  e.preventDefault(); setCsvDragging(false);
+                  const file = e.dataTransfer.files[0];
+                  if (file) { const reader = new FileReader(); reader.onload = ev => parseCsv(ev.target?.result as string); reader.readAsText(file); }
+                }}
+                className="rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all mb-4"
+                style={{ minHeight: 200, borderColor: csvDragging ? "var(--primary)" : "var(--border)", backgroundColor: csvDragging ? "rgba(255,107,43,0.06)" : "var(--surface)" }}
+              >
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-3" style={{ color: csvDragging ? "var(--primary)" : "var(--text-muted)" }}>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                <p className="text-[14px] font-semibold mb-1" style={{ color: "var(--text)" }}>
+                  {csvDragging ? "Drop your CSV" : "Drop a .csv file here"}
+                </p>
+                <p className="text-[12px] mb-4" style={{ color: "var(--text-muted)" }}>or try the mock data below</p>
+                <button onClick={loadMockCsv}
+                  className="px-4 py-2 rounded-xl text-[12px] font-semibold"
+                  style={{ background: "var(--primary)", color: "white" }}>
+                  Load sample CSV
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── CSV PREVIEW TABLE ── */}
+          {uploadMode === "csv" && csvParsed && (
+            <div>
+              {/* Summary */}
+              <div className="flex items-center gap-4 mb-4">
+                <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
+                  {csvRows.length} rows detected
+                </span>
+                <span className="text-[12px] px-2.5 py-0.5 rounded-full font-semibold" style={{ background: "var(--success-bg)", color: "var(--success)" }}>
+                  {csvRows.filter(r => r.status === "valid").length} valid
+                </span>
+                {csvRows.filter(r => r.status === "error").length > 0 && (
+                  <span className="text-[12px] px-2.5 py-0.5 rounded-full font-semibold" style={{ background: "var(--error-bg)", color: "var(--error)" }}>
+                    {csvRows.filter(r => r.status === "error").length} errors — will be skipped
+                  </span>
+                )}
+                <button onClick={() => { setCsvParsed(false); setCsvRows([]); }} className="ml-auto text-[11px] px-3 py-1.5 rounded-lg" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-muted)" }}>
+                  Re-upload
+                </button>
+              </div>
+
+              {/* Table */}
+              <div className="rounded-xl overflow-hidden mb-5" style={{ border: "1px solid var(--border)" }}>
+                <table className="w-full">
+                  <thead>
+                    <tr style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+                      {["#", "Image URL", "Caption", "Status"].map(h => (
+                        <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvRows.map((row, i) => (
+                      <tr key={row.id} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--bg-deep)", borderBottom: i < csvRows.length - 1 ? "1px solid var(--border)" : "none", opacity: row.status === "error" ? 0.5 : 1 }}>
+                        <td className="px-4 py-2.5 text-[12px]" style={{ color: "var(--text-muted)", width: 36 }}>{i + 1}</td>
+                        <td className="px-4 py-2.5 text-[11px]" style={{ color: "var(--text-secondary)", maxWidth: 220 }}>
+                          <span className="truncate block" style={{ maxWidth: 200 }}>{row.imageUrl}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-[11px]" style={{ color: "var(--text-secondary)", maxWidth: 340 }}>
+                          <span className="truncate block" style={{ maxWidth: 320 }}>{row.caption || <span style={{ color: "var(--text-muted)" }}>—</span>}</span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {row.status === "valid" ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "var(--success-bg)", color: "var(--success)" }}>✓ Ready</span>
+                          ) : (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "var(--error-bg)", color: "var(--error)" }}>✕ {row.error}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Import CTA */}
+              <div className="flex items-center gap-3">
+                <button onClick={importCsvToDrafts}
+                  disabled={csvRows.filter(r => r.status === "valid").length === 0}
+                  className="px-5 py-2.5 rounded-xl text-[13px] font-semibold"
+                  style={{ background: "var(--primary)", color: "white", opacity: csvRows.filter(r => r.status === "valid").length === 0 ? 0.4 : 1 }}>
+                  Import {csvRows.filter(r => r.status === "valid").length} posts → Add Captions
+                </button>
+                <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                  {csvRows.filter(r => r.status === "error").length > 0 && "Error rows will be skipped. "}
+                  You can edit captions in the next step.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -587,7 +822,13 @@ export default function BulkUploadPage() {
       )}
 
       {/* ── AUTO-PREVIEW ── */}
-      {stage === "auto-preview" && selectedPageData && (
+      {stage === "auto-preview" && selectedPageData && (() => {
+        const pageTzInfo = PAGE_TIMEZONE[selectedPageData.id] ?? { tz: "EST", source: "default" };
+        const autoSlots = AUTO_SLOTS_BY_TZ[pageTzInfo.tz] ?? AUTO_SLOTS_BY_TZ["EST"];
+        const tzSourceLabel = pageTzInfo.source === "page" ? `${selectedPageData.name}'s timezone (Page Settings)`
+          : pageTzInfo.source === "account" ? "Your account timezone (Account Settings)"
+          : "Platform default (UTC)";
+        return (
         <div>
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
@@ -605,7 +846,18 @@ export default function BulkUploadPage() {
             <div className="flex items-center gap-3 px-5 py-3.5 border-b" style={{ backgroundColor: "rgba(34,197,94,0.06)", borderColor: "rgba(34,197,94,0.2)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth="2"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               <span className="text-[12px]" style={{ color: "#4ADE80" }}>
-                Posts will fill the next {files.length} available slots · Every 2h · EST · Quiet hours (11PM–7AM) skipped
+                Filling next {files.length} slots · Every 2h · <strong>{pageTzInfo.tz}</strong> · Quiet hours (11PM–7AM) skipped
+              </span>
+            </div>
+
+            {/* Timezone source note */}
+            <div className="flex items-center gap-2 px-5 py-2.5 border-b" style={{ backgroundColor: "rgba(96,165,250,0.04)", borderColor: "var(--border)" }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span className="text-[11px]" style={{ color: "#60A5FA" }}>
+                Times shown in <strong>{pageTzInfo.tz}</strong> — from {tzSourceLabel}
+              </span>
+              <span className="ml-auto text-[10px]" style={{ color: "var(--text-muted)" }}>
+                Precedence: page timezone → account timezone → platform default
               </span>
             </div>
 
@@ -629,8 +881,8 @@ export default function BulkUploadPage() {
                   </div>
                   {/* Slot */}
                   <div className="text-right flex-shrink-0">
-                    <p className="text-[13px] font-semibold" style={{ color: "#4ADE80" }}>{AUTO_SLOTS[i % AUTO_SLOTS.length].time}</p>
-                    <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{AUTO_SLOTS[i % AUTO_SLOTS.length].tz}</p>
+                    <p className="text-[13px] font-semibold" style={{ color: "#4ADE80" }}>{autoSlots[i % autoSlots.length].time}</p>
+                    <p className="text-[10px] font-medium" style={{ color: "#60A5FA" }}>{autoSlots[i % autoSlots.length].tz}</p>
                   </div>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth="2.5" className="flex-shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
@@ -663,7 +915,8 @@ export default function BulkUploadPage() {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

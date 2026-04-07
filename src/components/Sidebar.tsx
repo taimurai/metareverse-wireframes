@@ -26,17 +26,21 @@ const navItems = [
       { label: "Queue", href: "/queue", icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       )},
+      { label: "Published", href: "/published", icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      )},
       { label: "Failed Posts", href: "/failed-posts", icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       )},
-      { label: "Reports", href: "/reports", icon: (
+      { label: "Analytics", href: "/reports", icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
       ), children: [
         { label: "Overview", href: "/reports" },
         { label: "Results", href: "/reports/results" },
         { label: "Earnings", href: "/reports/earnings" },
-        { label: "By Posting ID", href: "/reports/by-posting-id" },
+        { label: "By Posting ID", href: "/reports/id-performance" },
         { label: "Batches", href: "/reports/batches" },
+        { label: "Audience", href: "/reports/audience" },
       ]},
     ],
   },
@@ -75,11 +79,12 @@ const navItems = [
 
 // Which nav items are visible per role
 const NAV_VISIBILITY: Record<Role, string[]> = {
-  owner:     ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Failed Posts","Reports","Page Settings","Connected IDs","Account"],
-  manager:   ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Failed Posts","Reports","Page Settings","Connected IDs","Account"],
-  publisher: ["Dashboard","Bulk Upload","Single Post","Drafts","Queue"],
-  approver:  ["Dashboard","Approvals","Drafts","Queue"],
-  analyst:   ["Dashboard","Reports"],
+  owner:      ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account"],
+  "co-owner": ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account"],
+  manager:    ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account"],
+  publisher: ["Dashboard","Bulk Upload","Single Post","Drafts","Queue","Published"],
+  approver:  ["Dashboard","Approvals","Drafts","Queue","Published"],
+  analyst:   ["Dashboard","Analytics","Published"],
 };
 
 export default function Sidebar() {
@@ -184,7 +189,11 @@ export default function Sidebar() {
                     </Link>
                     {hasChildren && isOpen && (
                       <div className="ml-8 mt-0.5 space-y-0.5">
-                        {item.children.map((child: any) => {
+                        {item.children.filter((child: any) => {
+                          if (child.label === "Earnings" && !config.canViewRevenue) return false;
+                          if (child.label === "By Posting ID" && role === "analyst") return false;
+                          return true;
+                        }).map((child: any) => {
                           const cActive = pathname === child.href;
                           return (
                             <Link
@@ -240,7 +249,7 @@ export default function Sidebar() {
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: config.color }} />
               <span className="text-[12px] font-semibold" style={{ color: config.color }}>{config.label}</span>
-              {role !== "owner" && (
+              {role !== "owner" && role !== "co-owner" && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded font-medium truncate max-w-[90px]" style={{ backgroundColor: `${batchConfig.color}20`, color: batchConfig.color }}>
                   {batchConfig.label.split(" — ")[1] ?? batchConfig.label}
                 </span>
@@ -265,7 +274,7 @@ export default function Sidebar() {
                   {role === r && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: rc.color }}><polyline points="20 6 9 17 4 12"/></svg>}
                 </button>
               ))}
-              {role !== "owner" && (
+              {role !== "owner" && role !== "co-owner" && (
                 <>
                   <div className="px-3 py-2 border-t" style={{ borderColor: "var(--border)" }}>
                     <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>Batch Scope</div>

@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-export type Role = "owner" | "manager" | "publisher" | "approver" | "analyst";
+export type Role = "owner" | "co-owner" | "manager" | "publisher" | "approver" | "analyst";
 export type BatchId = "all" | "batch-a" | "batch-b" | "batch-c";
 
 export const ROLE_CONFIG: Record<Role, {
@@ -9,17 +9,19 @@ export const ROLE_CONFIG: Record<Role, {
   color: string;
   canViewRevenue: boolean;
   canViewRpm: boolean;
+  canViewBilling: boolean;
   canManageTeam: boolean;
   canManagePages: boolean;
   canApprove: boolean;
   canPublish: boolean;
   canViewSettings: boolean;
 }> = {
-  owner:     { label: "Owner",     color: "#FF6B2B", canViewRevenue: true,  canViewRpm: true,  canManageTeam: true,  canManagePages: true,  canApprove: true,  canPublish: true,  canViewSettings: true  },
-  manager:   { label: "Manager",   color: "#4ADE80", canViewRevenue: false, canViewRpm: true,  canManageTeam: true, canManagePages: true,  canApprove: true,  canPublish: true,  canViewSettings: true  },
-  publisher: { label: "Publisher", color: "#3B82F6", canViewRevenue: false, canViewRpm: false, canManageTeam: false, canManagePages: false, canApprove: false, canPublish: true,  canViewSettings: false },
-  approver:  { label: "Approver",  color: "#FBBF24", canViewRevenue: false, canViewRpm: false, canManageTeam: false, canManagePages: false, canApprove: true,  canPublish: false, canViewSettings: false },
-  analyst:   { label: "Analyst",   color: "#6366F1", canViewRevenue: false, canViewRpm: false, canManageTeam: false, canManagePages: false, canApprove: false, canPublish: false, canViewSettings: false },
+  owner:      { label: "Owner",     color: "#FF6B2B", canViewRevenue: true,  canViewRpm: true,  canViewBilling: true,  canManageTeam: true,  canManagePages: true,  canApprove: true,  canPublish: true,  canViewSettings: true  },
+  "co-owner": { label: "Co-Owner",  color: "#F97316", canViewRevenue: true,  canViewRpm: true,  canViewBilling: true,  canManageTeam: true,  canManagePages: true,  canApprove: true,  canPublish: true,  canViewSettings: true  },
+  manager:    { label: "Manager",   color: "#4ADE80", canViewRevenue: false, canViewRpm: true,  canViewBilling: false, canManageTeam: true,  canManagePages: true,  canApprove: true,  canPublish: true,  canViewSettings: true  },
+  publisher:  { label: "Publisher", color: "#3B82F6", canViewRevenue: false, canViewRpm: false, canViewBilling: false, canManageTeam: false, canManagePages: false, canApprove: false, canPublish: true,  canViewSettings: false },
+  approver:   { label: "Approver",  color: "#FBBF24", canViewRevenue: false, canViewRpm: false, canViewBilling: false, canManageTeam: false, canManagePages: false, canApprove: true,  canPublish: false, canViewSettings: false },
+  analyst:    { label: "Analyst",   color: "#6366F1", canViewRevenue: false, canViewRpm: false, canViewBilling: false, canManageTeam: false, canManagePages: false, canApprove: false, canPublish: false, canViewSettings: false },
 };
 
 export const BATCH_CONFIG: Record<BatchId, { label: string; color: string; pages: string[] }> = {
@@ -54,7 +56,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const setRole = (r: Role) => {
     setRoleState(r);
     localStorage.setItem("mr_role", r);
-    if (r === "owner") {
+    if (r === "owner" || r === "co-owner") {
       setBatchState("all");
       localStorage.setItem("mr_batch", "all");
     } else {

@@ -5,20 +5,30 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import PostPreviewModal from "@/components/modals/PostPreviewModal";
 import { useFakeLoading } from "@/hooks/useFakeLoading";
 import { SkeletonLine, SkeletonTable } from "@/components/Skeleton";
+import { useRole } from "@/contexts/RoleContext";
 
 interface QueuePost {
   id: string;
   thumbnail: string;
   caption: string;
   page: { name: string; avatar: string; color: string };
+  pageId?: string;
+  publisherId?: string;
   platforms: ("fb" | "ig" | "th")[];
   scheduledAt: string;
   scheduledDate: string;
   type: "photo" | "reel" | "text";
-  status: "scheduled" | "publishing" | "failed" | "draft";
+  status: "scheduled" | "publishing" | "failed" | "draft" | "paused";
+  pauseReason?: "token_expired" | "page_disconnected";
+  publisherNotified?: boolean;
   comments: string[];
   approvalStatus?: "awaiting" | "approved";
 }
+
+// Maps avatar abbreviation → batch page ID (matches BATCH_CONFIG keys)
+const AVATAR_TO_PAGE_ID: Record<string, string> = {
+  HU: "hu", LC: "lc", DH: "dh", TB: "tb", FF: "ff", MM: "mm", KH: "khn",
+};
 
 const HU = { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" };
 const LC = { name: "Laugh Central",     avatar: "LC", color: "#8B5CF6" };
@@ -40,16 +50,19 @@ const MOCK_QUEUE: QueuePost[] = [
   { id: "q105c", thumbnail: "", caption: "How the Aztec Empire built one of the world's most sophisticated water systems in 1400 AD", page: HU, platforms: ["fb"], scheduledAt: "Today, 8:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
   { id: "q105d", thumbnail: "", caption: "The Black Death accidentally created the middle class — the economics of the plague explained", page: HU, platforms: ["fb","ig","th"], scheduledAt: "Today, 9:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
 
+  // ── PAUSED: Approved but token expired mid-approval ──
+  { id: "q_paused1", thumbnail: "", caption: "Nobody talks about the real reason Rome conquered Greece — it wasn't military power", page: LC, platforms: ["fb","ig"], scheduledAt: "Today, 2:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "paused", pauseReason: "token_expired", publisherNotified: true, comments: [], approvalStatus: "approved", publisherId: "ahmed" },
+
   // ── CONFLICT: Two LC posts at same time ──
   { id: "q_conflict1", thumbnail: "", caption: "POV: You stay up until 2am watching 'just one more episode'", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 3:30 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [], approvalStatus: "awaiting" },
   { id: "q_conflict2", thumbnail: "", caption: "The face you make when someone says 'can I ask you something' and then takes 10 minutes to ask it", page: LC, platforms: ["fb","ig"], scheduledAt: "Today, 3:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [], approvalStatus: "approved" },
 
   // Laugh Central
-  { id: "q106", thumbnail: "", caption: "Monday morning energy hits different when you've had 3 coffees and no sleep", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 6:30 AM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [] },
-  { id: "q107", thumbnail: "", caption: "When your code works on the first try and you genuinely don't trust it", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 9:30 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q108", thumbnail: "", caption: "POV: You're explaining to your parents why you can't just 'turn off' your anxiety", page: LC, platforms: ["fb","ig"], scheduledAt: "Today, 12:00 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [] },
-  { id: "q109", thumbnail: "", caption: "The audacity of being asked to do something at 4:59 PM on a Friday", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 3:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
-  { id: "q110", thumbnail: "", caption: "My WiFi password is stronger than most of my life decisions", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 7:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [] },
+  { id: "q106", thumbnail: "", caption: "Monday morning energy hits different when you've had 3 coffees and no sleep", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 6:30 AM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [], publisherId: "sarah" },
+  { id: "q107", thumbnail: "", caption: "When your code works on the first try and you genuinely don't trust it", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 9:30 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [], publisherId: "ahmed" },
+  { id: "q108", thumbnail: "", caption: "POV: You're explaining to your parents why you can't just 'turn off' your anxiety", page: LC, platforms: ["fb","ig"], scheduledAt: "Today, 12:00 PM", scheduledDate: "Mar 27, 2026", type: "reel", status: "scheduled", comments: [], publisherId: "sarah" },
+  { id: "q109", thumbnail: "", caption: "The audacity of being asked to do something at 4:59 PM on a Friday", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 3:30 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [], publisherId: "ahmed" },
+  { id: "q110", thumbnail: "", caption: "My WiFi password is stronger than most of my life decisions", page: LC, platforms: ["fb","ig","th"], scheduledAt: "Today, 7:00 PM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: [], publisherId: "sarah" },
 
   // Daily Health Tips
   { id: "q111", thumbnail: "", caption: "10-minute morning routine backed by neuroscience — your brain will thank you", page: DH, platforms: ["fb"], scheduledAt: "Today, 7:00 AM", scheduledDate: "Mar 27, 2026", type: "photo", status: "scheduled", comments: ["Step 1: 2 min cold water on face to spike cortisol naturally", "Step 2: 5 min sunlight exposure to set circadian rhythm", "Step 3: 3 min journaling — write 3 things you want to accomplish"] },
@@ -251,6 +264,7 @@ function QueueSkeleton() {
 export default function QueuePage() {
   const isMobile = useIsMobile();
   const isLoading = useFakeLoading();
+  const { role, batchConfig } = useRole();
   const [simulateEmpty, setSimulateEmpty] = useState(false);
   const [reslotted, setReslotted] = useState(false);
   const [filter, setFilter] = useState<"all" | "scheduled">("all");
@@ -263,6 +277,21 @@ export default function QueuePage() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [queue, setQueue] = useState<QueuePost[]>(MOCK_QUEUE);
+
+  // Role-scoped view: Publisher sees only their own posts; Approver sees their batch; Owner/Manager sees all
+  const CURRENT_USER_ID = "sarah"; // simulated logged-in publisher for demo
+  const scopedQueue = role === "owner" || role === "co-owner" || role === "manager"
+    ? queue
+    : role === "publisher"
+      ? queue.filter(p => {
+          const pid = p.pageId ?? AVATAR_TO_PAGE_ID[p.page.avatar] ?? "";
+          return batchConfig.pages.includes(pid) && (!p.publisherId || p.publisherId === CURRENT_USER_ID);
+        })
+      : queue.filter(p => {
+          const pid = p.pageId ?? AVATAR_TO_PAGE_ID[p.page.avatar] ?? "";
+          return batchConfig.pages.includes(pid);
+        });
+  const [postSearch, setPostSearch] = useState("");
   const [swapToast, setSwapToast] = useState<string | null>(null);
   const [previewPost, setPreviewPost] = useState<QueuePost | null>(null);
   const [previewTab, setPreviewTab] = useState<"preview" | "comments" | "settings">("preview");
@@ -466,7 +495,7 @@ export default function QueuePage() {
 
   const matchesScope = (p: QueuePost) => !filterNames || filterNames.includes(p.page.name);
 
-  const filtered = queue
+  const filtered = scopedQueue
     .filter(p => {
       if (filter === "scheduled" && p.status !== "scheduled") return false;
       if (filterNames && !filterNames.includes(p.page.name)) return false;
@@ -474,13 +503,14 @@ export default function QueuePage() {
       if (filterPlatform !== "all" && !p.platforms.includes(filterPlatform as "fb" | "ig" | "th")) return false;
       if (filterThread === "has" && p.comments.length === 0) return false;
       if (filterThread === "missing" && p.comments.length > 0) return false;
+      if (postSearch && !p.caption.toLowerCase().includes(postSearch.toLowerCase())) return false;
       return true;
     })
     .sort((a, b) => parseTime(a) - parseTime(b)); // always sorted by publish time
 
   const counts = {
-    all: queue.filter(matchesScope).length,
-    scheduled: queue.filter(p => p.status === "scheduled" && matchesScope(p)).length,
+    all: scopedQueue.filter(matchesScope).length,
+    scheduled: scopedQueue.filter(p => p.status === "scheduled" && matchesScope(p)).length,
   };
 
   const toggleSelect = (id: string) => {
@@ -594,7 +624,7 @@ export default function QueuePage() {
 
       <Header
         title="Queue"
-        subtitle={simulateEmpty ? "0 posts queued" : `${counts.all} posts queued across ${new Set(queue.map(p => p.page.name)).size} pages`}
+        subtitle={simulateEmpty ? "0 posts queued" : `${counts.all} posts queued across ${new Set(scopedQueue.map(p => p.page.name)).size} pages`}
         actions={
           <div className="flex items-center gap-3">
             {/* View mode toggle */}
@@ -847,6 +877,22 @@ export default function QueuePage() {
           </div>
         </div>
 
+        {/* Post search */}
+        <div className="mt-3 relative">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            type="text"
+            placeholder="Search posts…"
+            value={postSearch}
+            onChange={e => setPostSearch(e.target.value)}
+            className="w-full pl-8 pr-3 py-2 rounded-xl text-[13px]"
+            style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}
+          />
+          {postSearch && (
+            <button onClick={() => setPostSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px]" style={{ color: "var(--text-muted)" }}>✕</button>
+          )}
+        </div>
+
         {/* Advanced filter panel */}
         {showAdvancedFilters && (
           <div className="mt-3 flex items-start gap-6 px-4 py-3 rounded-xl" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
@@ -905,6 +951,17 @@ export default function QueuePage() {
           </div>
         )}
       </div>
+
+      {/* Role-scoped context banner */}
+      {role !== "owner" && role !== "manager" && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-4 text-[12px]" style={{ backgroundColor: "rgba(96,165,250,0.07)", border: "1px solid rgba(96,165,250,0.18)", color: "var(--text-secondary)" }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          {role === "publisher"
+            ? <span>Showing <strong style={{ color: "#60A5FA" }}>your posts only</strong> — posts you uploaded to <strong style={{ color: "#60A5FA" }}>{batchConfig.label}</strong></span>
+            : <span>Showing all posts in <strong style={{ color: "#60A5FA" }}>{batchConfig.label}</strong></span>
+          }
+        </div>
+      )}
 
       {/* Date Navigator — hidden in density mode */}
       {availableDates.length > 0 && (viewMode === "list" || viewMode === "visual") && (
@@ -1621,9 +1678,9 @@ export default function QueuePage() {
                   <div
                     className="grid items-center px-4 py-3 border-b transition-all cursor-pointer"
                     style={{
-                      backgroundColor: selectedPosts.has(post.id) ? "var(--primary-muted)" : "var(--surface)",
+                      backgroundColor: post.status === "paused" ? "rgba(148,163,184,0.04)" : selectedPosts.has(post.id) ? "var(--primary-muted)" : "var(--surface)",
                       borderColor: "var(--border)",
-                      borderLeft: "2px solid transparent",
+                      borderLeft: post.status === "paused" ? "2px solid #94A3B8" : post.status === "failed" ? "2px solid var(--error)" : "2px solid transparent",
                       gridTemplateColumns: "36px 3fr 120px 60px 90px 140px 60px 32px",
                     }}
                     onClick={() => openPreview(post, "preview")}
@@ -1673,14 +1730,35 @@ export default function QueuePage() {
                     {/* Status */}
                     <div>
                       <span className="text-[10px] font-semibold px-2 py-1 rounded-full flex items-center gap-1 w-fit" style={{
-                        backgroundColor: post.status === "scheduled" ? "var(--success-bg)" : post.status === "failed" ? "var(--error-bg)" : post.status === "draft" ? "var(--warning-bg)" : "var(--primary-muted)",
-                        color: post.status === "scheduled" ? "var(--success)" : post.status === "failed" ? "var(--error)" : post.status === "draft" ? "var(--warning)" : "var(--primary)",
+                        backgroundColor: post.status === "scheduled" ? "var(--success-bg)" : post.status === "failed" ? "var(--error-bg)" : post.status === "paused" ? "rgba(148,163,184,0.12)" : post.status === "draft" ? "var(--warning-bg)" : "var(--primary-muted)",
+                        color: post.status === "scheduled" ? "var(--success)" : post.status === "failed" ? "var(--error)" : post.status === "paused" ? "#94A3B8" : post.status === "draft" ? "var(--warning)" : "var(--primary)",
                       }}>
                         <span className="w-1.5 h-1.5 rounded-full" style={{
-                          backgroundColor: post.status === "scheduled" ? "var(--success)" : post.status === "failed" ? "var(--error)" : post.status === "draft" ? "var(--warning)" : "var(--primary)",
+                          backgroundColor: post.status === "scheduled" ? "var(--success)" : post.status === "failed" ? "var(--error)" : post.status === "paused" ? "#94A3B8" : post.status === "draft" ? "var(--warning)" : "var(--primary)",
                         }} />
-                        {post.status}
+                        {post.status === "paused" ? "Paused" : post.status}
                       </span>
+                      {/* Paused — token expired callout */}
+                      {post.status === "paused" && post.pauseReason === "token_expired" && (
+                        <div className="mt-1.5 flex flex-col gap-1">
+                          <span className="text-[9.5px] px-2 py-0.5 rounded-full w-fit font-medium"
+                            style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.2)" }}>
+                            ⚠ Posting ID expired
+                          </span>
+                          {post.publisherNotified && (
+                            <span className="text-[9.5px] px-2 py-0.5 rounded-full w-fit font-medium"
+                              style={{ backgroundColor: "rgba(96,165,250,0.1)", color: "#60A5FA", border: "1px solid rgba(96,165,250,0.2)" }}>
+                              ✓ Publisher notified
+                            </span>
+                          )}
+                          <button
+                            onClick={e => { e.stopPropagation(); setQueue(prev => prev.map(p => p.id === post.id ? { ...p, status: "scheduled", pauseReason: undefined } : p)); }}
+                            className="text-[9.5px] px-2.5 py-1 rounded-full w-fit font-semibold mt-0.5"
+                            style={{ backgroundColor: "rgba(74,222,128,0.12)", color: "#4ADE80", border: "1px solid rgba(74,222,128,0.25)" }}>
+                            ▶ Resume
+                          </button>
+                        </div>
+                      )}
                       {post.approvalStatus === "awaiting" && (
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 w-fit mt-1 whitespace-nowrap"
                           style={{ backgroundColor: "rgba(251,191,36,0.12)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.2)" }}>

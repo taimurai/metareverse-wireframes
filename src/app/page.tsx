@@ -40,12 +40,12 @@ const PAGE_HEALTH_DATA: Record<string, { monetization: "eligible" | "restricted"
 };
 
 type KpiPeriod = "today" | "yesterday" | "7d" | "28d";
-const KPI_PERIOD_DATA: Record<KpiPeriod, { revenue: number; revenueChange: string; rpm: number; rpmChange: string; views: number; viewsChange: string }> = {
-  today:     { revenue: 1842,    revenueChange: "+$312 vs yesterday", rpm: 8.94, rpmChange: "+$0.12 vs yesterday", views: 8700000,   viewsChange: "+3%"  },
-  yesterday: { revenue: 1530,    revenueChange: "+$214 vs prior day", rpm: 8.82, rpmChange: "+$0.05 vs prior day", views: 8200000,   viewsChange: "+1%"  },
-  "7d":      { revenue: 12851,   revenueChange: "↑ 14%",             rpm: 9.05, rpmChange: "↑ $0.38",             rpm_sub: "5 of 7 pages monetized", views: 62100000,  viewsChange: "↑ 8%"  },
-  "28d":     { revenue: 48392,   revenueChange: "↑ 9%",              rpm: 9.21, rpmChange: "↑ $0.82",             views: 224000000, viewsChange: "↑ 12%" },
-} as any;
+const KPI_PERIOD_DATA: Record<KpiPeriod, { revenue: number; revenueChange: string; rpm: number; rpmChange: string; views: number; viewsChange: string; followers: number; followersChange: string; followersLabel: string; published: number; publishedLabel: string }> = {
+  today:     { revenue: 1842,    revenueChange: "+$312 vs yesterday", rpm: 8.94, rpmChange: "+$0.12 vs yesterday", views: 8700000,   viewsChange: "+3%",   followers: 24232, followersChange: "+47 today",    followersLabel: "across 7 pages", published: 12,  publishedLabel: "posts live today"   },
+  yesterday: { revenue: 1530,    revenueChange: "+$214 vs prior day", rpm: 8.82, rpmChange: "+$0.05 vs prior day", views: 8200000,   viewsChange: "+1%",   followers: 24185, followersChange: "+61 yesterday",  followersLabel: "across 7 pages", published: 16,  publishedLabel: "posts went live"    },
+  "7d":      { revenue: 12851,   revenueChange: "↑ 14%",             rpm: 9.05, rpmChange: "↑ $0.38",             views: 62100000,  viewsChange: "↑ 8%",  followers: 24232, followersChange: "+412 this week", followersLabel: "net new followers", published: 94,  publishedLabel: "posts published"    },
+  "28d":     { revenue: 48392,   revenueChange: "↑ 9%",              rpm: 9.21, rpmChange: "↑ $0.82",             views: 224000000, viewsChange: "↑ 12%", followers: 24232, followersChange: "+1,248 this month", followersLabel: "net new followers", published: 389, publishedLabel: "posts published" },
+};
 const PERIOD_LABEL: Record<KpiPeriod, string> = { today: "Today so far", yesterday: "Yesterday", "7d": "Last 7 Days", "28d": "Last 28 Days" };
 
 const VIRAL_POSTS = [
@@ -61,7 +61,7 @@ function formatNum(n: number): string {
 }
 
 export default function Dashboard() {
-  const { role, batch, config } = useRole();
+  const { role, batch, config, batchConfig } = useRole();
   const isMobile = useIsMobile();
   const isLoading = useFakeLoading();
   const [showTokenBanner, setShowTokenBanner] = useState(true);
@@ -75,17 +75,21 @@ export default function Dashboard() {
   const [bulkTagInput, setBulkTagInput] = useState("");
   const [kpiPeriod, setKpiPeriod] = useState<KpiPeriod>("7d");
 
-  const totalRevenue = ALL_PAGES.reduce((s, p) => s + p.revenue, 0);
-  const avgRpm = ALL_PAGES.filter(p => p.rpm > 0).reduce((s, p, _, a) => s + p.rpm / a.length, 0);
-  const totalFailed = FAILED_POSTS.length;
-  const criticalPages = ALL_PAGES.filter(p => p.status === "critical");
-  const attentionPages = ALL_PAGES.filter(p => p.status === "attention");
-  const healthyPages = ALL_PAGES.filter(p => p.status === "healthy");
-  const emptyQueues = ALL_PAGES.filter(p => p.queueNext24h === 0);
-  const expiringTokens = ALL_PAGES.filter(p => p.tokenDays > 0 && p.tokenDays <= 7);
-  const totalViews7d = ALL_PAGES.reduce((s, p) => s + p.views7d, 0);
+  // Scope visible pages to user's batch for non-Owner roles
+  const visiblePages = role === "owner" || role === "co-owner" ? ALL_PAGES : ALL_PAGES.filter(p => batchConfig.pages.includes(p.id));
+  const visibleFailed = role === "owner" || role === "co-owner" ? FAILED_POSTS : FAILED_POSTS.filter(f => batchConfig.pages.some(pid => ALL_PAGES.find(p => p.id === pid)?.avatar === f.avatar));
+
+  const totalRevenue = visiblePages.reduce((s, p) => s + p.revenue, 0);
+  const avgRpm = visiblePages.filter(p => p.rpm > 0).reduce((s, p, _, a) => s + p.rpm / a.length, 0);
+  const totalFailed = visibleFailed.length;
+  const criticalPages = visiblePages.filter(p => p.status === "critical");
+  const attentionPages = visiblePages.filter(p => p.status === "attention");
+  const healthyPages = visiblePages.filter(p => p.status === "healthy");
+  const emptyQueues = visiblePages.filter(p => p.queueNext24h === 0);
+  const expiringTokens = visiblePages.filter(p => p.tokenDays > 0 && p.tokenDays <= 7);
+  const totalViews7d = visiblePages.reduce((s, p) => s + p.views7d, 0);
   const monetizedViews = Math.round(totalViews7d * 0.504);
-  const totalScheduled = ALL_PAGES.reduce((s, p) => s + p.queueNext24h, 0);
+  const totalScheduled = visiblePages.reduce((s, p) => s + p.queueNext24h, 0);
 
   const toggleTablePage = (id: string) => {
     setSelectedTablePages(prev => {
@@ -95,7 +99,7 @@ export default function Dashboard() {
     });
   };
   const selectAllTablePages = () => {
-    const filtered = [...ALL_PAGES].filter(p => p.name.toLowerCase().includes(pageSearch.toLowerCase()));
+    const filtered = [...visiblePages].filter(p => p.name.toLowerCase().includes(pageSearch.toLowerCase()));
     if (selectedTablePages.size === filtered.length) {
       setSelectedTablePages(new Set());
     } else {
@@ -106,7 +110,7 @@ export default function Dashboard() {
   if (isLoading) return <DashboardLoading />;
 
   if (isMobile) {
-    const totalQueueToday = ALL_PAGES.reduce((s, p) => s + p.queueNext24h, 0);
+    const totalQueueToday = visiblePages.reduce((s, p) => s + p.queueNext24h, 0);
     return (
       <div className="px-4 py-4 space-y-4">
         {/* Revenue hero card */}
@@ -125,7 +129,7 @@ export default function Dashboard() {
             <div className="w-px h-8" style={{ backgroundColor: "#3A3A52" }} />
             <div>
               <div className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: "#9494A8" }}>Pages</div>
-              <div className="text-[16px] font-bold" style={{ color: "#F0F0F5" }}>{ALL_PAGES.length}</div>
+              <div className="text-[16px] font-bold" style={{ color: "#F0F0F5" }}>{visiblePages.length}</div>
             </div>
           </div>
         </div>
@@ -155,7 +159,7 @@ export default function Dashboard() {
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#9494A8" }}>Page Health</div>
           <div className="flex gap-3 overflow-x-auto pb-1">
-            {ALL_PAGES.map(page => (
+            {visiblePages.map(page => (
               <div key={page.id} className="flex flex-col items-center gap-1.5 flex-shrink-0">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: page.color }}>
@@ -187,7 +191,7 @@ export default function Dashboard() {
             <span className="text-[28px] font-bold" style={{ color: "#F0F0F5" }}>{totalQueueToday}</span>
             <span className="text-[13px]" style={{ color: "#9494A8" }}>posts scheduled today</span>
           </div>
-          <div className="text-[11px] mt-1" style={{ color: "#9494A8" }}>across {ALL_PAGES.filter(p => p.queueNext24h > 0).length} pages</div>
+          <div className="text-[11px] mt-1" style={{ color: "#9494A8" }}>across {visiblePages.filter(p => p.queueNext24h > 0).length} pages</div>
         </div>
       </div>
     );
@@ -196,7 +200,7 @@ export default function Dashboard() {
   return (
     <div>
       {/* Alert Banners */}
-      {showDisconnectBanner && (
+      {showDisconnectBanner && visiblePages.some(p => p.id === "mm") && (
         <AlertBanner
           type="danger"
           message="Money Matters disconnected. 3 posts failed, 0 scheduled."
@@ -205,7 +209,7 @@ export default function Dashboard() {
           onDismiss={() => setShowDisconnectBanner(false)}
         />
       )}
-      {showTokenBanner && (
+      {showTokenBanner && visiblePages.some(p => p.id === "tb") && (
         <AlertBanner
           type="warning"
           message="TechByte token expires in 5 days. Reconnect to avoid interruptions."
@@ -217,7 +221,7 @@ export default function Dashboard() {
 
       <Header
         title="Control Center"
-        subtitle={`${ALL_PAGES.length} pages · ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}`}
+        subtitle={`${visiblePages.length} pages · ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}`}
         actions={
           <button
             onClick={() => setConnectModal(true)}
@@ -255,7 +259,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: `repeat(${[config.canViewRevenue, config.canViewRpm, true, true].filter(Boolean).length}, 1fr)` }}>
+      <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: `repeat(${[config.canViewRevenue, config.canViewRpm, true, true, true].filter(Boolean).length}, 1fr)` }}>
         {/* Revenue — Owner only */}
         {config.canViewRevenue && (
         <div className="rounded-xl border p-5 relative overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
@@ -296,13 +300,32 @@ export default function Dashboard() {
           <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>{formatNum(Math.round(KPI_PERIOD_DATA[kpiPeriod].views * 0.504))} monetized views</div>
         </div>
 
+        {/* Followers */}
+        <a href="/reports/audience" className="rounded-xl border p-5 relative overflow-hidden block" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+          <div className="absolute top-0 right-0 w-32 h-full opacity-[0.06]" style={{ background: "radial-gradient(circle at top right, #A78BFA, transparent 70%)" }} />
+          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Followers — {PERIOD_LABEL[kpiPeriod]}</span>
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-[28px] font-bold tracking-tight" style={{ color: "var(--text)" }}>{KPI_PERIOD_DATA[kpiPeriod].followers.toLocaleString()}</span>
+            <span className="text-[12px] font-semibold" style={{ color: "var(--success)" }}>{KPI_PERIOD_DATA[kpiPeriod].followersChange}</span>
+          </div>
+          <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>{KPI_PERIOD_DATA[kpiPeriod].followersLabel}</div>
+        </a>
+
         {/* Operations Pulse */}
         <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Operations Pulse</span>
-          <div className="grid grid-cols-2 gap-3 mt-3">
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            <div className="text-center">
+              <div className="text-[20px] font-bold" style={{ color: "var(--success)" }}>{KPI_PERIOD_DATA[kpiPeriod].published}</div>
+              <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>Published</div>
+            </div>
             <div className="text-center">
               <div className="text-[20px] font-bold" style={{ color: totalFailed > 0 ? "var(--error)" : "var(--success)" }}>{totalFailed}</div>
               <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>Failed</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[20px] font-bold" style={{ color: "var(--success)" }}>{totalScheduled}</div>
+              <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>Scheduled</div>
             </div>
             <div className="text-center">
               <div className="text-[20px] font-bold" style={{ color: emptyQueues.length > 0 ? "var(--warning)" : "var(--success)" }}>{emptyQueues.length}</div>
@@ -313,8 +336,8 @@ export default function Dashboard() {
               <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>Expiring</div>
             </div>
             <div className="text-center">
-              <div className="text-[20px] font-bold" style={{ color: "var(--success)" }}>{totalScheduled}</div>
-              <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>Scheduled</div>
+              <div className="text-[20px] font-bold" style={{ color: "var(--text-muted)" }}>{visiblePages.length}</div>
+              <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>Pages</div>
             </div>
           </div>
         </div>
@@ -449,7 +472,7 @@ export default function Dashboard() {
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--success-bg)", color: "var(--success)" }}>This Week</span>
           </div>
           <div className="space-y-3">
-            {[...ALL_PAGES].filter(p => p.viewsChange > 0).sort((a, b) => b.viewsChange - a.viewsChange).slice(0, 3).map(page => (
+            {[...visiblePages].filter(p => p.viewsChange > 0).sort((a, b) => b.viewsChange - a.viewsChange).slice(0, 3).map(page => (
               <a key={page.id} href={`/reports/page?id=${page.id}`} className="flex items-center gap-3 cursor-pointer" style={{ textDecoration: "none" }}>
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ backgroundColor: page.color }}>
                   {page.avatar}
@@ -459,13 +482,19 @@ export default function Dashboard() {
                     <span className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{page.name}</span>
                     <span className="text-[12px] font-semibold" style={{ color: "var(--success)" }}>↑ {page.viewsChange}%</span>
                   </div>
-                  <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>{page.followers} followers · ${page.revenue.toLocaleString()} rev</div>
+                  <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                    <span className="relative group cursor-default">
+                      {page.followers} followers
+                      <span className="absolute bottom-full left-0 mb-1 px-2 py-1 rounded text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none" style={{ backgroundColor: "var(--surface-active)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>Updated 6 hours ago</span>
+                    </span>
+                    {" · "}${page.revenue.toLocaleString()} rev
+                  </div>
                 </div>
               </a>
             ))}
           </div>
           <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
-            <a href="/reports" className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>See all in Reports →</a>
+            <a href="/reports" className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>See all in Analytics →</a>
           </div>
         </div>
 
@@ -504,7 +533,7 @@ export default function Dashboard() {
 
       {/* === SECTION 3.5: PAGE HEALTH & MONETIZATION === */}
       {(() => {
-        const healthPages = ALL_PAGES.map(p => ({ ...p, health: PAGE_HEALTH_DATA[p.id] }));
+        const healthPages = visiblePages.map(p => ({ ...p, health: PAGE_HEALTH_DATA[p.id] }));
         const monetizedCount = healthPages.filter(p => p.health.monetization === "eligible").length;
         const flaggedCount = healthPages.filter(p => p.health.flags > 0 || p.health.copyrightStrikes > 0).length;
         const restrictedCount = healthPages.filter(p => p.health.distributionRestricted).length;
@@ -513,7 +542,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>🛡 Page Health & Monetization</span>
-                {config.canViewRpm && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(74,222,128,0.12)", color: "#4ADE80" }}>{monetizedCount}/{ALL_PAGES.length} Monetized</span>}
+                {config.canViewRpm && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(74,222,128,0.12)", color: "#4ADE80" }}>{monetizedCount}/{visiblePages.length} Monetized</span>}
                 {flaggedCount > 0 && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(251,191,36,0.12)", color: "#FBBF24" }}>{flaggedCount} Flagged</span>}
                 {restrictedCount > 0 && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(239,68,68,0.12)", color: "#EF4444" }}>{restrictedCount} Restricted</span>}
               </div>
@@ -575,7 +604,7 @@ export default function Dashboard() {
       {/* === SECTION 4: ALL PAGES TABLE === */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>All Pages</span>
+          <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{role === "owner" || role === "co-owner" ? "All Pages" : "Batch Pages"}</span>
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--success-bg)", color: "var(--success)" }}>
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--success)" }} />
@@ -608,7 +637,7 @@ export default function Dashboard() {
               style={{ color: "var(--text)" }}
             />
           </div>
-          <a href="/reports" className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>Full Reports →</a>
+          <a href="/reports" className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>Full Analytics →</a>
         </div>
       </div>
 
@@ -626,7 +655,7 @@ export default function Dashboard() {
               type="checkbox"
               className="cursor-pointer"
               checked={(() => {
-                const filtered = [...ALL_PAGES].filter(p => p.name.toLowerCase().includes(pageSearch.toLowerCase()));
+                const filtered = [...visiblePages].filter(p => p.name.toLowerCase().includes(pageSearch.toLowerCase()));
                 return filtered.length > 0 && selectedTablePages.size === filtered.length;
               })()}
               onChange={selectAllTablePages}
@@ -649,7 +678,7 @@ export default function Dashboard() {
         </div>
 
         {/* Rows sorted by revenue desc, filtered by search */}
-        {[...ALL_PAGES].filter(p => p.name.toLowerCase().includes(pageSearch.toLowerCase())).sort((a, b) => b.revenue - a.revenue).map(page => {
+        {[...visiblePages].filter(p => p.name.toLowerCase().includes(pageSearch.toLowerCase())).sort((a, b) => b.revenue - a.revenue).map(page => {
           const isSelected = selectedTablePages.has(page.id);
           return (
             <div
@@ -828,7 +857,7 @@ export default function Dashboard() {
         <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Top Performers This Week</span>
           <div className="space-y-3 mt-3">
-            {[...ALL_PAGES].sort((a, b) => b.views7d - a.views7d).slice(0, 5).map((page, i) => (
+            {[...visiblePages].sort((a, b) => b.views7d - a.views7d).slice(0, 5).map((page, i) => (
               <div key={page.id} className="flex items-center gap-3">
                 <span className="text-[14px] font-bold w-5" style={{ color: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "var(--text-muted)" }}>{i + 1}</span>
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: page.color }}>{page.avatar}</div>
@@ -843,7 +872,7 @@ export default function Dashboard() {
             ))}
           </div>
           <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
-            <a href="/reports" className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>See all pages in Reports →</a>
+            <a href="/reports" className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>See all pages in Analytics →</a>
           </div>
         </div>
 
@@ -851,7 +880,7 @@ export default function Dashboard() {
         <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Declining Performance</span>
           <div className="space-y-3 mt-3">
-            {[...ALL_PAGES].filter(p => p.viewsChange < 0).sort((a, b) => a.viewsChange - b.viewsChange).map(page => (
+            {[...visiblePages].filter(p => p.viewsChange < 0).sort((a, b) => a.viewsChange - b.viewsChange).map(page => (
               <div key={page.id} className="flex items-center gap-3">
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: page.color }}>{page.avatar}</div>
                 <span className="text-[12px] font-medium flex-1" style={{ color: "var(--text)" }}>{page.name}</span>
@@ -865,7 +894,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
-            {ALL_PAGES.filter(p => p.viewsChange < 0).length === 0 && (
+            {visiblePages.filter(p => p.viewsChange < 0).length === 0 && (
               <div className="flex items-center gap-2 py-3">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
                 <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>All pages trending up</span>

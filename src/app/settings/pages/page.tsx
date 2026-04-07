@@ -181,6 +181,16 @@ function BatchModal({ batch, onSave, onDelete, onClose }: { batch?: Batch | null
                 <button onClick={onDelete} className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500">Delete</button>
                 <button onClick={() => setConfirmDelete(false)} className="px-3 py-1.5 rounded-lg text-sm" style={{ color: "var(--text-muted)", backgroundColor: "var(--surface-hover)" }}>Cancel</button>
               </div>
+            ) : selectedPages.length > 0 ? (
+              <div className="relative group">
+                <button disabled className="text-sm font-medium flex items-center gap-1.5 opacity-40 cursor-not-allowed" style={{ color: "var(--text-muted)" }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+                  Delete Batch
+                </button>
+                <div className="absolute bottom-full left-0 mb-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10" style={{ backgroundColor: "var(--surface-active)", color: "var(--text)", border: "1px solid var(--border)" }}>
+                  Reassign all pages before deleting this batch
+                </div>
+              </div>
             ) : (
               <button onClick={() => setConfirmDelete(true)} className="text-sm font-medium text-red-400 flex items-center gap-1.5">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
@@ -536,6 +546,19 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   );
 }
 
+// ── Per-card editable state ───────────────────────────────────────────────────
+type CardEdits = {
+  autoPost?: boolean;
+  autoPostIG?: boolean;
+  autoPostTH?: boolean;
+  postInterval?: number;
+  timezone?: string;
+  rotateIds?: boolean;
+  monetized?: boolean;
+  approvalRequired?: boolean;
+  autoPublishOnApproval?: boolean;
+};
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function PageSettings() {
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
@@ -543,11 +566,16 @@ export default function PageSettings() {
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
   const [showCreateBatch, setShowCreateBatch] = useState(false);
   const [viewingBatchDefaults, setViewingBatchDefaults] = useState<Batch | null>(null);
-  const [saved, setSaved] = useState(false);
   const [timezoneMode, setTimezoneMode] = useState<"local" | "page">("page");
+  const [showApprovalGuard, setShowApprovalGuard] = useState(false);
 
-  // Local editable state for the selected page
+  // Per-card editable state (card grid changes)
+  const [cardEdits, setCardEdits] = useState<Record<string, CardEdits>>({});
+  const [cardSaved, setCardSaved] = useState<Record<string, boolean>>({});
+
+  // Right panel edit state (for selected page detail)
   const [editState, setEditState] = useState<Partial<PageData>>({});
+  const [panelSaved, setPanelSaved] = useState(false);
 
   // Per-page direct assignments (page id → array of member names)
   const [directAssignments, setDirectAssignments] = useState<Record<string, string[]>>({
@@ -557,136 +585,499 @@ export default function PageSettings() {
   const [pageInviteForm, setPageInviteForm] = useState({ name: "", email: "", role: "" });
   const [pageInviteToast, setPageInviteToast] = useState(false);
 
+  function updateCard(pageId: string, field: keyof CardEdits, value: unknown) {
+    setCardEdits(prev => ({ ...prev, [pageId]: { ...prev[pageId], [field]: value } }));
+    setCardSaved(prev => ({ ...prev, [pageId]: false }));
+  }
+
+  function saveCard(pageId: string) {
+    setCardSaved(prev => ({ ...prev, [pageId]: true }));
+    setTimeout(() => setCardSaved(prev => ({ ...prev, [pageId]: false })), 2000);
+  }
+
+  function cardVal<K extends keyof PageData>(page: PageData, field: K): PageData[K] {
+    const edits = cardEdits[page.id] as Partial<PageData> | undefined;
+    return edits && field in edits ? (edits[field] as PageData[K]) : page[field];
+  }
+
+  function hasCardChanges(pageId: string) {
+    return Object.keys(cardEdits[pageId] ?? {}).length > 0;
+  }
+
+  function getPageStatus(page: PageData): { label: string; color: string; bg: string } {
+    const totalPostsThisWeek = page.postingIds.reduce((s, id) => s + id.postsThisWeek, 0);
+    const allIdsExpired = page.postingIds.length > 0 && page.postingIds.every(id => id.status === "expired");
+    if (page.tokenStatus === "expired" || allIdsExpired)
+      return { label: "Token Expired",   color: "#EF4444", bg: "rgba(239,68,68,0.1)"   };
+    if (page.tokenStatus === "expiring")
+      return { label: "Token Expiring",  color: "#FBBF24", bg: "rgba(251,191,36,0.1)"  };
+    if (!page.autoPost && totalPostsThisWeek === 0)
+      return { label: "Needs Setup",     color: "#F97316", bg: "rgba(249,115,22,0.1)"  };
+    if (!page.autoPost)
+      return { label: "Paused",          color: "#94A3B8", bg: "rgba(148,163,184,0.1)" };
+    if (totalPostsThisWeek === 0)
+      return { label: "Inactive",        color: "#FBBF24", bg: "rgba(251,191,36,0.1)"  };
+    return   { label: "Active",          color: "#4ADE80", bg: "rgba(74,222,128,0.1)"  };
+  }
+
   const basePage = PAGES_DATA.find(p => p.id === selectedPageId);
   const selected = basePage ? { ...basePage, ...editState } : null;
 
   const selectPage = (id: string) => {
     setSelectedPageId(id);
     setEditState({});
-    setSaved(false);
+    setPanelSaved(false);
     setShowAddMember(false);
     setPageInviteToast(false);
   };
 
   const update = (field: keyof PageData, value: unknown) => {
     setEditState(prev => ({ ...prev, [field]: value }));
-    setSaved(false);
+    setPanelSaved(false);
   };
 
   const handleBatchDefaultsSave = (batchId: string, defaults: BatchDefaults) => {
     setBatches(prev => prev.map(b => b.id === batchId ? { ...b, defaults } : b));
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  const handlePanelSave = () => {
+    setPanelSaved(true);
+    setTimeout(() => setPanelSaved(false), 2500);
   };
 
   const hasChanges = Object.keys(editState).length > 0;
 
+  // ── Filter + Group state ──────────────────────────────────────────────────
+  const [search, setSearch] = useState("");
+  const [filterBatch, setFilterBatch] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPlatform, setFilterPlatform] = useState("all");
+  const [filterMonetized, setFilterMonetized] = useState("all");
+  const [groupBy, setGroupBy] = useState<"none" | "batch" | "status" | "platform">("none");
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  function toggleGroup(key: string) {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  const activeFilterCount = [
+    filterBatch !== "all", filterStatus !== "all",
+    filterPlatform !== "all", filterMonetized !== "all", search.length > 0,
+  ].filter(Boolean).length;
+
+  function clearFilters() {
+    setSearch(""); setFilterBatch("all"); setFilterStatus("all");
+    setFilterPlatform("all"); setFilterMonetized("all");
+  }
+
+  // Apply filters
+  const filteredPages = PAGES_DATA.filter(page => {
+    const status = getPageStatus(page);
+    if (search && !page.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterBatch !== "all") {
+      const b = batches.find(b => b.pages.includes(page.id));
+      if (filterBatch === "__none__") { if (b) return false; }
+      else if (!b || b.id !== filterBatch) return false;
+    }
+    if (filterStatus !== "all" && status.label !== filterStatus) return false;
+    if (filterPlatform !== "all" && !page.platforms.includes(filterPlatform)) return false;
+    if (filterMonetized === "yes" && !page.monetized) return false;
+    if (filterMonetized === "no" && page.monetized) return false;
+    return true;
+  });
+
+  // Apply grouping
+  type Group = { key: string; label: string; color?: string; pages: typeof PAGES_DATA };
+  function buildGroups(): Group[] {
+    if (groupBy === "none") return [{ key: "__all__", label: "", pages: filteredPages }];
+    if (groupBy === "batch") {
+      const groups: Group[] = batches.map(b => ({
+        key: b.id, label: b.name, color: b.color,
+        pages: filteredPages.filter(p => b.pages.includes(p.id)),
+      })).filter(g => g.pages.length > 0);
+      const unbatched = filteredPages.filter(p => !batches.some(b => b.pages.includes(p.id)));
+      if (unbatched.length > 0) groups.push({ key: "__none__", label: "No Batch", pages: unbatched });
+      return groups;
+    }
+    if (groupBy === "status") {
+      const statusOrder = ["Active","Paused","Needs Setup","Inactive","Token Expiring","Token Expired"];
+      const map = new Map<string, typeof PAGES_DATA>();
+      filteredPages.forEach(p => {
+        const s = getPageStatus(p).label;
+        map.set(s, [...(map.get(s) ?? []), p]);
+      });
+      return statusOrder.filter(s => map.has(s)).map(s => ({ key: s, label: s, pages: map.get(s)! }));
+    }
+    if (groupBy === "platform") {
+      return [
+        { key: "facebook",  label: "Facebook",           pages: filteredPages.filter(p => p.platforms.includes("facebook")) },
+        { key: "instagram", label: "Instagram",           pages: filteredPages.filter(p => p.platforms.includes("instagram")) },
+        { key: "threads",   label: "Threads",             pages: filteredPages.filter(p => p.platforms.includes("threads")) },
+      ].filter(g => g.pages.length > 0);
+    }
+    return [{ key: "__all__", label: "", pages: filteredPages }];
+  }
+
+  const groups = buildGroups();
+
   return (
     <div className="flex flex-col">
       <Header />
-      <main className="flex-1 p-8 max-w-[1400px] mx-auto w-full">
-        <div className="flex items-center justify-between mb-8">
+      <main className="flex-1 p-8 w-full">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-[28px] font-bold" style={{ color: "var(--text)" }}>Page Settings</h1>
-            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Configure posting schedules, quiet hours, and platform defaults per page</p>
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Edit settings inline — click a row to open the detail panel for Posting IDs and Active Hours</p>
           </div>
-          <button className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white" style={{ backgroundColor: "var(--primary)" }}>
-            + Connect New Page
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowCreateBatch(true)} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-muted)" }}>
+              + New Batch
+            </button>
+            <button className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white" style={{ backgroundColor: "var(--primary)" }}>
+              + Connect New Page
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-[1fr_420px] gap-8">
-          {/* ── Left: page list + batches ── */}
-          <div className="space-y-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>
-              Connected Pages ({PAGES_DATA.length})
-            </div>
+        <div className={`grid gap-8 items-start ${selectedPageId || viewingBatchDefaults ? "grid-cols-[1fr_400px]" : "grid-cols-1"}`}>
+          {/* ── Left: Airtable-style table ── */}
+          <div className="overflow-x-auto">
 
-            {PAGES_DATA.map(page => (
-              <div key={page.id} onClick={() => selectPage(page.id)}
-                className="flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all"
-                style={{ backgroundColor: selectedPageId === page.id ? "var(--surface-hover)" : "var(--surface)", borderColor: selectedPageId === page.id ? "var(--primary)" : "var(--border)" }}>
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: page.color }}>
-                  {page.avatar}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm" style={{ color: "var(--text)" }}>{page.name}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>{page.category}</span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>{page.followers} followers</span>
-                    <div className="flex gap-1">
-                      {page.platforms.map(p => (
-                        <span key={p} className="text-[9px] px-1 rounded" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>
-                          {p === "facebook" ? "FB" : p === "instagram" ? "IG" : "TH"}
-                        </span>
-                      ))}
-                    </div>
-                    {/* Mini rhythm summary */}
-                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                      Every {page.postInterval}h
-                      {page.quietHours ? " · 🌙 Quiet" : ""}
-                    </span>
-                  </div>
-                </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
-                  page.tokenStatus === "active" ? "text-green-400 bg-green-400/10" :
-                  page.tokenStatus === "expiring" ? "text-amber-400 bg-amber-400/10" :
-                  "text-red-400 bg-red-400/10"}`}>
-                  {page.tokenStatus === "active" ? "● Active" : page.tokenStatus === "expiring" ? "● Expiring" : "● Expired"}
-                </span>
+            {/* ── Toolbar ── */}
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              {/* Search */}
+              <div className="relative">
+                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-muted)" }}>
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" placeholder="Search pages…" value={search} onChange={e => setSearch(e.target.value)}
+                  className="pl-7 pr-3 py-1.5 rounded-lg text-[12px] outline-none w-44"
+                  style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }} />
               </div>
-            ))}
 
-            {/* Batch Groups */}
-            <div className="flex items-center justify-between mt-8 mb-3">
-              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Batch Groups ({batches.length})</div>
-              <button onClick={() => setShowCreateBatch(true)} className="text-[11px] font-semibold px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor: "var(--primary)" }}>
-                + New Batch
-              </button>
+              {/* Filter: Batch */}
+              <select value={filterBatch} onChange={e => setFilterBatch(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg text-[12px] outline-none"
+                style={{ background: filterBatch !== "all" ? "var(--primary-muted)" : "var(--surface)", border: `1px solid ${filterBatch !== "all" ? "var(--primary)" : "var(--border)"}`, color: filterBatch !== "all" ? "var(--primary)" : "var(--text-muted)" }}>
+                <option value="all">All Batches</option>
+                {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                <option value="__none__">No Batch</option>
+              </select>
+
+              {/* Filter: Status */}
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg text-[12px] outline-none"
+                style={{ background: filterStatus !== "all" ? "var(--primary-muted)" : "var(--surface)", border: `1px solid ${filterStatus !== "all" ? "var(--primary)" : "var(--border)"}`, color: filterStatus !== "all" ? "var(--primary)" : "var(--text-muted)" }}>
+                <option value="all">All Statuses</option>
+                {["Active","Paused","Needs Setup","Inactive","Token Expiring","Token Expired"].map(s => <option key={s}>{s}</option>)}
+              </select>
+
+              {/* Filter: Platform */}
+              <select value={filterPlatform} onChange={e => setFilterPlatform(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg text-[12px] outline-none"
+                style={{ background: filterPlatform !== "all" ? "var(--primary-muted)" : "var(--surface)", border: `1px solid ${filterPlatform !== "all" ? "var(--primary)" : "var(--border)"}`, color: filterPlatform !== "all" ? "var(--primary)" : "var(--text-muted)" }}>
+                <option value="all">All Platforms</option>
+                <option value="facebook">Facebook</option>
+                <option value="instagram">Instagram</option>
+                <option value="threads">Threads</option>
+              </select>
+
+              {/* Filter: Monetized */}
+              <select value={filterMonetized} onChange={e => setFilterMonetized(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg text-[12px] outline-none"
+                style={{ background: filterMonetized !== "all" ? "var(--primary-muted)" : "var(--surface)", border: `1px solid ${filterMonetized !== "all" ? "var(--primary)" : "var(--border)"}`, color: filterMonetized !== "all" ? "var(--primary)" : "var(--text-muted)" }}>
+                <option value="all">Monetized: All</option>
+                <option value="yes">Monetized: Yes</option>
+                <option value="no">Monetized: No</option>
+              </select>
+
+              {/* Divider */}
+              <div className="w-px h-5 mx-1" style={{ background: "var(--border)" }} />
+
+              {/* Group by */}
+              <div className="flex items-center gap-1.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-muted)" }}>
+                  <line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/>
+                </svg>
+                <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Group by</span>
+                <select value={groupBy} onChange={e => setGroupBy(e.target.value as typeof groupBy)}
+                  className="px-2.5 py-1.5 rounded-lg text-[12px] outline-none"
+                  style={{ background: groupBy !== "none" ? "var(--primary-muted)" : "var(--surface)", border: `1px solid ${groupBy !== "none" ? "var(--primary)" : "var(--border)"}`, color: groupBy !== "none" ? "var(--primary)" : "var(--text-muted)" }}>
+                  <option value="none">None</option>
+                  <option value="batch">Batch</option>
+                  <option value="status">Status</option>
+                  <option value="platform">Platform</option>
+                </select>
+              </div>
+
+              {/* Clear filters */}
+              {activeFilterCount > 0 && (
+                <button onClick={clearFilters}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold"
+                  style={{ background: "rgba(239,68,68,0.08)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.2)" }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Clear {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
+                </button>
+              )}
+
+              <span className="ml-auto text-[11px]" style={{ color: "var(--text-muted)" }}>
+                {filteredPages.length} of {PAGES_DATA.length} pages
+              </span>
             </div>
-            {batches.length === 0 && (
-              <div className="p-8 rounded-xl border border-dashed text-center" style={{ borderColor: "var(--border)" }}>
-                <div className="text-sm font-medium mb-1" style={{ color: "var(--text-muted)" }}>No batches yet</div>
-                <div className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>Group pages by partner or campaign for quick filtering</div>
-                <button onClick={() => setShowCreateBatch(true)} className="text-sm font-semibold px-4 py-2 rounded-lg text-white" style={{ backgroundColor: "var(--primary)" }}>Create First Batch</button>
+
+            {/* ── Table ── */}
+            <table className="w-full border-collapse" style={{ minWidth: 900 }}>
+              <thead>
+                <tr style={{ background: "var(--surface)", borderBottom: "2px solid var(--border)" }}>
+                  {[
+                    { label: "Page",        w: "w-48"  },
+                    { label: "Status",      w: "w-28"  },
+                    { label: "Batch",       w: "w-32"  },
+                    { label: "Auto-post",   w: "w-36"  },
+                    { label: "Interval",    w: "w-24"  },
+                    { label: "Timezone",    w: "w-24"  },
+                    { label: "Rotation",    w: "w-20"  },
+                    { label: "Approval",    w: "w-20"  },
+                    { label: "Monetized",   w: "w-20"  },
+                    { label: "",            w: "w-28"  },
+                  ].map(h => (
+                    <th key={h.label} className={`${h.w} px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider`}
+                      style={{ color: "var(--text-muted)" }}>
+                      {h.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {groups.map(group => {
+                  const isCollapsed = collapsedGroups.has(group.key);
+                  return (
+                    <React.Fragment key={group.key}>
+                      {/* Group header row */}
+                      {groupBy !== "none" && (
+                        <tr style={{ background: "var(--bg-deep)", borderBottom: "1px solid var(--border)" }}>
+                          <td colSpan={10} className="px-3 py-2">
+                            <button onClick={() => toggleGroup(group.key)}
+                              className="flex items-center gap-2 text-left">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                                style={{ color: "var(--text-muted)", transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>
+                                <polyline points="6 9 12 15 18 9"/>
+                              </svg>
+                              {group.color && <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: group.color }} />}
+                              <span className="text-[11px] font-semibold" style={{ color: "var(--text)" }}>{group.label}</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--surface-active)", color: "var(--text-muted)" }}>
+                                {group.pages.length}
+                              </span>
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+
+                      {/* Page rows */}
+                      {!isCollapsed && group.pages.map((page, i) => {
+                  const status   = getPageStatus(page);
+                  const edits    = cardEdits[page.id] ?? {};
+                  const isDirty  = hasCardChanges(page.id);
+                  const isSaved  = cardSaved[page.id];
+                  const isSelected = selectedPageId === page.id;
+                  const pageBatch  = batches.find(b => b.pages.includes(page.id));
+
+                  const autoPost   = edits.autoPost   !== undefined ? edits.autoPost   : page.autoPost;
+                  const autoPostIG = edits.autoPostIG !== undefined ? edits.autoPostIG : page.autoPostIG;
+                  const autoPostTH = edits.autoPostTH !== undefined ? edits.autoPostTH : page.autoPostTH;
+                  const interval   = edits.postInterval !== undefined ? edits.postInterval : page.postInterval;
+                  const tz         = edits.timezone   !== undefined ? edits.timezone   : page.timezone;
+                  const rotate     = edits.rotateIds  !== undefined ? edits.rotateIds  : page.rotateIds;
+                  const approval   = edits.approvalRequired !== undefined ? edits.approvalRequired : page.approvalRequired;
+
+                  const rowBg = isSelected ? "var(--primary-muted)" : i % 2 === 0 ? "var(--surface)" : "var(--bg-deep)";
+
+                  return (
+                    <tr key={page.id}
+                      style={{ background: rowBg, borderBottom: "1px solid var(--border)", outline: isSelected ? "1px solid var(--primary)" : "none", outlineOffset: "-1px" }}>
+
+                      {/* Page name */}
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => selectPage(page.id)}>
+                          <div className="w-7 h-7 rounded-md flex items-center justify-center text-white text-[10px] font-bold shrink-0" style={{ backgroundColor: page.color }}>
+                            {page.avatar}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[12px] font-semibold truncate" style={{ color: "var(--text)" }}>{page.name}</div>
+                            <div className="flex gap-1 mt-0.5">
+                              {page.platforms.map(p => (
+                                <span key={p} className="text-[9px] px-1 py-0.5 rounded" style={{ background: "var(--surface-active)", color: "var(--text-muted)" }}>
+                                  {p === "facebook" ? "FB" : p === "instagram" ? "IG" : "TH"}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-3 py-2.5">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold whitespace-nowrap"
+                          style={{ color: status.color, background: status.bg }}>
+                          ● {status.label}
+                        </span>
+                      </td>
+
+                      {/* Batch */}
+                      <td className="px-3 py-2.5">
+                        {pageBatch ? (
+                          <span className="text-[11px] px-2 py-0.5 rounded-full font-medium truncate block max-w-[120px]"
+                            style={{ background: `${pageBatch.color}20`, color: pageBatch.color }}>
+                            {pageBatch.name}
+                          </span>
+                        ) : (
+                          <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>—</span>
+                        )}
+                      </td>
+
+                      {/* Auto-post toggles */}
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[9px] font-semibold" style={{ color: "var(--text-muted)" }}>FB</span>
+                            <Toggle on={autoPost} onChange={v => updateCard(page.id, "autoPost", v)} />
+                          </div>
+                          {page.platforms.includes("instagram") && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-[9px] font-semibold" style={{ color: "var(--text-muted)" }}>IG</span>
+                              <Toggle on={autoPostIG} onChange={v => updateCard(page.id, "autoPostIG", v)} />
+                            </div>
+                          )}
+                          {page.platforms.includes("threads") && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-[9px] font-semibold" style={{ color: "var(--text-muted)" }}>TH</span>
+                              <Toggle on={autoPostTH} onChange={v => updateCard(page.id, "autoPostTH", v)} />
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Interval */}
+                      <td className="px-3 py-2.5">
+                        <select value={interval} onChange={e => updateCard(page.id, "postInterval", parseFloat(e.target.value))}
+                          className="text-[11px] px-2 py-1.5 rounded-lg outline-none w-full"
+                          style={{ background: "var(--bg-deep)", border: "1px solid var(--border)", color: "var(--text)" }}>
+                          {INTERVAL_OPTIONS.map(h => <option key={h} value={h}>{h}h</option>)}
+                        </select>
+                      </td>
+
+                      {/* Timezone */}
+                      <td className="px-3 py-2.5">
+                        <select value={tz} onChange={e => updateCard(page.id, "timezone", e.target.value)}
+                          className="text-[11px] px-2 py-1.5 rounded-lg outline-none w-full"
+                          style={{ background: "var(--bg-deep)", border: "1px solid var(--border)", color: "var(--text)" }}>
+                          {TIMEZONES.map(t => <option key={t}>{t}</option>)}
+                        </select>
+                      </td>
+
+                      {/* Rotation */}
+                      <td className="px-3 py-2.5">
+                        <Toggle on={rotate} onChange={v => updateCard(page.id, "rotateIds", v)} />
+                      </td>
+
+                      {/* Approval */}
+                      <td className="px-3 py-2.5">
+                        <Toggle on={approval} onChange={v => updateCard(page.id, "approvalRequired", v)} />
+                      </td>
+
+                      {/* Monetized */}
+                      <td className="px-3 py-2.5">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                          style={{ background: page.monetized ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.08)", color: page.monetized ? "#4ADE80" : "#EF4444" }}>
+                          {page.monetized ? "Yes" : "No"}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => saveCard(page.id)} disabled={!isDirty && !isSaved}
+                            className="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap flex items-center gap-1 transition-all"
+                            style={{
+                              background: isSaved ? "var(--success)" : isDirty ? "var(--primary)" : "var(--surface-active)",
+                              color: (isDirty || isSaved) ? "white" : "var(--text-muted)",
+                              opacity: !isDirty && !isSaved ? 0.35 : 1,
+                            }}>
+                            {isSaved
+                              ? <><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>Saved</>
+                              : "Save"}
+                          </button>
+                          <button onClick={() => selectPage(page.id)}
+                            className="text-[10px] px-2.5 py-1.5 rounded-lg whitespace-nowrap"
+                            style={{ background: isSelected ? "var(--primary-muted)" : "var(--surface-active)", color: isSelected ? "var(--primary)" : "var(--text-muted)" }}>
+                            {isSelected ? "Open ●" : "Details"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {filteredPages.length === 0 && (
+              <div className="py-12 text-center" style={{ color: "var(--text-muted)" }}>
+                <p className="text-[13px] font-medium mb-1">No pages match your filters</p>
+                <button onClick={clearFilters} className="text-[12px]" style={{ color: "var(--primary)" }}>Clear filters</button>
               </div>
             )}
-            {batches.map(batch => {
-              const batchPages = batch.pages.map(pid => PAGES_DATA.find(p => p.id === pid)).filter(Boolean);
-              return (
-                <div key={batch.id} className="flex items-center gap-4 p-4 rounded-xl border" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-0" style={{ backgroundColor: batch.color }}>
-                    {batch.pages.length}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="font-semibold text-sm" style={{ color: "var(--text)" }}>{batch.name}</span>
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {batchPages.map(p => p && (
-                        <div key={p.id} className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>
-                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
-                          {p.name}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <button onClick={() => { setViewingBatchDefaults(batch); setSelectedPageId(null); }} className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg font-medium" style={{ backgroundColor: batch.defaults ? `${batch.color}15` : "var(--surface-hover)", color: batch.defaults ? batch.color : "var(--text-muted)" }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-                      Defaults
-                    </button>
-                    <button onClick={() => setEditingBatch(batch)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg" style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)" }}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      Edit
-                    </button>
-                  </div>
+
+            {/* Batch groups below table */}
+            <div className="mt-8">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Batch Groups ({batches.length})</span>
+              </div>
+              {batches.length === 0 ? (
+                <div className="p-6 rounded-xl border border-dashed text-center" style={{ borderColor: "var(--border)" }}>
+                  <button onClick={() => setShowCreateBatch(true)} className="text-sm font-semibold px-4 py-2 rounded-lg text-white" style={{ backgroundColor: "var(--primary)" }}>Create First Batch</button>
                 </div>
-              );
-            })}
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {batches.map(batch => {
+                    const batchPages = batch.pages.map(pid => PAGES_DATA.find(p => p.id === pid)).filter(Boolean);
+                    return (
+                      <div key={batch.id} className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[10px] font-bold shrink-0" style={{ backgroundColor: batch.color }}>
+                          {batch.pages.length}
+                        </div>
+                        <span className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{batch.name}</span>
+                        <div className="flex gap-1">
+                          {batchPages.map(p => p && (
+                            <div key={p.id} className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] font-bold" style={{ backgroundColor: p.color }} title={p.name}>
+                              {p.avatar}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-1.5 ml-2">
+                          <button onClick={() => { setViewingBatchDefaults(batch); setSelectedPageId(null); }}
+                            className="text-[10px] font-semibold px-2 py-1 rounded-lg"
+                            style={{ background: batch.defaults ? `${batch.color}15` : "var(--surface-active)", color: batch.defaults ? batch.color : "var(--text-muted)" }}>
+                            Defaults
+                          </button>
+                          <button onClick={() => setEditingBatch(batch)}
+                            className="text-[10px] px-2 py-1 rounded-lg"
+                            style={{ background: "var(--surface-active)", color: "var(--text-muted)" }}>
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ── Right: Per-Page Settings Panel / Batch Defaults ── */}
@@ -859,7 +1250,10 @@ export default function PageSettings() {
                               : "Posts go directly to queue without review"}
                           </p>
                         </div>
-                        <Toggle on={selected.approvalRequired} onChange={v => update("approvalRequired", v)} />
+                        <Toggle on={selected.approvalRequired} onChange={v => {
+                          if (v && selected.approvers.length === 0) { setShowApprovalGuard(true); return; }
+                          update("approvalRequired", v);
+                        }} />
                       </div>
 
                       {selected.approvalRequired && (
@@ -899,15 +1293,10 @@ export default function PageSettings() {
                             })()}
                           </div>
 
-                          {/* Auto-publish toggle */}
-                          <div className="flex items-center justify-between px-3 py-2.5 border-t" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}>
-                            <div>
-                              <span className="text-[12px] font-medium" style={{ color: "var(--text)" }}>Auto-publish on approval</span>
-                              <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                                {selected.autoPublishOnApproval ? "Post goes live at scheduled time once approved" : "Approver must manually publish after approving"}
-                              </p>
-                            </div>
-                            <Toggle on={selected.autoPublishOnApproval} onChange={v => update("autoPublishOnApproval", v)} />
+                          {/* Auto-publish is always ON — no toggle needed */}
+                          <div className="flex items-center gap-2 px-3 py-2.5 border-t" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Auto-publish always on — posts go live at their scheduled time once approved</span>
                           </div>
                         </>
                       )}
@@ -1102,13 +1491,10 @@ export default function PageSettings() {
                     <div className="text-[10px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: "var(--text-muted)" }}>Posting Schedule</div>
                     <div className="space-y-3">
 
-                      {/* Auto-post toggle */}
-                      <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: "var(--bg)" }}>
-                        <div>
-                          <div className="text-[13px] font-medium" style={{ color: "var(--text)" }}>Auto-post</div>
-                          <div className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>Automatically publish when slot arrives</div>
-                        </div>
-                        <Toggle on={selected.autoPost} onChange={v => update("autoPost", v)} />
+                      {/* Auto-publish always on — no toggle */}
+                      <div className="flex items-center gap-2 p-3 rounded-xl" style={{ backgroundColor: "var(--bg)" }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--success)", flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>
+                        <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>Auto-publish always on — posts go live at their scheduled time once approved</span>
                       </div>
 
                       {/* Post interval */}
@@ -1256,15 +1642,15 @@ export default function PageSettings() {
 
                 {/* ── Save footer ── */}
                 <div className="px-5 py-4 border-t flex items-center justify-between" style={{ borderColor: "var(--border)", backgroundColor: "var(--surface-hover)" }}>
-                  <button className="text-[12px] font-medium text-red-400">Disconnect Page</button>
+                  <button className="text-[12px] font-medium text-red-400">Retire ID</button>
                   <div className="flex items-center gap-3">
-                    {saved && (
+                    {panelSaved && (
                       <span className="text-[12px] font-medium text-green-400 flex items-center gap-1">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                         Saved
                       </span>
                     )}
-                    <button onClick={handleSave} disabled={!hasChanges}
+                    <button onClick={handlePanelSave} disabled={!hasChanges}
                       className="px-5 py-2 rounded-xl text-[13px] font-semibold text-white transition-opacity disabled:opacity-30"
                       style={{ backgroundColor: "var(--primary)" }}>
                       Save Changes
@@ -1287,6 +1673,31 @@ export default function PageSettings() {
 
       {showCreateBatch && <BatchModal onSave={d => { setBatches(prev => [...prev, { ...d, id: `b${Date.now()}` }]); setShowCreateBatch(false); }} onClose={() => setShowCreateBatch(false)} />}
       {editingBatch && <BatchModal batch={editingBatch} onSave={d => { setBatches(prev => prev.map(b => b.id === editingBatch.id ? { ...d, id: b.id } : b)); setEditingBatch(null); }} onDelete={() => { setBatches(prev => prev.filter(b => b.id !== editingBatch.id)); setEditingBatch(null); }} onClose={() => setEditingBatch(null)} />}
+
+      {/* Approval guard modal */}
+      {showApprovalGuard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.7)" }}>
+          <div className="w-full max-w-sm rounded-2xl p-6 space-y-4" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "rgba(251,191,36,0.12)" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div>
+                <div className="text-[14px] font-semibold" style={{ color: "var(--text)" }}>No approvers assigned</div>
+                <div className="text-[12px] mt-0.5" style={{ color: "var(--text-muted)" }}>Approval cannot be enabled until at least one Approver is assigned to this batch.</div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowApprovalGuard(false)} className="flex-1 px-4 py-2.5 rounded-xl text-[13px] font-medium" style={{ backgroundColor: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-muted)" }}>
+                Cancel
+              </button>
+              <a href="/settings/account?tab=team" onClick={() => setShowApprovalGuard(false)} className="flex-1 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white text-center" style={{ backgroundColor: "var(--primary)" }}>
+                Add Approver
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import { useRole } from "@/contexts/RoleContext";
 
 interface Draft {
   id: string;
@@ -13,14 +14,19 @@ interface Draft {
   createdAt: string;
   source: "bulk-upload" | "single-post";
   comments: { text: string; delay: string }[];
+  publisherId?: string;
 }
+
+const AVATAR_TO_PAGE_ID: Record<string, string> = {
+  HU: "hu", LC: "lc", DH: "dh", TB: "tb", FF: "ff", MM: "mm", KH: "khn",
+};
 
 const DRAFT_DATA: Draft[] = [
   { id: "d1",  thumbnail: "", caption: "The forgotten queen who ruled an empire for 40 years — and history erased her from the books completely", page: { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" }, platforms: ["fb","ig"], type: "photo", createdAt: "Today, 9:14 AM",  source: "bulk-upload", comments: [{ text: "Thread comment 1: The real story behind her reign", delay: "0m" }, { text: "Thread comment 2: Why historians ignored her for centuries", delay: "5m" }] },
-  { id: "d2",  thumbnail: "", caption: "POV: Your code works on the first try but you don't trust it at all", page: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6" }, platforms: ["fb","ig","th"], type: "reel", createdAt: "Today, 8:52 AM",  source: "single-post", comments: [] },
-  { id: "d3",  thumbnail: "", caption: "5 exercises you're doing wrong — and the simple fix that makes them 3x more effective", page: { name: "Fitness Factory", avatar: "FF", color: "#EC4899" }, platforms: ["fb"], type: "reel", createdAt: "Today, 8:30 AM",  source: "bulk-upload", comments: [] },
+  { id: "d2",  thumbnail: "", caption: "POV: Your code works on the first try but you don't trust it at all", page: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6" }, platforms: ["fb","ig","th"], type: "reel", createdAt: "Today, 8:52 AM",  source: "single-post", comments: [], publisherId: "sarah" },
+  { id: "d3",  thumbnail: "", caption: "5 exercises you're doing wrong — and the simple fix that makes them 3x more effective", page: { name: "Fitness Factory", avatar: "FF", color: "#EC4899" }, platforms: ["fb"], type: "reel", createdAt: "Today, 8:30 AM",  source: "bulk-upload", comments: [], publisherId: "ahmed" },
   { id: "d4",  thumbnail: "", caption: "Apple just leaked their next chip — and it's not what anyone expected. Here's what the specs mean for you", page: { name: "TechByte", avatar: "TB", color: "#14B8A6" }, platforms: ["fb","ig","th"], type: "photo", createdAt: "Today, 7:45 AM",  source: "bulk-upload", comments: [] },
-  { id: "d5",  thumbnail: "", caption: "3 signs your body is telling you to drink more water — #3 will surprise most people", page: { name: "Daily Health Tips", avatar: "DH", color: "#6366F1" }, platforms: ["fb"], type: "photo", createdAt: "Today, 7:12 AM",  source: "single-post", comments: [{ text: "Your kidneys are working overtime to compensate", delay: "0m" }] },
+  { id: "d5",  thumbnail: "", caption: "3 signs your body is telling you to drink more water — #3 will surprise most people", page: { name: "Daily Health Tips", avatar: "DH", color: "#6366F1" }, platforms: ["fb"], type: "photo", createdAt: "Today, 7:12 AM",  source: "single-post", comments: [{ text: "Your kidneys are working overtime to compensate", delay: "0m" }], publisherId: "sarah" },
   { id: "d6",  thumbnail: "", caption: "The $5 coffee habit is NOT why you're broke. Here's where your money is actually going", page: { name: "Money Matters", avatar: "MM", color: "#F59E0B" }, platforms: ["fb","ig"], type: "photo", createdAt: "Yesterday, 11:30 PM", source: "bulk-upload", comments: [] },
   { id: "d7",  thumbnail: "", caption: "3,000-year-old artifact found in a farmer's field — experts still can't agree what it was used for", page: { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" }, platforms: ["fb","ig"], type: "photo", createdAt: "Yesterday, 10:15 PM", source: "bulk-upload", comments: [{ text: "Similar objects found in 4 other countries", delay: "0m" }, { text: "The leading theory (and why it might be wrong)", delay: "5m" }, { text: "What modern archaeologists think today", delay: "10m" }] },
   { id: "d8",  thumbnail: "", caption: "POV: You miss a typo in a work email and hit send before you notice", page: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6" }, platforms: ["fb","ig","th"], type: "reel", createdAt: "Yesterday, 9:40 PM", source: "single-post", comments: [] },
@@ -303,6 +309,22 @@ function PlatformIcon({ p }: { p: string }) {
 }
 
 export default function DraftsPage() {
+  const { role, batchConfig } = useRole();
+  const CURRENT_USER_ID = "sarah"; // simulated logged-in publisher for demo
+
+  // Role-scoped drafts: Publisher sees own drafts in batch; Approver sees all batch drafts; Owner/Manager sees all
+  const scopedDrafts = role === "owner" || role === "co-owner" || role === "manager"
+    ? DRAFT_DATA
+    : role === "publisher"
+      ? DRAFT_DATA.filter(d => {
+          const pid = AVATAR_TO_PAGE_ID[d.page.avatar] ?? "";
+          return batchConfig.pages.includes(pid) && (!d.publisherId || d.publisherId === CURRENT_USER_ID);
+        })
+      : DRAFT_DATA.filter(d => {
+          const pid = AVATAR_TO_PAGE_ID[d.page.avatar] ?? "";
+          return batchConfig.pages.includes(pid);
+        });
+
   // View
   const [viewMode, setViewMode] = useState<ViewMode>("compact");
   const [groupBy, setGroupBy] = useState<"none" | "page">("none");
@@ -345,7 +367,7 @@ export default function DraftsPage() {
 
   // Filtered + sorted
   const pageFilterActive = selectedPages.size > 0;
-  const filtered = simulateEmpty ? [] : DRAFT_DATA
+  const filtered = simulateEmpty ? [] : scopedDrafts
     .filter(d => !scheduledIds.has(d.id))
     .filter(d => pageFilterActive ? selectedPages.has(d.page.name) : true)
     .filter(d => filterType === "all" ? true : d.type === filterType)
@@ -462,6 +484,17 @@ export default function DraftsPage() {
         />
 
         <div className="px-8 pb-8">
+          {/* Role-scoped context banner */}
+          {role !== "owner" && role !== "manager" && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-4 text-[12px]" style={{ backgroundColor: "rgba(96,165,250,0.07)", border: "1px solid rgba(96,165,250,0.18)", color: "var(--text-secondary)" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              {role === "publisher"
+                ? <span>Showing <strong style={{ color: "#60A5FA" }}>your drafts only</strong> — drafts you uploaded to <strong style={{ color: "#60A5FA" }}>{batchConfig.label}</strong></span>
+                : <span>Showing all drafts in <strong style={{ color: "#60A5FA" }}>{batchConfig.label}</strong></span>
+              }
+            </div>
+          )}
+
           {/* ── Controls row ── */}
           <div className="flex items-center gap-3 mb-4 flex-wrap">
             {/* Filters — hidden in density view */}

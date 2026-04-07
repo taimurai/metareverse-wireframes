@@ -289,25 +289,37 @@ export function getEarningsData(period: Period, platform: Platform, scope = "all
 export interface TopContent {
   title: string;
   earnings: string;
+  earningsRaw: number;
   views: string;
+  viewsRaw: number;
+  reach: string;
+  clicks: string;
+  rpm: string;
+  reactions: string;
   type: string;
+  page: string;
+  date: string;
 }
 
 export function getTopContent(platform: Platform): TopContent[] {
   if (platform === "instagram") {
     return [
-      { title: "Kaja Kallas — Estonia's PM", earnings: "$1.55", views: "26.3K", type: "Reel" },
-      { title: "Norway Health Crisis", earnings: "$0.12", views: "1.4K", type: "Photo" },
-      { title: "Shirley Chisholm — 1968", earnings: "$0.04", views: "334", type: "Photo" },
+      { title: "Kaja Kallas — Estonia's PM",     earnings: "$1.55", earningsRaw: 1.55, views: "26.3K", viewsRaw: 26300, reach: "18.4K", clicks: "312",  rpm: "$5.90", reactions: "841",  type: "Reel",  page: "Home Universe",      date: "Apr 2, 2026" },
+      { title: "Norway Health Crisis",            earnings: "$0.12", earningsRaw: 0.12, views: "1.4K",  viewsRaw: 1400,  reach: "1.1K",  clicks: "28",   rpm: "$0.86", reactions: "62",   type: "Photo", page: "Daily Humour",       date: "Mar 28, 2026" },
+      { title: "Shirley Chisholm — 1968",         earnings: "$0.04", earningsRaw: 0.04, views: "334",   viewsRaw: 334,   reach: "290",   clicks: "9",    rpm: "$0.12", reactions: "18",   type: "Photo", page: "Home Universe",      date: "Mar 21, 2026" },
     ];
   }
   return [
-    { title: "Kaja Kallas — Estonia's PM during Ukraine invasion", earnings: "$3.88", views: "65.8K", type: "Photo" },
-    { title: "Norway's greatest public health crisis response", earnings: "$0.30", views: "3.4K", type: "Photo" },
-    { title: "Shirley Chisholm — First Black woman on convention floor", earnings: "$0.10", views: "835", type: "Photo" },
-    { title: "Motley Crue case at the Supreme Court", earnings: "$0.06", views: "431", type: "Photo" },
-    { title: "Sojourner Truth — Convention floor question, 1851", earnings: "$0.03", views: "320", type: "Photo" },
-    { title: "Rosalind Franklin — Photo 51 and DNA discovery", earnings: "$0.00", views: "46", type: "Photo" },
+    { title: "Kaja Kallas — Estonia's PM during Ukraine invasion",       earnings: "$3.88", earningsRaw: 3.88, views: "65.8K", viewsRaw: 65800, reach: "44.1K", clicks: "1.2K",  rpm: "$5.90", reactions: "2.8K",  type: "Photo", page: "Home Universe",      date: "Apr 2, 2026"  },
+    { title: "Norway's greatest public health crisis response",          earnings: "$0.30", earningsRaw: 0.30, views: "3.4K",  viewsRaw: 3400,  reach: "2.8K",  clicks: "94",    rpm: "$0.88", reactions: "147",   type: "Photo", page: "Daily Humour",       date: "Mar 31, 2026" },
+    { title: "Shirley Chisholm — First Black woman on convention floor", earnings: "$0.10", earningsRaw: 0.10, views: "835",   viewsRaw: 835,   reach: "701",   clicks: "21",    rpm: "$0.12", reactions: "38",    type: "Photo", page: "Home Universe",      date: "Mar 28, 2026" },
+    { title: "Motley Crue case at the Supreme Court",                    earnings: "$0.06", earningsRaw: 0.06, views: "431",   viewsRaw: 431,   reach: "380",   clicks: "11",    rpm: "$0.14", reactions: "19",    type: "Photo", page: "Luxury Cars Daily",  date: "Mar 26, 2026" },
+    { title: "Sojourner Truth — Convention floor question, 1851",        earnings: "$0.03", earningsRaw: 0.03, views: "320",   viewsRaw: 320,   reach: "278",   clicks: "8",     rpm: "$0.09", reactions: "14",    type: "Reel",  page: "Kitchen Heroes",     date: "Mar 22, 2026" },
+    { title: "Rosalind Franklin — Photo 51 and DNA discovery",           earnings: "$0.00", earningsRaw: 0.00, views: "46",    viewsRaw: 46,    reach: "40",    clicks: "1",     rpm: "$0.00", reactions: "3",     type: "Photo", page: "Tech Bites",         date: "Mar 18, 2026" },
+    { title: "The WiFi password is on the wall — the wall",              earnings: "$0.28", earningsRaw: 0.28, views: "2.9K",  viewsRaw: 2900,  reach: "2.3K",  clicks: "78",    rpm: "$0.97", reactions: "201",   type: "Reel",  page: "Daily Humour",       date: "Mar 30, 2026" },
+    { title: "5 exercises you're doing wrong — and the simple fix",      earnings: "$0.19", earningsRaw: 0.19, views: "1.8K",  viewsRaw: 1800,  reach: "1.5K",  clicks: "52",    rpm: "$1.06", reactions: "94",    type: "Reel",  page: "Fitness & Flow",     date: "Mar 27, 2026" },
+    { title: "Apple just leaked their next chip — and it's different",   earnings: "$0.14", earningsRaw: 0.14, views: "1.2K",  viewsRaw: 1200,  reach: "1.0K",  clicks: "88",    rpm: "$1.17", reactions: "67",    type: "Photo", page: "Tech Bites",         date: "Mar 24, 2026" },
+    { title: "Marie Curie — the notebook that's still radioactive",      earnings: "$0.08", earningsRaw: 0.08, views: "620",   viewsRaw: 620,   reach: "528",   clicks: "16",    rpm: "$0.13", reactions: "29",    type: "Photo", page: "Home Universe",      date: "Mar 20, 2026" },
   ];
 }
 

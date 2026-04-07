@@ -1,12 +1,14 @@
 "use client";
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import Header from "@/components/Header";
 import SparklineChart from "@/components/SparklineChart";
 import PlatformSwitcher from "@/components/PlatformSwitcher";
+import PageBatchSelector from "@/components/PageBatchSelector";
 import Link from "next/link";
 import { getRecentPosts, type Platform } from "@/data/reportingData";
+import { useRole, BATCH_CONFIG } from "@/contexts/RoleContext";
 
 type Period = "7d" | "28d" | "90d";
 
@@ -20,10 +22,23 @@ const PAGE_INFO: Record<string, { name: string; avatar: string; color: string; c
   khn: { name: "Know Her Name", avatar: "KH", color: "#0EA5E9", category: "Women's History", posts: 136, viewsBase: 77522, interactionsBase: 2641, clicksBase: 7417, earningsBase: 4.45 },
 };
 
+const ALL_PAGE_IDS = Object.keys(PAGE_INFO);
+
 function PageReportInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { role, batchConfig } = useRole();
   const pageId = searchParams.get("id") || "khn";
   const pageInfo = PAGE_INFO[pageId] || PAGE_INFO.khn;
+
+  const visibleIds = role === "owner" || role === "co-owner"
+    ? ALL_PAGE_IDS
+    : ALL_PAGE_IDS.filter(id => batchConfig.pages.includes(id));
+  const currentIndex = visibleIds.indexOf(pageId);
+  const prevId = currentIndex > 0 ? visibleIds[currentIndex - 1] : null;
+  const nextId = currentIndex < visibleIds.length - 1 ? visibleIds[currentIndex + 1] : null;
+
+  const navigateTo = (id: string) => router.push(`/reports/page?id=${id}`);
 
   const [period, setPeriod] = useState<Period>("28d");
   const [platform, setPlatform] = useState<Platform>("facebook");
@@ -67,10 +82,41 @@ function PageReportInner() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4">
-        <Link href="/reports" className="text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Insights</Link>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><polyline points="9 18 15 12 9 6"/></svg>
-        <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>{pageInfo.name}</span>
+      {/* Breadcrumb + Page Switcher */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Link href="/reports" className="text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Insights</Link>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}><polyline points="9 18 15 12 9 6"/></svg>
+          <PageBatchSelector
+            selected={pageId}
+            onChange={(id) => navigateTo(id)}
+            mode="page-only"
+          />
+        </div>
+
+        {/* Prev / Next arrows */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => prevId && navigateTo(prevId)}
+            disabled={!prevId}
+            title={prevId ? `← ${PAGE_INFO[prevId].name}` : ""}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors disabled:opacity-30"
+            style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)" }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            {prevId && <span className="max-w-[80px] truncate hidden sm:inline">{PAGE_INFO[prevId].name}</span>}
+          </button>
+          <button
+            onClick={() => nextId && navigateTo(nextId)}
+            disabled={!nextId}
+            title={nextId ? `${PAGE_INFO[nextId].name} →` : ""}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors disabled:opacity-30"
+            style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)" }}
+          >
+            {nextId && <span className="max-w-[80px] truncate hidden sm:inline">{PAGE_INFO[nextId].name}</span>}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
       </div>
 
       <Header

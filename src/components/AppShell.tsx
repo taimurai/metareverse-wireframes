@@ -6,7 +6,7 @@ import DesktopOnlyBanner from "@/components/DesktopOnlyBanner";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { RoleProvider } from "@/contexts/RoleContext";
 
-const AUTH_ROUTES = ["/login", "/signup", "/forgot-password", "/onboarding"];
+const AUTH_ROUTES = ["/login", "/signup", "/forgot-password", "/onboarding", "/admin"];
 
 const MOBILE_ALLOWED_ROUTES = ["/", "/reports", "/reports/results", "/reports/earnings", "/reports/page", "/failed-posts"];
 

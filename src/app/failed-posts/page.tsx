@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Header from "@/components/Header";
+import { useRole } from "@/contexts/RoleContext";
 
 type FailCategory = "retry" | "reconnect" | "edit";
 type ViewMode = "compact" | "visual";
@@ -8,6 +9,7 @@ type ViewMode = "compact" | "visual";
 interface FailedPost {
   id: string;
   caption: string;
+  publisherId?: string;
   page: { name: string; avatar: string; color: string };
   platforms: string[];
   scheduledAt: string;
@@ -31,11 +33,11 @@ const FAILED_POSTS: FailedPost[] = [
   { id: "f2", caption: "3 ancient civilizations that disappeared overnight — and nobody knows why...",
     page: { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" }, platforms: ["facebook","instagram","threads"],
     scheduledAt: "Yesterday, 11:00 PM", failedAt: "Yesterday, 11:01 PM", category: "retry",
-    message: "Temporary issue with publishing. Safe to retry.", type: "photo" },
+    message: "Temporary issue with publishing. Safe to retry.", type: "photo", publisherId: "sarah" },
   { id: "f3", caption: "This workout trick burns 3x more calories — but trainers won't tell you...",
     page: { name: "Fitness Factory", avatar: "FF", color: "#EC4899" }, platforms: ["facebook"],
     scheduledAt: "Yesterday, 7:30 PM", failedAt: "Yesterday, 7:31 PM", category: "edit",
-    message: "Image didn't meet platform guidelines. Edit the media and requeue.", type: "photo" },
+    message: "Image didn't meet platform guidelines. Edit the media and requeue.", type: "photo", publisherId: "ahmed" },
   { id: "f4", caption: "POV: Your code works on the first try but you don't trust it...",
     page: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6" }, platforms: ["facebook","instagram"],
     scheduledAt: "Mar 25, 5:00 PM", failedAt: "Mar 25, 5:02 PM", category: "retry",
@@ -63,11 +65,18 @@ const ALL_PAGES = [
   { name: "TechByte",        avatar: "TB", color: "#14B8A6", followers: "341K" },
 ];
 
+const CURRENT_USER_ID = "sarah";
+
 export default function FailedPosts() {
-  const [posts, setPosts] = useState(FAILED_POSTS);
+  const { role } = useRole();
+  const initialPosts = role === "publisher"
+    ? FAILED_POSTS.filter(p => p.publisherId === CURRENT_USER_ID)
+    : FAILED_POSTS;
+  const [posts, setPosts] = useState(initialPosts);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filterCat, setFilterCat] = useState<string>("all");
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+  const [retryToast, setRetryToast] = useState<{ succeeded: number; failed: number } | null>(null);
   const [simulateEmpty, setSimulateEmpty] = useState(false);
 
   // New state
@@ -114,6 +123,22 @@ export default function FailedPosts() {
     }, 1200);
   };
 
+  const handleBulkRetry = (ids: string[]) => {
+    const retryable = ids.filter(id => posts.find(p => p.id === id)?.category === "retry");
+    if (retryable.length === 0) return;
+    retryable.forEach(id => setRetryingIds(prev => new Set(prev).add(id)));
+    setTimeout(() => {
+      // Simulate: all retryable succeed, non-retryable stay
+      const succeeded = retryable.length;
+      const stillFailing = ids.length - retryable.length;
+      setPosts(prev => prev.filter(p => !retryable.includes(p.id)));
+      setRetryingIds(prev => { const n = new Set(prev); retryable.forEach(id => n.delete(id)); return n; });
+      setSelectedIds(new Set());
+      setRetryToast({ succeeded, failed: stillFailing });
+      setTimeout(() => setRetryToast(null), 4000);
+    }, 1500);
+  };
+
   const handleMoveToDrafts = (id: string) => {
     setPosts(prev => prev.filter(p => p.id !== id));
     setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
@@ -136,6 +161,13 @@ export default function FailedPosts() {
   return (
     <div className="flex flex-col">
       <Header />
+      {/* Bulk retry summary toast */}
+      {retryToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl text-sm font-medium" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}>
+          <span style={{ color: "#4ADE80" }}>✓ {retryToast.succeeded} succeeded</span>
+          {retryToast.failed > 0 && <><span style={{ color: "var(--border)" }}>·</span><span style={{ color: "#EF4444" }}>{retryToast.failed} still failing</span></>}
+        </div>
+      )}
       <main className="flex-1 p-8 max-w-[1400px] mx-auto w-full">
         {/* Wireframe toggle */}
         <div className="flex justify-end mb-2">
@@ -161,7 +193,7 @@ export default function FailedPosts() {
           {selectedIds.size > 0 && (
             <div className="flex gap-2">
               <button
-                onClick={() => { selectedIds.forEach(id => { const p = posts.find(x => x.id === id); if (p?.category === "retry") handleRetry(id); }); }}
+                onClick={() => handleBulkRetry([...selectedIds])}
                 className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white"
                 style={{ backgroundColor: "var(--primary)" }}>
                 Retry Selected ({[...selectedIds].filter(id => posts.find(p => p.id === id)?.category === "retry").length})
@@ -193,7 +225,7 @@ export default function FailedPosts() {
               <span className="text-sm font-medium text-amber-400">{retryCount} post{retryCount > 1 ? "s" : ""} can be retried now</span>
               <span className="text-xs block mt-0.5" style={{ color: "var(--text-muted)" }}>These were temporary issues — safe to retry</span>
             </div>
-            <button onClick={() => { posts.filter(p => p.category === "retry").forEach(p => handleRetry(p.id)); }}
+            <button onClick={() => handleBulkRetry(posts.filter(p => p.category === "retry").map(p => p.id))}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-400 border border-amber-400/30 hover:bg-amber-400/10 transition-colors">
               Retry All
             </button>

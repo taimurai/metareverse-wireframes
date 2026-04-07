@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import { useRole } from "@/contexts/RoleContext";
 
 type ApprovalStatus = "pending" | "approved" | "rejected" | "changes_requested";
 
@@ -10,14 +11,22 @@ interface ApprovalPost {
   thumbnail: string;
   caption: string;
   page: { name: string; avatar: string; color: string };
+  pageId: string;
   platforms: string[];
   type: "photo" | "reel";
   submittedBy: string;
   submittedAt: string;
   scheduledFor: string;
+  isOverdue?: boolean;
+  activeHoursStart?: string;
+  activeHoursEnd?: string;
+  nextActiveSlot?: string;
   status: ApprovalStatus;
   approvalNote?: string;
   threadComment?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  history?: { action: "submitted" | "approved" | "rejected" | "changes_requested" | "resubmitted"; by: string; at: string; note?: string }[];
 }
 
 const MOCK_POSTS: ApprovalPost[] = [
@@ -26,11 +35,16 @@ const MOCK_POSTS: ApprovalPost[] = [
     thumbnail: "",
     caption: "The forgotten queen who ruled an empire for 40 years — and history erased her from the books completely",
     page: { name: "History Uncovered", avatar: "HU", color: "#FF6B2B" },
+    pageId: "hu",
     platforms: ["fb", "ig"],
     type: "photo",
     submittedBy: "Sarah Khan",
     submittedAt: "2 hours ago",
     scheduledFor: "Today, 3:00 PM EST",
+    isOverdue: true,
+    activeHoursStart: "8:00 AM",
+    activeHoursEnd: "10:00 PM",
+    nextActiveSlot: "Tomorrow, 8:00 AM EST",
     status: "pending",
     threadComment: "Thread: The real story behind her reign and why historians ignored her for centuries",
   },
@@ -39,11 +53,16 @@ const MOCK_POSTS: ApprovalPost[] = [
     thumbnail: "",
     caption: "POV: Your code works on the first try but you don't trust it at all 😭",
     page: { name: "Laugh Central", avatar: "LC", color: "#8B5CF6" },
+    pageId: "lc",
     platforms: ["fb", "ig", "th"],
     type: "reel",
     submittedBy: "Ahmed Raza",
     submittedAt: "4 hours ago",
     scheduledFor: "Today, 4:30 PM EST",
+    isOverdue: true,
+    activeHoursStart: "9:00 AM",
+    activeHoursEnd: "11:00 PM",
+    nextActiveSlot: "Tomorrow, 9:00 AM EST",
     status: "pending",
   },
   {
@@ -51,6 +70,7 @@ const MOCK_POSTS: ApprovalPost[] = [
     thumbnail: "",
     caption: "5 exercises you're doing wrong — and the simple fix that makes them 3x more effective",
     page: { name: "Fitness Factory", avatar: "FF", color: "#EC4899" },
+    pageId: "ff",
     platforms: ["fb"],
     type: "reel",
     submittedBy: "Sarah Khan",
@@ -63,6 +83,7 @@ const MOCK_POSTS: ApprovalPost[] = [
     thumbnail: "",
     caption: "Apple just leaked their next chip — and it's not what anyone expected",
     page: { name: "TechByte", avatar: "TB", color: "#14B8A6" },
+    pageId: "tb",
     platforms: ["fb", "ig", "th"],
     type: "photo",
     submittedBy: "Ahmed Raza",
@@ -70,12 +91,19 @@ const MOCK_POSTS: ApprovalPost[] = [
     scheduledFor: "Today, 5:00 PM EST",
     status: "approved",
     approvalNote: "Looks great — timely and on-brand.",
+    reviewedBy: "Sarah Khan",
+    reviewedAt: "Yesterday, 6:45 PM",
+    history: [
+      { action: "submitted", by: "Ahmed Raza", at: "Yesterday, 6:00 PM" },
+      { action: "approved", by: "Sarah Khan", at: "Yesterday, 6:45 PM", note: "Looks great — timely and on-brand." },
+    ],
   },
   {
     id: "ap5",
     thumbnail: "",
     caption: "The $5 coffee habit is NOT why you're broke. Here's where your money is actually going",
     page: { name: "Money Matters", avatar: "MM", color: "#F59E0B" },
+    pageId: "mm",
     platforms: ["fb", "ig"],
     type: "photo",
     submittedBy: "Sarah Khan",
@@ -83,12 +111,19 @@ const MOCK_POSTS: ApprovalPost[] = [
     scheduledFor: "Tomorrow, 9:00 AM EST",
     status: "changes_requested",
     approvalNote: "Caption is good but add a hook in the first line — make it punchier before the reveal.",
+    reviewedBy: "Taimur Asghar",
+    reviewedAt: "Yesterday, 5:10 PM",
+    history: [
+      { action: "submitted", by: "Sarah Khan", at: "Yesterday, 4:30 PM" },
+      { action: "changes_requested", by: "Taimur Asghar", at: "Yesterday, 5:10 PM", note: "Caption is good but add a hook in the first line — make it punchier before the reveal." },
+    ],
   },
   {
     id: "ap6",
     thumbnail: "",
     caption: "3 signs your body is telling you to drink more water",
     page: { name: "Daily Health Tips", avatar: "DH", color: "#6366F1" },
+    pageId: "dh",
     platforms: ["fb"],
     type: "photo",
     submittedBy: "Ahmed Raza",
@@ -96,6 +131,14 @@ const MOCK_POSTS: ApprovalPost[] = [
     scheduledFor: "Today, 6:00 PM EST",
     status: "rejected",
     approvalNote: "We already posted very similar content last week. Please create something fresh — check the queue before submitting.",
+    reviewedBy: "Taimur Asghar",
+    reviewedAt: "Yesterday, 2:45 PM",
+    history: [
+      { action: "submitted", by: "Ahmed Raza", at: "Yesterday, 2:00 PM" },
+      { action: "changes_requested", by: "Taimur Asghar", at: "Yesterday, 2:20 PM", note: "Check for duplicate content before submitting." },
+      { action: "resubmitted", by: "Ahmed Raza", at: "Yesterday, 2:35 PM" },
+      { action: "rejected", by: "Taimur Asghar", at: "Yesterday, 2:45 PM", note: "We already posted very similar content last week. Please create something fresh — check the queue before submitting." },
+    ],
   },
 ];
 
@@ -119,11 +162,27 @@ function ReviewModal({ post, onClose, onDecide }: {
 }) {
   const [note, setNote] = useState("");
   const [deciding, setDeciding] = useState<ApprovalStatus | null>(null);
+  const [overdueStep, setOverdueStep] = useState(false);
+  const [overdueAction, setOverdueAction] = useState<"next-slot" | "publish-now">("next-slot");
 
   const handleDecide = (decision: ApprovalStatus) => {
+    if (decision === "approved" && post.isOverdue && !overdueStep) {
+      setOverdueStep(true);
+      return;
+    }
     setDeciding(decision);
     setTimeout(() => { onDecide(post.id, decision, note); onClose(); }, 300);
   };
+
+  const confirmOverdue = () => {
+    setDeciding("approved");
+    const scheduleNote = overdueAction === "next-slot"
+      ? `Rescheduled to next Active Hours slot: ${post.nextActiveSlot}`
+      : "Published immediately (overdue schedule bypassed)";
+    setTimeout(() => { onDecide(post.id, "approved", note ? `${note} — ${scheduleNote}` : scheduleNote); onClose(); }, 300);
+  };
+
+  const isCurrentlyOutsideActiveHours = true; // mock: approving at 2:30 AM
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}>
@@ -191,7 +250,85 @@ function ReviewModal({ post, onClose, onDecide }: {
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Overdue fallback panel */}
+        {overdueStep ? (
+          <div className="px-6 py-5 border-t flex-shrink-0 flex flex-col gap-4" style={{ borderColor: "var(--border)" }}>
+            <div className="flex items-start gap-3 px-4 py-3 rounded-xl" style={{ backgroundColor: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)" }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" strokeWidth="2" className="mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <div>
+                <p className="text-[12px] font-semibold" style={{ color: "#FBBF24" }}>Scheduled time has passed</p>
+                <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                  This post was due <strong style={{ color: "var(--text-secondary)" }}>{post.scheduledFor}</strong>. Choose how to handle it:
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {/* Option 1: Next Active Hours slot */}
+              <button
+                onClick={() => setOverdueAction("next-slot")}
+                className="flex items-start gap-3 px-4 py-3.5 rounded-xl text-left transition-all"
+                style={{
+                  border: `2px solid ${overdueAction === "next-slot" ? "var(--primary)" : "var(--border)"}`,
+                  backgroundColor: overdueAction === "next-slot" ? "var(--primary-muted)" : "var(--surface-hover)",
+                }}>
+                <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ borderColor: overdueAction === "next-slot" ? "var(--primary)" : "var(--border)" }}>
+                  {overdueAction === "next-slot" && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--primary)" }} />}
+                </div>
+                <div>
+                  <p className="text-[12.5px] font-semibold" style={{ color: "var(--text)" }}>Reschedule to next Active Hours slot</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                    Post will publish at <strong style={{ color: "var(--text-secondary)" }}>{post.nextActiveSlot}</strong>
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-md font-semibold" style={{ backgroundColor: "rgba(74,222,128,0.12)", color: "#4ADE80" }}>Recommended</span>
+                  </p>
+                  <p className="text-[10.5px] mt-1" style={{ color: "var(--text-muted)" }}>Active Hours: {post.activeHoursStart} – {post.activeHoursEnd}</p>
+                </div>
+              </button>
+
+              {/* Option 2: Publish now */}
+              <button
+                onClick={() => setOverdueAction("publish-now")}
+                className="flex items-start gap-3 px-4 py-3.5 rounded-xl text-left transition-all"
+                style={{
+                  border: `2px solid ${overdueAction === "publish-now" ? "#f97316" : "var(--border)"}`,
+                  backgroundColor: overdueAction === "publish-now" ? "rgba(249,115,22,0.06)" : "var(--surface-hover)",
+                }}>
+                <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ borderColor: overdueAction === "publish-now" ? "#f97316" : "var(--border)" }}>
+                  {overdueAction === "publish-now" && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "#f97316" }} />}
+                </div>
+                <div>
+                  <p className="text-[12.5px] font-semibold" style={{ color: "var(--text)" }}>Publish immediately</p>
+                  {isCurrentlyOutsideActiveHours && (
+                    <p className="text-[11px] mt-0.5 flex items-center gap-1" style={{ color: "#f97316" }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      Outside Active Hours ({post.activeHoursStart} – {post.activeHoursEnd}) — may underperform
+                    </p>
+                  )}
+                  <p className="text-[10.5px] mt-1" style={{ color: "var(--text-muted)" }}>Bypasses Active Hours. Use only for time-sensitive content.</p>
+                </div>
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setOverdueStep(false)}
+                className="px-4 py-2.5 rounded-xl text-[12px] font-medium"
+                style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                ← Back
+              </button>
+              <button
+                onClick={confirmOverdue}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all"
+                style={{
+                  backgroundColor: deciding === "approved" ? "#16a34a" : overdueAction === "publish-now" ? "#f97316" : "#22c55e",
+                  boxShadow: overdueAction === "publish-now" ? "0 2px 10px rgba(249,115,22,0.3)" : "0 2px 10px rgba(34,197,94,0.3)",
+                }}>
+                {overdueAction === "next-slot" ? `✓ Approve & Reschedule to ${post.nextActiveSlot}` : "✓ Approve & Publish Now"}
+              </button>
+            </div>
+          </div>
+        ) : (
+        /* Normal actions */
         <div className="px-6 py-4 border-t flex gap-2 flex-shrink-0" style={{ borderColor: "var(--border)" }}>
           <button
             onClick={() => handleDecide("rejected")}
@@ -212,23 +349,37 @@ function ReviewModal({ post, onClose, onDecide }: {
             ✓ Approve
           </button>
         </div>
+        )}
       </div>
     </div>
   );
 }
 
 export default function ApprovalsPage() {
+  const { role, batchConfig } = useRole();
   const [tab, setTab] = useState<"pending" | "approved" | "rejected" | "changes_requested">("pending");
   const [posts, setPosts] = useState<ApprovalPost[]>(MOCK_POSTS);
+  const scopedPosts = role === "owner" || role === "co-owner" || role === "manager"
+    ? posts
+    : posts.filter(p => batchConfig.pages.includes(p.pageId));
   const [reviewing, setReviewing] = useState<ApprovalPost | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
   const [pageFilter, setPageFilter] = useState<string>("all");
+  const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
+  const toggleHistory = (id: string) => setExpandedHistory(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
   const decide = (id: string, decision: ApprovalStatus, note: string) => {
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, status: decision, approvalNote: note || p.approvalNote } : p));
+    const now = new Date();
+    const reviewedAt = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) + " today";
+    setPosts(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      const newEvent = { action: decision as "approved" | "rejected" | "changes_requested", by: "Taimur Asghar", at: reviewedAt, note: note || undefined };
+      const submitEvent = p.history ? [] : [{ action: "submitted" as const, by: p.submittedBy, at: p.submittedAt }];
+      return { ...p, status: decision, approvalNote: note || p.approvalNote, reviewedBy: "Taimur Asghar", reviewedAt, history: [...submitEvent, ...(p.history ?? []), newEvent] };
+    }));
     const label = decision === "approved" ? "Post approved" : decision === "rejected" ? "Post rejected" : "Changes requested";
     showToast(label);
   };
@@ -240,14 +391,14 @@ export default function ApprovalsPage() {
     showToast(`${count} post${count > 1 ? "s" : ""} approved`);
   };
 
-  const filtered = posts.filter(p => {
+  const filtered = scopedPosts.filter(p => {
     if (p.status !== tab) return false;
     if (pageFilter !== "all" && p.page.name !== pageFilter) return false;
     return true;
   });
 
-  const pendingCount = posts.filter(p => p.status === "pending").length;
-  const allPages = [...new Set(posts.map(p => p.page.name))];
+  const pendingCount = scopedPosts.filter(p => p.status === "pending").length;
+  const allPages = [...new Set(scopedPosts.map(p => p.page.name))];
 
   const toggleSelect = (id: string) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
@@ -394,9 +545,12 @@ export default function ApprovalsPage() {
                             <div className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold text-white" style={{ backgroundColor: post.page.color }}>{post.page.avatar}</div>
                             {post.page.name}
                           </span>
-                          <span className="flex items-center gap-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                          <span className="flex items-center gap-1 text-[11px]" style={{ color: post.isOverdue ? "#FBBF24" : "var(--text-muted)" }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                             {post.scheduledFor}
+                            {post.isOverdue && (
+                              <span className="ml-1 px-1.5 py-0 rounded text-[9px] font-bold uppercase" style={{ backgroundColor: "rgba(251,191,36,0.15)", color: "#FBBF24" }}>Overdue</span>
+                            )}
                           </span>
                           <span className="flex items-center gap-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -418,6 +572,49 @@ export default function ApprovalsPage() {
                           <div className="mt-3 px-3 py-2.5 rounded-lg flex gap-2" style={{ backgroundColor: `${statusCfg.bg}`, border: `1px solid ${statusCfg.border}` }}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={statusCfg.color} strokeWidth="2" className="mt-0.5 flex-shrink-0"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                             <p className="text-[12px]" style={{ color: statusCfg.color }}>{post.approvalNote}</p>
+                          </div>
+                        )}
+                        {/* Audit trail */}
+                        {post.history && post.history.length > 0 && (
+                          <div className="mt-2">
+                            <button
+                              onClick={() => toggleHistory(post.id)}
+                              className="flex items-center gap-1.5 text-[10.5px] hover:opacity-80 transition-opacity"
+                              style={{ color: "var(--text-muted)" }}
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                              Activity ({post.history.length} event{post.history.length !== 1 ? "s" : ""})
+                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: expandedHistory.has(post.id) ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                            {expandedHistory.has(post.id) && (
+                              <div className="mt-2 ml-1 space-y-0 relative">
+                                <div className="absolute left-[5px] top-2 bottom-2 w-px" style={{ backgroundColor: "var(--border)" }} />
+                                {post.history.map((ev, i) => {
+                                  const evColor = ev.action === "approved" ? "#4ADE80" : ev.action === "rejected" ? "#EF4444" : ev.action === "changes_requested" ? "#FBBF24" : ev.action === "resubmitted" ? "#60A5FA" : "var(--text-muted)";
+                                  const evLabel = ev.action === "submitted" ? "Submitted" : ev.action === "approved" ? "Approved" : ev.action === "rejected" ? "Rejected" : ev.action === "changes_requested" ? "Changes requested" : "Resubmitted";
+                                  return (
+                                    <div key={i} className="flex gap-3 pb-2 relative">
+                                      <div className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5 z-10 flex items-center justify-center" style={{ backgroundColor: evColor, minWidth: 10, minHeight: 10, width: 10, height: 10, marginLeft: 1 }} />
+                                      <div>
+                                        <div className="text-[10.5px] font-medium" style={{ color: evColor }}>{evLabel}</div>
+                                        <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                                          by <strong style={{ color: "var(--text-secondary)" }}>{ev.by}</strong> · {ev.at}
+                                        </div>
+                                        {ev.note && (
+                                          <div className="mt-0.5 text-[10px] italic" style={{ color: "var(--text-muted)" }}>"{ev.note}"</div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {!post.history && post.reviewedBy && (
+                          <div className="mt-2 flex items-center gap-1.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                            Reviewed by <strong style={{ color: "var(--text-secondary)" }}>{post.reviewedBy}</strong> · {post.reviewedAt}
                           </div>
                         )}
                       </div>

@@ -11,7 +11,7 @@ interface PostData {
   scheduledAt: string;
   scheduledDate: string;
   type: "photo" | "reel" | "text";
-  status: "scheduled" | "publishing" | "failed" | "draft" | "published";
+  status: "scheduled" | "publishing" | "failed" | "draft" | "published" | "paused";
   comments: string[];
 }
 

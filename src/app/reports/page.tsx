@@ -11,7 +11,7 @@ import { useFakeLoading } from "@/hooks/useFakeLoading";
 import ReportsLoading from "./loading";
 
 export default function ReportingOverview() {
-  const { config } = useRole();
+  const { config, role } = useRole();
   const isLoading = useFakeLoading();
   const [period, setPeriod] = useState<Period>("28d");
   const [platform, setPlatform] = useState<Platform>("facebook");
@@ -29,7 +29,7 @@ export default function ReportingOverview() {
   return (
     <div>
       <Header
-        title="Insights"
+        title="Analytics"
         subtitle="Review performance results and more."
         actions={
           <div className="flex items-center gap-3">
@@ -54,8 +54,9 @@ export default function ReportingOverview() {
           { label: "Overview", href: "/reports", active: true },
           { label: "Results", href: "/reports/results", active: false },
           ...(config.canViewRevenue ? [{ label: "Earnings", href: "/reports/earnings", active: false }] : []),
-          { label: "By Posting ID", href: "/reports/id-performance", active: false },
+          ...(role !== "analyst" ? [{ label: "By Posting ID", href: "/reports/id-performance", active: false }] : []),
           { label: "Batches", href: "/reports/batches", active: false },
+          { label: "Audience", href: "/reports/audience", active: false },
         ].map((tab) => (
           <Link key={tab.label} href={tab.href} className="relative px-4 py-3 text-[13px] font-medium" style={{ color: tab.active ? "var(--primary)" : "var(--text-secondary)" }}>
             {tab.label}
@@ -75,9 +76,15 @@ export default function ReportingOverview() {
                 {scopeType === "all" ? "Cross-Page Revenue" : scopeType === "batch" ? "Batch Revenue" : "Page Revenue"}
               </span>
             </div>
-            <Link href="/reports/earnings" className="text-[12px] font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}>
-              Full Earnings →
-            </Link>
+            <div className="flex items-center gap-2">
+              <button className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg" style={{ background: "var(--surface-active)", color: "var(--text-secondary)" }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export CSV
+              </button>
+              <Link href="/reports/earnings" className="text-[12px] font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "var(--primary-muted)", color: "var(--primary)" }}>
+                Full Earnings →
+              </Link>
+            </div>
           </div>
 
           <div className="grid grid-cols-5 gap-6 mb-5">
