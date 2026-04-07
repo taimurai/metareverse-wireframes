@@ -70,6 +70,9 @@ const navItems = [
       { label: "Onboarding", href: "/onboarding", icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
       )},
+      { label: "Dashboard v3", href: "/dashboard-v3", icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"/></svg>
+      )},
       { label: "Dashboard v2", href: "/dashboard-v2", icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
       )},
@@ -81,7 +84,7 @@ const navItems = [
 ];
 
 // Which nav items are visible per role
-const WIREFRAME_ITEMS = ["Login / Signup","Onboarding","Page Report","Dashboard v2"];
+const WIREFRAME_ITEMS = ["Login / Signup","Onboarding","Page Report","Dashboard v2","Dashboard v3"];
 const NAV_VISIBILITY: Record<Role, string[]> = {
   owner:      ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account",...WIREFRAME_ITEMS],
   "co-owner": ["Dashboard","Bulk Upload","Single Post","Drafts","Approvals","Queue","Published","Failed Posts","Analytics","Page Settings","Connected IDs","Account",...WIREFRAME_ITEMS],
