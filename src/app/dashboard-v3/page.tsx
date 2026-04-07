@@ -599,11 +599,11 @@ export default function DashboardV3() {
                         style={{ borderBottom: i < filteredPages.length - 1 ? "1px solid var(--border)" : "none", backgroundColor: rowBg }}
                         onMouseEnter={e => { if (!isSelected && p.status !== "critical") e.currentTarget.style.backgroundColor = "var(--surface-hover)"; }}
                         onMouseLeave={e => { e.currentTarget.style.backgroundColor = rowBg; }}>
-                        <td className="pl-5 pr-3 py-3.5">
+                        <td className="pl-5 pr-3 py-4">
                           <input type="checkbox" checked={isSelected} onChange={() => togglePage(p.id)}
                             className="w-3 h-3 rounded cursor-pointer" style={{ accentColor: "var(--primary)" }} />
                         </td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-4">
                           <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[9px] font-bold shrink-0"
                               style={{ backgroundColor: p.color }}>{p.avatar}</div>
@@ -613,7 +613,7 @@ export default function DashboardV3() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-4">
                           <div className="flex items-center gap-1">
                             {health.platforms.map(pl => (
                               <span key={pl} className="text-[9px] font-bold px-1.5 py-0.5 rounded"
@@ -624,21 +624,21 @@ export default function DashboardV3() {
                             ))}
                           </div>
                         </td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-4">
                           <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                             style={{ background: statusBg, color: statusColor }}>
                             {p.status === "healthy" ? "Healthy" : p.status === "attention" ? "Attention" : "Critical"}
                           </span>
                         </td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-4">
                           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full"
                             style={{ background: monetBg, color: monetColor }}>{monetLabel}</span>
                         </td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-4">
                           <div className="font-semibold tabular-nums" style={{ color: "var(--text)" }}>{formatNum(p.views7d)}</div>
                           <div className="text-[10px]" style={{ color: p.viewsChange >= 0 ? "var(--success)" : "var(--error)" }}>{p.viewsChange >= 0 ? "↑" : "↓"} {Math.abs(p.viewsChange)}%</div>
                         </td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-4">
                           <div className="font-semibold tabular-nums" style={{ color: "var(--text)" }}>
                             {p.revenue > 0 ? `$${p.revenue >= 1000 ? (p.revenue/1000).toFixed(1)+"K" : p.revenue.toFixed(2)}` : "—"}
                           </div>
@@ -648,23 +648,23 @@ export default function DashboardV3() {
                             </div>
                           )}
                         </td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-4">
                           <div className="font-semibold tabular-nums" style={{ color: "var(--text)" }}>{p.rpm > 0 ? `$${p.rpm.toFixed(2)}` : "—"}</div>
                           {p.rpm > 0 && <div className="text-[10px]" style={{ color: p.rpmChange >= 0 ? "var(--success)" : "var(--error)" }}>{p.rpmChange >= 0 ? "↑" : "↓"} {Math.abs(p.rpmChange)}%</div>}
                         </td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-4">
                           <span className="font-semibold tabular-nums" style={{ color: "var(--text)" }}>{p.engRate}%</span>
                         </td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-4">
                           <span className="font-semibold tabular-nums" style={{ color: p.queueNext24h === 0 ? "var(--error)" : "var(--text)" }}>
                             {p.queueNext24h === 0 ? "Empty" : p.queueNext24h}
                           </span>
                         </td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-4">
                           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full"
                             style={{ background: payoutBg, color: payoutColor }}>{payoutLabel}</span>
                         </td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-4">
                           {issueCount > 0 ? (
                             <div className="flex items-center gap-1.5">
                               <div className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
@@ -682,9 +682,19 @@ export default function DashboardV3() {
               </table>
 
               <div className="px-6 py-3 flex items-center justify-between" style={{ borderTop: "1px solid var(--border)" }}>
-                <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                  {filteredPages.length} pages · {monetizedCount} monetized · ${(visiblePages.reduce((s,p) => s+p.revenue, 0)/1000).toFixed(1)}K total
-                </span>
+                <div className="flex items-center gap-4">
+                  <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                    {filteredPages.length} pages · {monetizedCount} monetized · ${(visiblePages.reduce((s,p) => s+p.revenue, 0)/1000).toFixed(1)}K total
+                  </span>
+                  <div className="flex items-center gap-3" style={{ borderLeft: "1px solid var(--border)", paddingLeft: 12 }}>
+                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>Issues key:</span>
+                    {[["F", "Flags"], ["©", "Copyright"], ["✗", "Failed posts"]].map(([icon, label]) => (
+                      <span key={icon} className="flex items-center gap-1 text-[10px]" style={{ color: "var(--text-muted)" }}>
+                        <span className="font-bold" style={{ color: "var(--text)" }}>{icon}</span> = {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
                 <Link href="/reports" className="text-[11px] font-semibold" style={{ color: "var(--primary)" }}>Full Analytics →</Link>
               </div>
             </div>
@@ -758,7 +768,7 @@ export default function DashboardV3() {
           </div>
 
           {/* ── RIGHT SIDEBAR (sticky) ── */}
-          <div className="flex flex-col gap-5" style={{ position: "sticky", top: 24 }}>
+          <div className="flex flex-col gap-6" style={{ position: "sticky", top: 24 }}>
 
             {/* Operations Pulse */}
             <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
@@ -812,7 +822,10 @@ export default function DashboardV3() {
             {/* Monetization Health */}
             <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
-                <div className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>Monetization Health</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>Monetization Health</div>
+                  <Link href="/reports/earnings" className="text-[10px]" style={{ color: "var(--primary)" }}>Deep dive →</Link>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-px" style={{ background: "var(--border)", borderBottom: "1px solid var(--border)" }}>
                 {[
@@ -844,7 +857,10 @@ export default function DashboardV3() {
             {/* Content & Platform Mix */}
             <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
-                <div className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>Content & Platform Mix</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>Content & Platform Mix</div>
+                  <Link href="/reports/results" className="text-[10px]" style={{ color: "var(--primary)" }}>Deep dive →</Link>
+                </div>
                 <div className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>Format balance · Views by platform</div>
               </div>
               <div className="px-5 py-4 space-y-4">
